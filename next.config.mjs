@@ -6,9 +6,6 @@ const nextConfig = {
   reactStrictMode: false,
   reactCompiler: true,
   devIndicators: false,
-  experimental: {
-    cssChunking: 'strict',
-  },
   // Resolve and transpile these so subpath exports (e.g. @pierre/trees/react)
   // resolve correctly when Next follows client-component imports from the
   // server, and so the worker chunk referenced by `new URL(...,
