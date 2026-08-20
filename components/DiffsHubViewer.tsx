@@ -29,6 +29,10 @@ import { isDraftAnnotation } from '@/lib/isDraftAnnotation';
 import { isDraftMetadata } from '@/lib/isDraftMetadata';
 import { isSavedAnnotation } from '@/lib/isSavedAnnotation';
 import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import {
+  classifyNonTextFile,
+  describeNonTextFile,
+} from '@/lib/nonTextFile';
 import type {
   CommentMetadata,
   DiffsHubDeletedCommentEvent,
@@ -403,6 +407,29 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
     }
   );
 
+  // A binary or zero-byte file parses to no hunks, so without this it renders
+  // as an empty card that looks like a failure. @pierre/diffs has no binary
+  // handling of its own, so the explanation has to come from here.
+  const renderHeaderMetadata = useStableCallback(
+    (item: CodeViewItem<CommentMetadata>) => {
+      if (item.type !== 'diff') return null;
+      const reason = classifyNonTextFile(item.fileDiff);
+      if (reason == null) return null;
+      return (
+        <span
+          className="text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] leading-none"
+          title={
+            reason === 'empty'
+              ? 'This file has no contents, so there is nothing to diff.'
+              : 'Binary files have no line-by-line diff.'
+          }
+        >
+          {describeNonTextFile(reason)}
+        </span>
+      );
+    }
+  );
+
   const renderHeaderPrefix = useStableCallback(
     (item: CodeViewItem<CommentMetadata>) => {
       if (item.type !== 'diff') {
@@ -480,6 +507,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       selectedLines={selectedLines}
       onSelectedLinesChange={handleSetSelection}
       renderAnnotation={renderCommentAnnotation}
+      renderHeaderMetadata={renderHeaderMetadata}
       renderHeaderPrefix={renderHeaderPrefix}
     />
   );
