@@ -24,9 +24,16 @@ export async function DiffsHubViewByPathPage({
   return (
     <div className="flex h-dvh flex-col gap-2">
       <ReviewUI
-        domain={route.domain}
-        initialUrl={route.url}
-        path={route.upstreamPath}
+        source={
+          route.kind === 'render-local'
+            ? { kind: 'local', target: route.target }
+            : {
+                kind: 'github',
+                domain: route.domain,
+                initialUrl: route.url,
+                path: route.upstreamPath,
+              }
+        }
       />
     </div>
   );

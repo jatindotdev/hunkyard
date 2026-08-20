@@ -154,3 +154,48 @@ describe('resolveDiffshubViewerRoute', () => {
     });
   });
 });
+
+describe('local targets', () => {
+  test('renders a local review without touching GitHub canonicalization', () => {
+    const route = resolveDiffshubViewerRoute(['local', 'main...feature'], undefined);
+    expect(route).toEqual({
+      kind: 'render-local',
+      target: 'main...feature',
+      canonicalPath: '/local/main...feature',
+    });
+  });
+
+  test('bare /local is the working tree', () => {
+    const route = resolveDiffshubViewerRoute(['local'], undefined);
+    expect(route).toEqual({
+      kind: 'render-local',
+      target: undefined,
+      canonicalPath: '/local',
+    });
+  });
+
+  test('an unencoded slashed revspec redirects to its canonical form', () => {
+    const route = resolveDiffshubViewerRoute(
+      ['local', 'origin', 'main...feature'],
+      undefined
+    );
+    expect(route.kind).toBe('redirect');
+    if (route.kind === 'redirect') {
+      expect(route.target).toBe('/local/origin%2Fmain...feature');
+    }
+  });
+
+  test('a local path is unaffected by the domain query param', () => {
+    // `domain` is a GitHub-side escape hatch and must not leak into local mode.
+    const route = resolveDiffshubViewerRoute(['local', 'HEAD'], 'tangled.org');
+    expect(route.kind).toBe('render-local');
+  });
+
+  test('GitHub paths still resolve as before', () => {
+    const route = resolveDiffshubViewerRoute(['owner', 'repo', 'pull', '7'], undefined);
+    expect(route.kind).toBe('render');
+    if (route.kind === 'render') {
+      expect(route.url).toBe('https://github.com/owner/repo/pull/7');
+    }
+  });
+})

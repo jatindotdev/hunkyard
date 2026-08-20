@@ -27,6 +27,8 @@ import {
 } from '@/components/themeController';
 import { preloadAvatars } from '@/lib/annotation';
 import { createGitHubDiffFileLoader } from '@/lib/githubDiffFileLoader';
+import { createLocalDiffFileLoader } from '@/lib/localDiffFileLoader';
+import { encodeLocalDiffPath } from '@/lib/localDiffSource';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
@@ -37,23 +39,45 @@ import type {
 } from '@/lib/types';
 import { upsertSavedCommentSidebarEntry } from '@/lib/upsertSavedCommentSidebarEntry';
 
+// Where the diff comes from. GitHub is described by a path on a host; a local
+// review is described by a git revspec, which is not a path and has no URL to
+// open, so the two cannot share one shape.
+export type ReviewSource =
+  | { kind: 'github'; domain?: string; initialUrl: string; path: string }
+  | { kind: 'local'; target: string | undefined };
+
 interface ReviewUIProps {
-  domain?: string;
-  initialUrl: string;
-  path: string;
+  source: ReviewSource;
 }
 
-export function ReviewUI({ domain, initialUrl, path }: ReviewUIProps) {
+export function ReviewUI({ source }: ReviewUIProps) {
   // Provide the diffshub-scoped theme context, then render the body BELOW it so
   // the diffs hook + selection hook can read the controller context.
   return (
     <ThemeSourceProvider controller={themeController}>
-      <ReviewUIInner domain={domain} initialUrl={initialUrl} path={path} />
+      <ReviewUIInner source={source} />
     </ThemeSourceProvider>
   );
 }
 
-function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
+function ReviewUIInner({ source }: ReviewUIProps) {
+  const isLocal = source.kind === 'local';
+  // `path` remains the loader's identity for the request and the fallback cache
+  // seed; for a local review that is the canonical /local/<spec> path.
+  const path = isLocal ? encodeLocalDiffPath(source.target) : source.path;
+  const domain = isLocal ? undefined : source.domain;
+  // A local diff has no upstream page, so there is nothing for the header's
+  // "open source" link to point at.
+  const initialUrl = isLocal ? '' : source.initialUrl;
+  const patchRequestUrl = isLocal
+    ? `/api/local-diff?${new URLSearchParams(
+        source.target == null ? {} : { target: source.target }
+      )}`
+    : `/api/diff?${new URLSearchParams(
+        source.domain == null || source.domain === ''
+          ? { path: source.path }
+          : { path: source.path, domain: source.domain }
+      )}`;
   useEffect(preloadAvatars, []);
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
@@ -136,16 +160,19 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<CodeViewHandle<CommentMetadata> | null>(null);
-  const loadDiffFiles = useMemo(
-    () =>
-      domain == null && hasGitHubToken
-        ? createGitHubDiffFileLoader(path, {
-            getAuthVersion: () => githubTokenVersionRef.current,
-            getToken: () => githubTokenRef.current,
-          })
-        : undefined,
-    [domain, hasGitHubToken, path]
-  );
+  const loadDiffFiles = useMemo(() => {
+    // Local expansion reads the repository directly, so it must not be gated on
+    // a GitHub token the way the GitHub loader is.
+    if (source.kind === 'local') {
+      return createLocalDiffFileLoader(source.target);
+    }
+    return domain == null && hasGitHubToken
+      ? createGitHubDiffFileLoader(path, {
+          getAuthVersion: () => githubTokenVersionRef.current,
+          getToken: () => githubTokenRef.current,
+        })
+      : undefined;
+  }, [domain, hasGitHubToken, path, source]);
   const handlePatchLoadStart = useCallback(() => {
     setFileTreeOverlayOpen(false);
   }, []);
@@ -170,6 +197,8 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     githubTokenVersion,
     onLoadStart: handlePatchLoadStart,
     path,
+    patchRequestUrl,
+    sendGitHubToken: !isLocal && (domain == null || domain === ''),
     viewerRef,
   });
 

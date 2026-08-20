@@ -1,3 +1,7 @@
+import {
+  encodeLocalDiffPath,
+  parseLocalDiffSource,
+} from './localDiffSource';
 import { normalizeGitHubPath } from './normalizeGitHubPath';
 
 const GITHUB_HOST = 'github.com';
@@ -9,7 +13,10 @@ export type DiffshubViewerRoute =
       upstreamPath: string;
       url: string;
       domain: string | undefined;
-    };
+    }
+  // A local review has no upstream URL and no domain: the target is a git
+  // revspec, not a path on a host.
+  | { kind: 'render-local'; target: string | undefined; canonicalPath: string };
 
 // Resolves the catch-all viewer route into either a redirect or the props the
 // viewer needs to render. Extracted from the route page so it can be unit
@@ -23,6 +30,21 @@ export function resolveDiffshubViewerRoute(
 ): DiffshubViewerRoute {
   if (pathSegments.length === 0) {
     return { kind: 'redirect', target: '/' };
+  }
+
+  // Local targets are matched before anything GitHub-shaped runs.
+  // normalizeGitHubPath would otherwise rewrite and trim a revspec, and the
+  // `https://github.com<path>` URL below is meaningless for a local diff.
+  const local = parseLocalDiffSource(pathSegments);
+  if (local != null) {
+    const canonicalPath = encodeLocalDiffPath(local.target);
+    const joined = `/${pathSegments.join('/')}`;
+    // Send an unencoded or oddly-spelled spec to its canonical form so the URL
+    // is stable and shareable between sessions.
+    if (canonicalPath !== joined) {
+      return { kind: 'redirect', target: canonicalPath };
+    }
+    return { kind: 'render-local', target: local.target, canonicalPath };
   }
 
   const domain =

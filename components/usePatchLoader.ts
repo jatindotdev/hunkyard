@@ -61,6 +61,15 @@ interface UsePatchLoaderOptions {
   githubTokenVersion?: number | string;
   onLoadStart(): void;
   path: string;
+  // The endpoint that answers with patch bytes. GitHub goes through
+  // /api/diff because the diff hosts send no CORS headers; a local review goes
+  // through /api/local-diff because it needs a process to run git. Supplied by
+  // the caller so this hook stays source-agnostic.
+  patchRequestUrl: string;
+  // Whether to attach the user's GitHub token. Never true for a local review:
+  // the local route has no use for it, and sending it would hand a credential
+  // to a git handler.
+  sendGitHubToken: boolean;
   viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
 }
 
@@ -87,6 +96,8 @@ export function usePatchLoader({
   githubTokenVersion = 0,
   onLoadStart,
   path,
+  patchRequestUrl,
+  sendGitHubToken,
   viewerRef,
 }: UsePatchLoaderOptions): UsePatchLoaderResult {
   const [initialItems, setInitialItems] = useState<
@@ -219,10 +230,6 @@ export function usePatchLoader({
   useEffect(() => {
     const patchRequestKey =
       domain == null || domain === '' ? path : `${domain}${path}`;
-    const patchSearchParams = new URLSearchParams({ path });
-    if (domain != null && domain !== '') {
-      patchSearchParams.set('domain', domain);
-    }
 
     const controller = new AbortController();
     const requestId = ++requestIdRef.current;
@@ -274,10 +281,10 @@ export function usePatchLoader({
         }
 
         const response = await fetch(
-          `/api/diff?${patchSearchParams}`,
+          patchRequestUrl,
           createPatchRequestInit(
             controller.signal,
-            domain == null || domain === '' ? getGitHubToken?.() : undefined
+            sendGitHubToken ? getGitHubToken?.() : undefined
           )
         );
 
@@ -500,6 +507,8 @@ export function usePatchLoader({
     githubTokenVersion,
     loadAttempt,
     onLoadStart,
+    patchRequestUrl,
+    sendGitHubToken,
     path,
     tryApplyLineHashTarget,
     viewerRef,
