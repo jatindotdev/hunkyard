@@ -20,3 +20,16 @@ overrides:
 allowBuilds:
   '@tailwindcss/oxide': true
   sharp: true
+
+# Refuse any release younger than 7 days (the value is in minutes). The window
+# right after publish is when a hijacked version is live and not yet caught, so
+# nothing enters the tree until it has been public a while. Upstream pierre
+# runs the same threshold.
+#
+# This genuinely bites, which is the point: it is why next is on 16.3.0 rather
+# than 16.3.1, postcss-import on 16.2.0 rather than 17.0.0, and
+# @hugeicons/core-free-icons on 4.2.3 rather than 4.3.0. It also pins
+# read-cache to 1.0.0 (2016) rather than the 1.0.1/1.0.2 that both appeared on
+# 2026-08-19 after ten years of silence -- exactly the shape this guards
+# against. Raise a version once it ages past the floor; do not add an exclude.
+minimumReleaseAge: 10080
