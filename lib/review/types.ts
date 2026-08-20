@@ -61,11 +61,12 @@ export interface Thread {
 }
 
 // All an annotation carries. The library gives annotations no id of their own
-// and requires `metadata` once it is parameterised, so the thread id is the
-// link between what is rendered and what is stored.
-export interface ThreadAnnotationMetadata {
-  threadId: string;
-}
+// and requires `metadata` once it is parameterised, so an id is the only link
+// between what is rendered and what is stored -- which is also the library's own
+// advice: key annotation state by a stable id, never by line number.
+export type ReviewAnnotationMetadata =
+  | { kind: 'thread'; threadId: string }
+  | { kind: 'draft'; draftId: string };
 
 // A thread being written that has no comment yet.
 export interface Draft {
