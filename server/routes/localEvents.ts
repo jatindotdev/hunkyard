@@ -4,7 +4,7 @@ import { isWatchableTarget, watchTarget } from '@/lib/git/watch';
 
 // Server-sent events telling the viewer when the diff it is showing has
 // changed. Only mutable targets are watched; a commit cannot change.
-export async function GET(request: Request): Promise<Response> {
+export async function handleLocalEvents(request: Request): Promise<Response> {
   const target = new URL(request.url).searchParams.get('target') ?? undefined;
 
   let repoRoot: string;

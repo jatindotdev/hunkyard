@@ -1,5 +1,4 @@
 import type { ChangeTypes } from '@pierre/diffs';
-import { type NextRequest } from 'next/server';
 import { resolveServerGitHubToken } from '@/lib/serverGitHubToken';
 
 import { loadGitHubDiffFiles } from '@/lib/githubDiffFileServer';
@@ -13,8 +12,8 @@ const CHANGE_TYPES = new Set<ChangeTypes>([
   'rename-pure',
 ]);
 
-export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams;
+export async function handleGitHubFile(request: Request): Promise<Response> {
+  const params = new URL(request.url).searchParams;
   const path = params.get('path');
   const name = params.get('name');
   const type = parseChangeType(params.get('type'));

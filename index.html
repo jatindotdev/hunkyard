@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Hunkyard</title>
+    <meta
+      name="description"
+      content="Review code changes from a GitHub pull request or a local branch, with a fast, virtualized, keyboard-driven interface."
+    />
+    <link rel="icon" href="/brand/icon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <script>
+      // Applies the stored theme before first paint so the page never flashes
+      // the wrong palette. Inlined rather than imported for that reason, which
+      // also means the theme-color literals below cannot be shared with
+      // ThemeProvider's SCHEME_THEME_COLOR -- keep them in sync.
+      (function applyInitialTheme() {
+        try {
+          const storedTheme = window.localStorage.getItem('theme');
+          const theme =
+            storedTheme === 'light' || storedTheme === 'dark'
+              ? storedTheme
+              : 'system';
+          const resolvedTheme =
+            theme === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : theme;
+          const root = document.documentElement;
+          root.classList.remove('light', 'dark');
+          root.classList.add(resolvedTheme);
+          root.style.colorScheme = resolvedTheme;
+
+          let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+          if (themeColorMeta == null) {
+            themeColorMeta = document.createElement('meta');
+            themeColorMeta.setAttribute('name', 'theme-color');
+            document.head.appendChild(themeColorMeta);
+          }
+          themeColorMeta.setAttribute(
+            'content',
+            resolvedTheme === 'dark' ? '#0a0a0a' : '#ffffff'
+          );
+        } catch {
+          // Ignore storage/media failures and let CSS defaults apply.
+        }
+      })();
+    </script>
+  </head>
+  <body class="diffshub">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

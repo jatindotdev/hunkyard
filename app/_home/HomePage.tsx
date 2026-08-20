@@ -1,5 +1,5 @@
 import { IconArrowRightShort, IconBrandGithub } from '@pierre/icons';
-import Link from 'next/link';
+import { Link } from '@/src/navigation';
 
 import { HomeFetchForm } from './HomeFetchForm';
 import { HomeGitHubTokenForm } from './HomeGitHubTokenForm';

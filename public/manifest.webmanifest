@@ -1,0 +1,15 @@
+{
+  "name": "Hunkyard",
+  "short_name": "Hunkyard",
+  "description": "Review code changes from a GitHub pull request or a local branch.",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "en",
+  "dir": "ltr",
+  "background_color": "#ffffff",
+  "theme_color": "#f7f7f7",
+  "categories": ["developer", "productivity"],
+  "icons": [{ "src": "/brand/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}

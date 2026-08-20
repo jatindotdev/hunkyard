@@ -17,7 +17,7 @@ import {
   IconSymbolDiffstat,
 } from '@pierre/icons';
 import { type ColorMode } from '@pierre/theming';
-import Link from 'next/link';
+import { Link } from '@/src/navigation';
 import {
   type CSSProperties,
   type Dispatch,

@@ -20,7 +20,7 @@ function textResponse(body: string, status: number): Response {
   });
 }
 
-export async function GET(request: Request): Promise<Response> {
+export async function handleLocalDiff(request: Request): Promise<Response> {
   const target = new URL(request.url).searchParams.get('target') ?? undefined;
 
   try {

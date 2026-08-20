@@ -65,8 +65,13 @@ function connect(wsUrl) {
     socket.addEventListener('open', () => resolve());
     socket.addEventListener('error', () => reject(new Error('socket error')));
   });
+  const listeners = [];
   socket.addEventListener('message', (event) => {
     const message = JSON.parse(event.data);
+    if (message.id == null) {
+      for (const listener of listeners) listener(message.method, message.params);
+      return;
+    }
     const entry = pending.get(message.id);
     if (entry == null) return;
     pending.delete(message.id);
@@ -79,7 +84,12 @@ function connect(wsUrl) {
       pending.set(id, { resolve, reject });
       socket.send(JSON.stringify({ id, method, params, sessionId }));
     });
-  return { ready, send, close: () => socket.close() };
+  return {
+    ready,
+    send,
+    onEvent: (listener) => listeners.push(listener),
+    close: () => socket.close(),
+  };
 }
 
 try {
@@ -94,9 +104,29 @@ try {
   const call = (method, params) => cdp.send(method, params, sessionId);
 
   await call('Page.enable');
-  const consoleErrors = [];
   await call('Runtime.enable');
   await call('Log.enable');
+
+  // Console output and uncaught exceptions, which are the difference between
+  // "nothing rendered" and knowing why.
+  const consoleErrors = [];
+  cdp.onEvent((method, params) => {
+    if (method === 'Runtime.consoleAPICalled' && ['error', 'warning'].includes(params.type)) {
+      consoleErrors.push(
+        `[console.${params.type}] ` +
+          params.args.map((a) => a.description ?? a.value ?? a.type).join(' ')
+      );
+    }
+    if (method === 'Runtime.exceptionThrown') {
+      const d = params.exceptionDetails;
+      consoleErrors.push(
+        `[uncaught] ${d.exception?.description ?? d.text} (${d.url ?? '?'}:${d.lineNumber ?? '?'})`
+      );
+    }
+    if (method === 'Log.entryAdded' && params.entry.level === 'error') {
+      consoleErrors.push(`[log] ${params.entry.text} ${params.entry.url ?? ''}`);
+    }
+  });
 
   await call('Page.navigate', { url });
   // Real elapsed time, so workers get to run.
