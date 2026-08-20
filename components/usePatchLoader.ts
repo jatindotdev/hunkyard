@@ -26,6 +26,7 @@ import {
   snapshotDiffsHubTreeSource,
   takePendingDiffsHubItems,
 } from '@/lib/diffsHubDataAccumulator';
+import { contentAddressedCacheKey } from '@/lib/diffCacheKey';
 import { getPatchTreePathPrefix } from '@/lib/gitPatchMetadata';
 import {
   type DiffsHubLineHashTarget,
@@ -424,6 +425,15 @@ export function usePatchLoader({
           if (fileDiff == null) {
             return;
           }
+          // Re-key on the blob ids parseFile just read out of the patch's
+          // `index` line, so the worker pool's highlight cache invalidates when
+          // the content changes rather than when the request path does. The
+          // positional key above stays as the fallback seed for records with no
+          // `index` line, i.e. pure renames.
+          fileDiff.cacheKey = contentAddressedCacheKey(
+            fileDiff,
+            `${cacheKeyPrefix}-0-${accumulator.fileIndex}`
+          );
 
           const itemIdRename = appendFileDiffToDiffsHubData(
             accumulator,

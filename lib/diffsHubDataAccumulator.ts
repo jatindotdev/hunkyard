@@ -6,6 +6,7 @@ import {
 } from '@pierre/diffs';
 import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
 
+import { contentAddressedCacheKey } from './diffCacheKey';
 import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
@@ -352,7 +353,14 @@ export function buildDiffsHubData(
     const treePathPrefix = shouldPrefixTreePaths
       ? getPatchTreePathPrefix(patch.patchMetadata, patchIndex)
       : undefined;
-    for (const fileDiff of patch.files) {
+    for (const [fileIndex, fileDiff] of patch.files.entries()) {
+      // Same reasoning as the streaming path: parsePatchFiles keys off the
+      // supplied prefix and position, which does not change when a mutable
+      // source's content does.
+      fileDiff.cacheKey = contentAddressedCacheKey(
+        fileDiff,
+        `${encodeURIComponent(githubPath)}-${patchIndex}-${fileIndex}`
+      );
       appendFileDiffToDiffsHubData(accumulator, fileDiff, treePathPrefix);
     }
   }
