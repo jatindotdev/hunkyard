@@ -22,28 +22,7 @@ const RAW_GITHUB_DIFF_PATH_PATTERN =
 const GITHUB_PULL_TAB_PATH_PATTERN =
   /^\/([^/]+)\/([^/]+)\/pull\/(\d+)\/(?:changes|files)$/;
 
-const CACHED_BLOBS = new Map<string, string>([
-  [
-    '/oven-sh/bun/pull/30412',
-    'https://diffshub.pierrecdn.com/patches/30412.diff',
-  ],
-  [
-    '/nodejs/node/pull/59805',
-    'https://diffshub.pierrecdn.com/patches/59805.diff',
-  ],
-  [
-    '/ghostty-org/ghostty/pull/12291',
-    'https://diffshub.pierrecdn.com/patches/12291.diff',
-  ],
-  [
-    '/pierrecomputer/pierre/commit/0800fb',
-    'https://diffshub.pierrecdn.com/patches/0800fb.diff',
-  ],
-  [
-    '/torvalds/linux/compare/v6.0...v7.0',
-    'https://diffshub.pierrecdn.com/patches/v6.0-v7.0.diff',
-  ],
-]);
+const CACHED_BLOBS = new Map<string, string>();
 
 const HIDDEN_PATCH_DOMAIN_RULES = [
   { domainRoot: 'tangled.org', defaultExtension: '.patch' },
