@@ -18,35 +18,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// When running in a worktree, prefix the title with a stable emoji + slug so
-// browser tabs for different worktrees are distinguishable at a glance. The
-// slug reaches this file via `next.config.mjs`, which loads `.env.worktree`
-// and bridges `PIERRE_WORKTREE_SLUG` into `NEXT_PUBLIC_WORKTREE_SLUG`. No-op
-// in the main clone.
-const WORKTREE_EMOJI_PALETTE = [
-  '🟢',
-  '🔵',
-  '🟡',
-  '🟠',
-  '🟣',
-  '🔴',
-  '🟤',
-  '⚪',
-] as const;
-
-function worktreeTitlePrefix(): string {
-  const slug = process.env.NEXT_PUBLIC_WORKTREE_SLUG;
-  if (!slug) return '';
-  let hash = 0;
-  for (let i = 0; i < slug.length; i++) {
-    hash = (hash * 31 + slug.charCodeAt(i)) >>> 0;
-  }
-  const emoji = WORKTREE_EMOJI_PALETTE[hash % WORKTREE_EMOJI_PALETTE.length];
-  return `${emoji} [${slug}] `;
-}
-
-const WORKTREE_PREFIX = worktreeTitlePrefix();
-
 const PROD_ORIGIN = 'https://diffshub.com';
 // In dev, point `metadataBase` at localhost so OG previewers fetch
 // in-progress assets instead of whatever's deployed.
@@ -54,7 +25,7 @@ const isDev = process.env.NODE_ENV !== 'production';
 const DEV_PORT = process.env.PORT ?? '3692';
 const SITE_ORIGIN = isDev ? `http://localhost:${DEV_PORT}` : PROD_ORIGIN;
 const baseTitle = `${SITE_NAME}, from Pierre`;
-const taggedTitle = `${WORKTREE_PREFIX}${baseTitle}`;
+const taggedTitle = baseTitle;
 const description = SITE_DESCRIPTION;
 const SITE_ICONS: Metadata['icons'] = {
   icon: [
@@ -70,14 +41,14 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: {
     default: taggedTitle,
-    template: `${WORKTREE_PREFIX}%s`,
+    template: '%s',
   },
   description,
   icons: SITE_ICONS,
   openGraph: {
     title: {
       default: taggedTitle,
-      template: `${WORKTREE_PREFIX}%s`,
+      template: '%s',
     },
     description,
     images: [SITE_OG_IMAGE],
@@ -86,7 +57,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: {
       default: taggedTitle,
-      template: `${WORKTREE_PREFIX}%s`,
+      template: '%s',
     },
     description,
     images: [SITE_TWITTER_IMAGE],

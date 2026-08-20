@@ -1,50 +1,62 @@
 {
-  "extends": "../../tsconfig.options.json",
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/**/types/**/*.ts",
-    "types/**/*.d.ts"
+    "types/**/*.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next"],
-  "references": [
-    {
-      "path": "../../packages/diffs/tsconfig.json"
-    },
-    {
-      "path": "../../packages/trees/tsconfig.json"
-    },
-    {
-      "path": "../../packages/theme/tsconfig.json"
-    },
-    {
-      "path": "../../packages/theming/tsconfig.json"
-    }
+  "exclude": [
+    "node_modules",
+    ".next"
   ],
   "compilerOptions": {
+    // from the app's own tsconfig
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "types": ["bun"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "types": [
+      "bun"
+    ],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "composite": false,
     "allowJs": true,
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
     "strict": true,
-    "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "composite": false,
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@/*": [
+        "./*"
+      ]
+    },
+    // inherited from pierre's tsconfig.options.json - the source was written
+    // under these, so keep them rather than silently loosening the build
+    "allowSyntheticDefaultImports": true,
+    "checkJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "strictNullChecks": true,
+    "verbatimModuleSyntax": true,
+    "pretty": true,
+    "incremental": true
   }
 }

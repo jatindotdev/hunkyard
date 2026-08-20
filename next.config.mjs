@@ -1,23 +1,3 @@
-import { loadWorktreeEnv } from '../../scripts/load-worktree-env.mjs';
-
-// `next dev` runs under Node, which (like Bun) only auto-loads the standard
-// `.env*` names. Our worktree helper writes `PIERRE_WORKTREE_SLUG` /
-// `PIERRE_PORT_OFFSET` into `.env.worktree` at the worktree root, so pull
-// those in manually before Next inspects `process.env`. moon tasks load the
-// same file via their envFile option; the loader preserves existing values.
-loadWorktreeEnv();
-
-// The browser title prefix (see `app/layout.tsx`) reads
-// `NEXT_PUBLIC_WORKTREE_SLUG` so the value survives into the client bundle.
-// Bridge it from the non-prefixed worktree slug so `.env.worktree` stays the
-// single source of truth.
-if (
-  process.env.PIERRE_WORKTREE_SLUG &&
-  !process.env.NEXT_PUBLIC_WORKTREE_SLUG
-) {
-  process.env.NEXT_PUBLIC_WORKTREE_SLUG = process.env.PIERRE_WORKTREE_SLUG;
-}
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Strict mode is disabled here to avoid GitHub request thrash in dev: the
@@ -29,8 +9,10 @@ const nextConfig = {
   experimental: {
     cssChunking: 'strict',
   },
-  // Resolve and transpile workspace packages so subpath exports (e.g. @pierre/trees/react)
-  // resolve correctly when Next follows client-component imports from the server.
+  // Resolve and transpile these so subpath exports (e.g. @pierre/trees/react)
+  // resolve correctly when Next follows client-component imports from the
+  // server, and so the worker chunk referenced by `new URL(...,
+  // import.meta.url)` gets emitted.
   transpilePackages: ['@pierre/trees', '@pierre/diffs'],
 };
 

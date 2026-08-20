@@ -1,0 +1,16 @@
+# Single-package repo, but pnpm 11 reads its settings only from this file --
+# the `pnpm` field in package.json is ignored.
+
+# @pierre/diffs accepts shiki ^3 || ^4; pin the version Pierre actually ships
+# and tests diffshub against so tokenization behaviour matches upstream.
+overrides:
+  shiki: '4.4.1'
+  '@shikijs/core': '4.4.1'
+  '@shikijs/engine-javascript': '4.4.1'
+  '@shikijs/themes': '4.4.1'
+  '@shikijs/transformers': '4.4.1'
+
+# Tailwind 4 needs its native oxide binary built.
+allowBuilds:
+  '@tailwindcss/oxide': true
+  sharp: true

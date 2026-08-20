@@ -9,7 +9,6 @@ import type {
 import { useFileTree } from '@pierre/trees/react';
 import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
 
-import type { FileTreePublicId } from '../../../packages/trees/dist/model/publicTypes';
 import { ThemedFileTree } from './ThemedFileTree';
 import {
   BASE_FILE_TREE_OPTIONS,
@@ -17,6 +16,10 @@ import {
   getInitialBatchSize,
 } from '@/lib/constants';
 import type { DiffsHubFileTreeSource } from '@/lib/types';
+// `@pierre/trees` types its public paths as this but does not export the
+// alias from the package root; it is a plain path string.
+type FileTreePublicId = string;
+
 type FileTreeSortComparator = Exclude<
   NonNullable<FileTreeOptions['sort']>,
   'default'
