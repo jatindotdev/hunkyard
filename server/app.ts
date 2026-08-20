@@ -6,6 +6,7 @@ import { handleHealth } from './routes/health';
 import { handleLocalDiff } from './routes/localDiff';
 import { handleLocalEvents } from './routes/localEvents';
 import { handleLocalFile } from './routes/localFile';
+import { createThreadsApp } from './routes/threads';
 
 // Every handler already takes a Web Request and returns a Web Response, so
 // Hono is only doing routing here -- `c.req.raw` is the standard Request.
@@ -18,6 +19,8 @@ export function createApiApp(): Hono {
   app.get('/api/local-diff', (c) => handleLocalDiff(c.req.raw));
   app.get('/api/local-file', (c) => handleLocalFile(c.req.raw));
   app.get('/api/local-events', (c) => handleLocalEvents(c.req.raw));
+
+  app.route('/', createThreadsApp());
 
   return app;
 }
