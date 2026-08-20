@@ -19,11 +19,10 @@ export const viewport: Viewport = {
 };
 
 const PROD_ORIGIN = 'https://hunkyard.app';
-// In dev, point `metadataBase` at localhost so OG previewers fetch
+// In dev, point `metadataBase` at the local origin so OG previewers fetch
 // in-progress assets instead of whatever's deployed.
 const isDev = process.env.NODE_ENV !== 'production';
-const DEV_PORT = process.env.PORT ?? '3692';
-const SITE_ORIGIN = isDev ? `http://localhost:${DEV_PORT}` : PROD_ORIGIN;
+const SITE_ORIGIN = isDev ? 'http://hunkyard.localhost:4865' : PROD_ORIGIN;
 const baseTitle = SITE_NAME;
 const taggedTitle = baseTitle;
 const description = SITE_DESCRIPTION;

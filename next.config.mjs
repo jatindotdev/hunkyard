@@ -14,6 +14,9 @@ const nextConfig = {
   // server, and so the worker chunk referenced by `new URL(...,
   // import.meta.url)` gets emitted.
   transpilePackages: ['@pierre/trees', '@pierre/diffs'],
+  // Everything local is served from this hostname, on 4865, so the origin is
+  // stable across restarts and localStorage survives them.
+  allowedDevOrigins: ['hunkyard.localhost'],
 };
 
 export default nextConfig;
