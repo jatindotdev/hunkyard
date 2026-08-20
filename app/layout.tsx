@@ -23,8 +23,6 @@ const PROD_ORIGIN = 'https://hunkyard.app';
 // in-progress assets instead of whatever's deployed.
 const isDev = process.env.NODE_ENV !== 'production';
 const SITE_ORIGIN = isDev ? 'http://hunkyard.localhost:4865' : PROD_ORIGIN;
-const baseTitle = SITE_NAME;
-const taggedTitle = baseTitle;
 const description = SITE_DESCRIPTION;
 const SITE_ICONS: Metadata['icons'] = {
   icon: [{ url: '/brand/icon.svg', type: 'image/svg+xml' }],
@@ -33,24 +31,18 @@ const SITE_ICONS: Metadata['icons'] = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
   title: {
-    default: taggedTitle,
+    default: SITE_NAME,
     template: '%s',
   },
   description,
   icons: SITE_ICONS,
   openGraph: {
-    title: {
-      default: taggedTitle,
-      template: '%s',
-    },
+    title: { default: SITE_NAME, template: '%s' },
     description,
   },
   twitter: {
     card: 'summary_large_image',
-    title: {
-      default: taggedTitle,
-      template: '%s',
-    },
+    title: { default: SITE_NAME, template: '%s' },
     description,
   },
 };
