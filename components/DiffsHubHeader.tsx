@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/DropdownMenu';
 import { GitHubTokenControl } from '@/components/GitHubTokenControl';
+import { LocalTargetLabel } from '@/components/LocalTargetLabel';
 import { Switch } from '@/components/Switch';
 import { docsThemeCatalog } from '@/components/themeCatalog';
 import { cn } from '@/lib/cn';
@@ -65,6 +66,10 @@ interface HeaderProps {
   fileTreeOverlayOpen: boolean;
   githubTokenActive: boolean;
   initialUrl: string;
+  // A local review has no URL to type or open. When these are set the header
+  // shows the repository and target instead of a URL box.
+  localTarget?: string;
+  localRepoRoot?: string;
   lightThemeName: LightThemeName;
   lineNumbers: boolean;
   overflow: 'wrap' | 'scroll';
@@ -94,6 +99,8 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   fileTreeOverlayOpen,
   githubTokenActive,
   initialUrl,
+  localTarget,
+  localRepoRoot,
   lightThemeName,
   lineNumbers,
   overflow,
@@ -114,7 +121,8 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   const [currentUrl, setCurrentUrl] = useState(initialUrl);
   // Only show the external-link button when the input still reflects the
   // committed URL — otherwise we'd be pointing at a draft the user is editing.
-  const showExternalLink = currentUrl === initialUrl;
+  // Nothing to open for a local review: the diff exists only on this machine.
+  const showExternalLink = localTarget == null && currentUrl === initialUrl;
   // Mirror the sidebar's themed chrome so the header bar lives on the same
   // Shiki surface (background, text, icons, borders) instead of the global
   // light/dark palette. Falls back to the diffshub-sidebar-bg CSS variable
@@ -144,13 +152,21 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
       >
         <DiffsHubLogo />
       </Link>
-      <DiffUrlForm
-        className="order-last md:order-none md:mr-auto"
-        initialUrl={initialUrl}
-        onUrlChange={setCurrentUrl}
-        placeholder="https://github.com/org/repo/123"
-        inputClassName="w-full md:w-auto"
-      />
+      {localTarget == null ? (
+        <DiffUrlForm
+          className="order-last md:order-none md:mr-auto"
+          initialUrl={initialUrl}
+          onUrlChange={setCurrentUrl}
+          placeholder="https://github.com/org/repo/123"
+          inputClassName="w-full md:w-auto"
+        />
+      ) : (
+        <LocalTargetLabel
+          className="order-last md:order-none md:mr-auto"
+          repoRoot={localRepoRoot}
+          target={localTarget}
+        />
+      )}
       <div className="flex w-full items-center justify-between gap-2 md:w-auto md:justify-end">
         <Button
           type="button"

@@ -8,12 +8,21 @@ import type { ViewerLoadState } from '@/lib/types';
 
 interface DiffsHubStatusPanelProps {
   errorMessage: string | null;
+  // True once the patch is loaded but the highlighter's worker pool has not
+  // reported ready. Distinguished because it is the whole wait for a local
+  // diff, which arrives in milliseconds -- saying "reading the patch" then
+  // would name the one thing that already finished.
+  awaitingHighlighter?: boolean;
+  // A local review reads from disk, so "fetching from GitHub" is wrong.
+  isLocal?: boolean;
   onRetry(): void;
   state: ViewerLoadState;
 }
 
 export function DiffsHubStatusPanel({
   errorMessage,
+  awaitingHighlighter = false,
+  isLocal = false,
   onRetry,
   state,
 }: DiffsHubStatusPanelProps) {
@@ -28,19 +37,25 @@ export function DiffsHubStatusPanel({
   const isError = state === 'error';
   const title = isError
     ? 'Couldn’t load diff'
-    : state === 'parsing'
-      ? 'Preparing diff'
-      : state === 'fetching'
-        ? 'Fetching diff'
-        : 'Streaming diff';
+    : awaitingHighlighter
+      ? 'Starting the highlighter'
+      : state === 'parsing'
+        ? 'Preparing diff'
+        : state === 'fetching'
+          ? 'Reading diff'
+          : 'Streaming diff';
 
   const message = isError
     ? (errorMessage ?? 'Failed to fetch the diff, please try again.')
-    : state === 'parsing'
-      ? 'Parsing the patch and building the file tree…'
-      : state === 'fetching'
-        ? 'Fetching the patch from GitHub…'
-        : 'Reading the patch and showing files as they arrive…';
+    : awaitingHighlighter
+      ? 'Warming up syntax highlighting…'
+      : state === 'parsing'
+        ? 'Parsing the patch and building the file tree…'
+        : state === 'fetching'
+          ? isLocal
+            ? 'Reading the diff from your repository…'
+            : 'Fetching the patch from GitHub…'
+          : 'Reading the patch and showing files as they arrive…';
 
   return (
     <div

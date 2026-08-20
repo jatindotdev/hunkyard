@@ -28,7 +28,10 @@ import {
 import { preloadAvatars } from '@/lib/annotation';
 import { createGitHubDiffFileLoader } from '@/lib/githubDiffFileLoader';
 import { createLocalDiffFileLoader } from '@/lib/localDiffFileLoader';
-import { encodeLocalDiffPath } from '@/lib/localDiffSource';
+import {
+  describeLocalTarget,
+  encodeLocalDiffPath,
+} from '@/lib/localDiffSource';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
@@ -44,7 +47,9 @@ import { upsertSavedCommentSidebarEntry } from '@/lib/upsertSavedCommentSidebarE
 // open, so the two cannot share one shape.
 export type ReviewSource =
   | { kind: 'github'; domain?: string; initialUrl: string; path: string }
-  | { kind: 'local'; target: string | undefined };
+  // `repoRoot` is resolved on the server and passed down purely for display;
+  // the client never uses it to address anything.
+  | { kind: 'local'; target: string | undefined; repoRoot?: string };
 
 interface ReviewUIProps {
   source: ReviewSource;
@@ -301,6 +306,8 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         diffIndicators={diffIndicators}
         diffStyle={diffStyle}
         initialUrl={initialUrl}
+        localTarget={isLocal ? describeLocalTarget(source.target) : undefined}
+        localRepoRoot={source.kind === 'local' ? source.repoRoot : undefined}
         lightThemeName={lightThemeName}
         lineNumbers={lineNumbers}
         overflow={overflow}
@@ -358,7 +365,16 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         </>
       ) : (
         <DiffsHubStatusPanel
+          awaitingHighlighter={
+            // The patch is in hand and the tree is built; the only thing left
+            // is the worker pool. Common for a local diff, which arrives in
+            // milliseconds.
+            loadState === 'ready' &&
+            treeSource != null &&
+            !isWorkerPoolReadyOrDisable
+          }
           errorMessage={errorMessage}
+          isLocal={isLocal}
           onRetry={retryLoad}
           state={loadState}
         />
