@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 
+import { apiDevServer } from './server/devMiddleware';
+
 export default defineConfig({
   plugins: [
     // Note: Next ran this app through the React Compiler. @vitejs/plugin-react
@@ -12,6 +14,7 @@ export default defineConfig({
     // verified against a 27-file diff rather than assumed.
     react(),
     tailwindcss(),
+    apiDevServer(),
   ],
   define: {
     // Some dependency in the highlighter/theming chain reaches for Node's
@@ -34,8 +37,5 @@ export default defineConfig({
     host: '127.0.0.1',
     // Everything local is served from this hostname so the origin is stable.
     allowedHosts: ['hunkyard.localhost'],
-    proxy: {
-      '/api': { target: 'http://127.0.0.1:4866', changeOrigin: false },
-    },
   },
 });

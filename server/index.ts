@@ -29,6 +29,8 @@ export function startServer(options: { port?: number } = {}): {
   close(): void;
 } {
   const port = options.port ?? Number(process.env.PORT ?? DEFAULT_PORT);
+  // Only production serves the built client. In dev, Vite owns the client and
+  // mounts this app as middleware, so nothing here needs a build to exist.
   const clientRoot = resolveClientRoot();
   const app = createApiApp();
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { DEFAULT_THEMES } from '@pierre/diffs';
+import WorkerUrl from '@pierre/diffs/worker/worker.js?worker&url';
 import {
   type WorkerInitializationRenderOptions,
   WorkerPoolContextProvider,
@@ -40,9 +41,12 @@ const PoolOptions: WorkerPoolOptions = {
   ),
   totalASTLRUCacheSize: WorkerResourceLimits.totalASTLRUCacheSize,
   workerFactory() {
-    return new Worker(
-      new URL('@pierre/diffs/worker/worker.js', import.meta.url)
-    );
+    // `?worker&url` is Vite's own worker handling, and `type: 'module'` is not
+    // optional: the shipped worker is an ES module, and without it Vite serves
+    // it as a classic script and every instantiation fails with "Cannot use
+    // import statement outside a module". This is the spelling Pierre's own
+    // Vite demo uses.
+    return new Worker(WorkerUrl, { type: 'module' });
   },
 };
 
