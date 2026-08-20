@@ -16,8 +16,10 @@ export class NoRepositoryError extends Error {
 // read any repository on the machine, so this is the boundary that makes the
 // path checks in files.ts meaningful.
 export async function resolveConfiguredRepoRoot(): Promise<string> {
-  const configured = process.env[REPO_ROOT_ENV];
-  if (configured == null || configured.trim() === '') {
+  // The CLI always sets this. Falling back to the working directory is for
+  // `pnpm dev`, where the repository you are reviewing is the one you are in.
+  const configured = process.env[REPO_ROOT_ENV] ?? process.cwd();
+  if (configured.trim() === '') {
     throw new NoRepositoryError();
   }
   // Normalise through git so a subdirectory still resolves to the work tree,

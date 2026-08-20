@@ -2,9 +2,9 @@ import {
   PathEscapesRepoError,
   loadLocalDiffFiles,
   type HydratableChangeType,
-} from '@/lib/git/files';
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '@/lib/git/repo';
-import { resolveGitTarget } from '@/lib/git/targets';
+} from '../../lib/git/files';
+import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import { resolveGitTarget } from '../../lib/git/targets';
 
 // Only the types the client asks us to hydrate. `new` and `deleted` are refused
 // client-side because one side is empty by definition.

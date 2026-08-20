@@ -1,10 +1,10 @@
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '@/lib/git/repo';
+import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
 import {
   EmptyPatchError,
   UnknownRevisionError,
   openNonEmptyPatchStream,
-} from '@/lib/git/patchStream';
-import { resolveGitTarget } from '@/lib/git/targets';
+} from '../../lib/git/patchStream';
+import { resolveGitTarget } from '../../lib/git/targets';
 
 // The client reads a failing response's body as the user-visible message, so
 // errors are plain text rather than JSON.

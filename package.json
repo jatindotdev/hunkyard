@@ -9,7 +9,6 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:api": "PORT=4866 node --experimental-strip-types server/index.ts",
     "build": "vite build && vite build --ssr server/index.ts --outDir dist/server",
     "start": "node dist/server/index.js",
     "test": "bun test",

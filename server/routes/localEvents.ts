@@ -1,6 +1,6 @@
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '@/lib/git/repo';
-import { resolveGitTarget } from '@/lib/git/targets';
-import { isWatchableTarget, watchTarget } from '@/lib/git/watch';
+import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import { resolveGitTarget } from '../../lib/git/targets';
+import { isWatchableTarget, watchTarget } from '../../lib/git/watch';
 
 // Server-sent events telling the viewer when the diff it is showing has
 // changed. Only mutable targets are watched; a commit cannot change.
