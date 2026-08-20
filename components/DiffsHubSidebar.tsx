@@ -30,6 +30,7 @@ import { DiffsHubFileTree } from './DiffsHubFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
+import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
 import {
@@ -315,12 +316,14 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
           stats={diffStats}
           streaming={streaming}
         />
-        <WorkerPoolStatus
-          expanded={activeStatusPanel === 'systemMonitor'}
-          onToggle={() => toggleStatusPanel('systemMonitor')}
-          viewerRef={viewerRef}
-          themeCycle={themeCycle}
-        />
+        {DEVTOOLS_ENABLED ? (
+          <WorkerPoolStatus
+            expanded={activeStatusPanel === 'systemMonitor'}
+            onToggle={() => toggleStatusPanel('systemMonitor')}
+            viewerRef={viewerRef}
+            themeCycle={themeCycle}
+          />
+        ) : null}
       </SidebarWrapper>
     </>
   );
