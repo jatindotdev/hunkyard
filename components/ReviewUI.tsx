@@ -19,6 +19,7 @@ import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
 import { DiffsHubViewer } from './DiffsHubViewer';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { useGitHubToken } from './useGitHubToken';
+import { useLocalDiffWatch } from './useLocalDiffWatch';
 import { usePatchLoader } from './usePatchLoader';
 import { useThemeCycle } from './useThemeCycle';
 import {
@@ -206,6 +207,34 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     sendGitHubToken: !isLocal && (domain == null || domain === ''),
     viewerRef,
   });
+
+  // Reload when the diff on disk changes, holding the scroll position so an
+  // edit does not throw the reviewer back to the top of the file list.
+  const pendingScrollRef = useRef<number | null>(null);
+  const handleLocalChange = useCallback(() => {
+    pendingScrollRef.current = scrollRef.current?.scrollTop ?? null;
+    retryLoad();
+  }, [retryLoad]);
+
+  useLocalDiffWatch({
+    enabled: isLocal,
+    onChanged: handleLocalChange,
+    target: isLocal ? source.target : undefined,
+  });
+
+  useEffect(() => {
+    const pending = pendingScrollRef.current;
+    if (pending == null || loadState !== 'ready') return;
+    const element = scrollRef.current;
+    if (element == null) return;
+    // The viewer virtualizes, so the content has to exist before the offset
+    // means anything; a frame after `ready` is enough in practice.
+    const frame = requestAnimationFrame(() => {
+      element.scrollTop = pending;
+      pendingScrollRef.current = null;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loadState]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
