@@ -1,9 +1,48 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin, type ViteDevServer } from 'vite';
 
-import { apiDevServer } from './server/devMiddleware';
+
+// Mounts the API inside Vite's dev server.
+//
+// The app is loaded with ssrLoadModule rather than imported here, for two
+// reasons. Vite's config loader cannot follow extensionless relative imports,
+// and importing the server would drag the whole route tree into config
+// resolution. Going through Vite's own pipeline also means editing a route
+// takes effect on the next request instead of needing a restart.
+function apiDevServer(): Plugin {
+  return {
+    name: 'hunkyard-api',
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.startsWith('/api/') !== true) {
+          next();
+          return;
+        }
+        void (async () => {
+          try {
+            const [{ createApiApp }, { getRequestListener }] = await Promise.all(
+              [
+                server.ssrLoadModule('/server/app.ts') as Promise<
+                  typeof import('./server/app.ts')
+                >,
+                import('@hono/node-server'),
+              ]
+            );
+            // Same node-to-Web translation production uses, so the two cannot
+            // drift.
+            getRequestListener(createApiApp().fetch)(req, res);
+          } catch (error) {
+            server.config.logger.error(String(error));
+            res.statusCode = 500;
+            res.end(error instanceof Error ? error.message : 'API error');
+          }
+        })();
+      });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
