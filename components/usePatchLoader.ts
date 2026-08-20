@@ -17,6 +17,7 @@ import {
   useState,
 } from 'react';
 
+import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 import { CODE_VIEW_BATCH_COUNT, getInitialBatchSize } from '@/lib/constants';
 import {
   appendFileDiffToDiffsHubData,
@@ -38,7 +39,6 @@ import {
   streamGitPatchFiles,
 } from '@/lib/streamGitPatchFiles';
 import type {
-  CommentMetadata,
   DiffsHubCommentFileByItemId,
   DiffsHubDiffStats,
   DiffsHubFileTreeSource,
@@ -70,7 +70,7 @@ interface UsePatchLoaderOptions {
   // the local route has no use for it, and sending it would hand a credential
   // to a git handler.
   sendGitHubToken: boolean;
-  viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
+  viewerRef: RefObject<CodeViewHandle<ReviewAnnotationMetadata> | null>;
 }
 
 interface UsePatchLoaderResult {
@@ -79,7 +79,7 @@ interface UsePatchLoaderResult {
   commentSections: DiffsHubSavedCommentItem[];
   diffStats: DiffsHubDiffStats | null;
   errorMessage: string | null;
-  initialItems: CodeViewItem<CommentMetadata>[];
+  initialItems: CodeViewItem<ReviewAnnotationMetadata>[];
   loadState: ViewerLoadState;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
@@ -101,7 +101,7 @@ export function usePatchLoader({
   viewerRef,
 }: UsePatchLoaderOptions): UsePatchLoaderResult {
   const [initialItems, setInitialItems] = useState<
-    CodeViewItem<CommentMetadata>[]
+    CodeViewItem<ReviewAnnotationMetadata>[]
   >([]);
   // Tree data is intentionally stored separately from items so annotation
   // updates do not cascade into the file tree and trigger needless rebuilds.
@@ -139,7 +139,7 @@ export function usePatchLoader({
   // overwrite, those would stay collapsed even when the user is in expanded
   // mode.
   const prepareItemsForViewer = (
-    items: readonly CodeViewItem<CommentMetadata>[]
+    items: readonly CodeViewItem<ReviewAnnotationMetadata>[]
   ): void => {
     const targetCollapsed = collapseModeRef.current === 'collapsed';
     for (const item of items) {
@@ -548,7 +548,7 @@ function getLineHashApplyKey(viewerKey: number, hash: string): string {
 }
 
 function applyDiffsHubLineHashTarget(
-  viewer: CodeViewHandle<CommentMetadata>,
+  viewer: CodeViewHandle<ReviewAnnotationMetadata>,
   target: DiffsHubLineHashTarget
 ): boolean {
   const item = viewer.getItem(target.itemId);
@@ -585,7 +585,7 @@ function applyDiffsHubLineHashTarget(
 }
 
 function applyDiffsHubItemIdRename(
-  viewer: CodeViewHandle<CommentMetadata> | null,
+  viewer: CodeViewHandle<ReviewAnnotationMetadata> | null,
   rename: DiffsHubItemIdRename
 ): void {
   viewer?.updateItemId(rename.oldId, rename.newId);

@@ -29,7 +29,7 @@ import { StatItem } from './StatItem';
 import { StatusRow } from './StatusRow';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { cn } from '@/lib/cn';
-import type { CommentMetadata } from '@/lib/types';
+import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 
 class AutoScrollTester<LAnnotation> {
   private running: 0 | 1 | 2 = 0;
@@ -102,7 +102,7 @@ interface WorkerPoolStatusProps {
   expanded: boolean;
   onToggle(): void;
   themeCycle: ThemeCycleControls;
-  viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
+  viewerRef: RefObject<CodeViewHandle<ReviewAnnotationMetadata> | null>;
 }
 
 export const WorkerPoolStatus = memo(function WorkerPoolStatus({
@@ -146,7 +146,7 @@ interface StatsDisplayProps {
   onToggle(): void;
   stats: WorkerStats;
   themeCycle: ThemeCycleControls;
-  viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
+  viewerRef: RefObject<CodeViewHandle<ReviewAnnotationMetadata> | null>;
 }
 
 // Map worker pool status to a single icon component + color so the legend row

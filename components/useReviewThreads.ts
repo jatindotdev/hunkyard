@@ -8,6 +8,8 @@ export interface ReviewCapabilities {
   batches: boolean;
   supportsResolve: boolean;
   author: string | null;
+  // The commit new comments are anchored to.
+  headCommitId: string | null;
 }
 
 // A comment being typed. Several can exist at once, which is the whole point:

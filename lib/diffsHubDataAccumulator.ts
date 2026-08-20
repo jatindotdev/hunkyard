@@ -6,11 +6,11 @@ import {
 } from '@pierre/diffs';
 import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
 
+import type { ReviewAnnotationMetadata } from './review/types';
 import { contentAddressedCacheKey } from './diffCacheKey';
 import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
-  CommentMetadata,
   DiffsHubCommentFileByItemId,
   DiffsHubCommentSidebarFile,
   DiffsHubDiffStats,
@@ -22,7 +22,7 @@ export interface DiffsHubDataAccumulator {
   fileIndex: number;
   gitStatusByPath: Map<string, GitStatusEntry>;
   itemIdToFile: Map<string, DiffsHubCommentSidebarFile>;
-  items: CodeViewItem<CommentMetadata>[];
+  items: CodeViewItem<ReviewAnnotationMetadata>[];
   // The last tree source emitted by snapshotDiffsHubTreeSource for this
   // accumulator. Each new snapshot links back to this so the consumer can
   // recognize append-only growth and skip the full PathStore rebuild.
@@ -30,8 +30,8 @@ export interface DiffsHubDataAccumulator {
   nextCollisionSuffixByBase: Map<string, number>;
   pendingGitStatusRemovePaths: Set<string>;
   pendingGitStatusSetByPath: Map<string, GitStatusEntry>;
-  pendingItems: CodeViewItem<CommentMetadata>[];
-  pendingItemById: Map<string, CodeViewItem<CommentMetadata>>;
+  pendingItems: CodeViewItem<ReviewAnnotationMetadata>[];
+  pendingItemById: Map<string, CodeViewItem<ReviewAnnotationMetadata>>;
   pathToItemId: Map<string, string>;
   pathStateByTreePath: Map<string, CodeViewPathState>;
   paths: string[];
@@ -43,7 +43,7 @@ export interface DiffsHubItemIdRename {
 }
 
 interface CodeViewPathState {
-  currentItem: CodeViewItem<CommentMetadata>;
+  currentItem: CodeViewItem<ReviewAnnotationMetadata>;
   currentItemId: string;
   currentType: ChangeTypes;
   sawDeleted: boolean;
@@ -52,7 +52,7 @@ interface CodeViewPathState {
 export interface LoadedDiffsHubData {
   itemIdToFile: DiffsHubCommentFileByItemId;
   diffStats: DiffsHubDiffStats;
-  items: CodeViewItem<CommentMetadata>[];
+  items: CodeViewItem<ReviewAnnotationMetadata>[];
   treeSource: DiffsHubFileTreeSource;
 }
 
@@ -111,7 +111,7 @@ export function appendFileDiffToDiffsHubData(
   accumulator.fileIndex++;
   const fileOrder = accumulator.items.length;
 
-  const item: CodeViewItem<CommentMetadata> = {
+  const item: CodeViewItem<ReviewAnnotationMetadata> = {
     id,
     type: 'diff',
     fileDiff,
@@ -149,7 +149,7 @@ export function appendFileDiffToDiffsHubData(
 
 export function takePendingDiffsHubItems(
   accumulator: DiffsHubDataAccumulator
-): CodeViewItem<CommentMetadata>[] {
+): CodeViewItem<ReviewAnnotationMetadata>[] {
   const { pendingItems } = accumulator;
   accumulator.pendingItems = [];
   accumulator.pendingItemById.clear();

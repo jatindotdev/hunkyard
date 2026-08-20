@@ -13,6 +13,7 @@ import {
   useState,
 } from 'react';
 
+import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
@@ -20,6 +21,7 @@ import { DiffsHubViewer } from './DiffsHubViewer';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { useGitHubToken } from './useGitHubToken';
 import { useLocalDiffWatch } from './useLocalDiffWatch';
+import { useReviewThreads } from './useReviewThreads';
 import { usePatchLoader } from './usePatchLoader';
 import { useThemeCycle } from './useThemeCycle';
 import {
@@ -33,15 +35,10 @@ import {
   describeLocalTarget,
   encodeLocalDiffPath,
 } from '@/lib/localDiffSource';
-import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
-  CommentMetadata,
-  DiffsHubDeletedCommentEvent,
   DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentEvent,
 } from '@/lib/types';
-import { upsertSavedCommentSidebarEntry } from '@/lib/upsertSavedCommentSidebarEntry';
 
 // Where the diff comes from. GitHub is described by a path on a host; a local
 // review is described by a git revspec, which is not a path and has no URL to
@@ -165,7 +162,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   });
 
   const scrollRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<CodeViewHandle<CommentMetadata> | null>(null);
+  const viewerRef = useRef<CodeViewHandle<ReviewAnnotationMetadata> | null>(null);
   const loadDiffFiles = useMemo(() => {
     // Local expansion reads the repository directly, so it must not be gated on
     // a GitHub token the way the GitHub loader is.
@@ -193,7 +190,6 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     onLineLinkChange,
     onViewerReady,
     retryLoad,
-    setCommentSections,
     treeSource,
     viewerKey,
   } = usePatchLoader({
@@ -207,6 +203,42 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     sendGitHubToken: !isLocal && (domain == null || domain === ''),
     viewerRef,
   });
+
+  // Review threads, owned here so the diff reloading cannot take them with it.
+  const reviewQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    if (isLocal) {
+      if (source.target != null) params.set('target', source.target);
+    } else {
+      params.set('path', source.path);
+    }
+    return params.toString();
+  }, [isLocal, source]);
+
+  const review = useReviewThreads({
+    query: reviewQuery,
+    // Threads only mean something for a pull request or a local review, and
+    // both go through the same endpoints.
+    enabled: isLocal || source.kind === 'github',
+  });
+
+  // Repository paths and viewer item ids are not interchangeable: ids carry
+  // decoration. Both directions come from the accumulator's own map.
+  const pathForItemId = useCallback(
+    (itemId: string) => commentFileByItemId?.get(itemId)?.path,
+    [commentFileByItemId]
+  );
+  const itemIdForPath = useMemo(() => {
+    const byPath = new Map<string, string>();
+    if (commentFileByItemId != null) {
+      for (const [itemId, file] of commentFileByItemId) {
+        // Later entries win: the accumulator renames the older item when a path
+        // repeats, so the undecorated id is the current one.
+        byPath.set(file.path, itemId);
+      }
+    }
+    return (path: string) => byPath.get(path);
+  }, [commentFileByItemId]);
 
   // Reload when the diff on disk changes, holding the scroll position so an
   // edit does not throw the reviewer back to the top of the file list.
@@ -274,28 +306,20 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     setCollapseMode(next);
     applyCollapseModeToLoaded(next);
   }, [applyCollapseModeToLoaded, collapseMode]);
-  const handleCommentSaved = useCallback(
-    (comment: DiffsHubSavedCommentEvent) => {
-      setCommentSections((prev) =>
-        upsertSavedCommentSidebarEntry(prev, commentFileByItemId, comment)
-      );
-    },
-    [commentFileByItemId, setCommentSections]
-  );
-  const handleCommentDeleted = useCallback(
-    (comment: DiffsHubDeletedCommentEvent) => {
-      setCommentSections((prev) =>
-        removeSavedCommentSidebarEntry(prev, comment)
-      );
-    },
-    [setCommentSections]
-  );
   const handleToggleFileTreeOverlay = useCallback(() => {
     setFileTreeOverlayOpen((open) => !open);
   }, []);
   const handleCloseFileTreeOverlay = useCallback(() => {
     setFileTreeOverlayOpen(false);
   }, []);
+
+  const handleToggleResolved = useCallback(
+    (thread: { id: string; resolved: boolean }) => {
+      void review.setResolved(thread.id, !thread.resolved);
+    },
+    [review]
+  );
+
   const handleSelectComment = useCallback(
     (comment: DiffsHubSavedCommentEntry) => {
       setFileTreeOverlayOpen(false);
@@ -386,8 +410,20 @@ function ReviewUIInner({ source }: ReviewUIProps) {
             viewerRef={viewerRef}
             initialItems={initialItems}
             loadDiffFiles={loadDiffFiles}
-            onCommentDeleted={handleCommentDeleted}
-            onCommentSaved={handleCommentSaved}
+            threads={review.threads}
+            drafts={review.drafts}
+            author={review.capabilities?.author ?? 'you'}
+            canResolve={review.capabilities?.supportsResolve ?? false}
+            busy={review.busy}
+            itemIdForPath={itemIdForPath}
+            pathForItemId={pathForItemId}
+            headCommitId={review.capabilities?.headCommitId ?? 'HEAD'}
+            onStartDraft={review.startDraft}
+            onUpdateDraft={review.updateDraft}
+            onDiscardDraft={review.discardDraft}
+            onSaveDraft={review.saveDraft}
+            onRemoveComment={review.removeComment}
+            onToggleResolved={handleToggleResolved}
             onLineLinkChange={onLineLinkChange}
             onViewerReady={onViewerReady}
           />

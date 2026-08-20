@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { runGit } from '../../lib/git/exec';
 import { resolveConfiguredRepoRoot } from '../../lib/git/repo';
 import { parseGitHubDiffSource } from '../../lib/githubDiffSource';
+import { getPullHeadSha } from '../../lib/review/github';
 import { GitHubThreadStore } from '../../lib/review/GitHubThreadStore';
 import { LocalThreadStore } from '../../lib/review/LocalThreadStore';
 import type { ThreadStore } from '../../lib/review/ThreadStore';
@@ -21,7 +22,7 @@ async function resolveLocalAuthor(repoRoot: string): Promise<string> {
 
 async function resolveStore(
   params: URLSearchParams
-): Promise<{ store: ThreadStore; author?: string }> {
+): Promise<{ store: ThreadStore; author?: string; headCommitId?: string }> {
   const path = params.get('path');
 
   // A GitHub path wins when present: the same page can only be one or the other.
@@ -42,22 +43,32 @@ async function resolveStore(
         { status: 401 }
       );
     }
+    const ref = {
+      owner: source.repo.owner,
+      repo: source.repo.repo,
+      pull: Number(source.number),
+    };
     return {
-      store: new GitHubThreadStore(
-        {
-          owner: source.repo.owner,
-          repo: source.repo.repo,
-          pull: Number(source.number),
-        },
-        token
-      ),
+      store: new GitHubThreadStore(ref, token),
+      // The commit a comment is written against. Submit re-reads the head at
+      // the time it sends, so this is what the anchor records rather than what
+      // the review is posted against.
+      headCommitId: await getPullHeadSha(ref, token).catch(() => undefined),
     };
   }
 
   const repoRoot = await resolveConfiguredRepoRoot();
   const target = params.get('target') ?? '';
-  const author = await resolveLocalAuthor(repoRoot);
-  return { store: new LocalThreadStore(repoRoot, target, author), author };
+  const [author, head] = await Promise.all([
+    resolveLocalAuthor(repoRoot),
+    runGit(['rev-parse', 'HEAD'], { cwd: repoRoot }),
+  ]);
+  const headCommitId = head.stdout.toString('utf8').trim();
+  return {
+    store: new LocalThreadStore(repoRoot, target, author),
+    author,
+    headCommitId: headCommitId === '' ? undefined : headCommitId,
+  };
 }
 
 // Review state changes constantly and must never be cached anywhere.
@@ -112,12 +123,13 @@ export function createThreadsApp(): Hono {
   app.get('/api/review/capabilities', async (c) => {
     try {
       const params = new URL(c.req.url).searchParams;
-      const { store, author } = await resolveStore(params);
+      const { store, author, headCommitId } = await resolveStore(params);
       return c.json(
         {
           batches: store.batches,
           supportsResolve: store.supportsResolve,
           author: author ?? null,
+          headCommitId: headCommitId ?? null,
         },
         200,
         NO_STORE_RECORD

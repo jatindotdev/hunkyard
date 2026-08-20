@@ -30,6 +30,7 @@ import { DiffsHubFileTree } from './DiffsHubFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
+import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
@@ -48,7 +49,6 @@ import { getDiffsHubFileTreeAvailableStatuses } from '@/lib/getDiffsHubFileTreeA
 import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 import type {
-  CommentMetadata,
   DiffsHubDiffStats as DiffsHubDiffStatsData,
   DiffsHubFileTreeSource,
   DiffsHubSavedCommentEntry,
@@ -72,7 +72,7 @@ interface DiffsHubSidebarProps {
   source: DiffsHubFileTreeSource;
   streaming: boolean;
   themeCycle: ThemeCycleControls;
-  viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
+  viewerRef: RefObject<CodeViewHandle<ReviewAnnotationMetadata> | null>;
 }
 
 export const DiffsHubSidebar = memo(function DiffsHubSidebar({
