@@ -10,6 +10,11 @@ overrides:
   '@shikijs/themes': '4.4.3'
   '@shikijs/transformers': '4.4.3'
 
+# @pierre/trees@1.0.0-beta.6 pins @pierre/theming@1.0.0 while @pierre/diffs
+# pins 1.0.1, which installs two copies. Both hold resolved-theme state at
+# module scope, so collapse them onto one so the tree and diff surfaces share
+# it. Patch-level, so the pin is safe.
+  '@pierre/theming': '1.0.1'
 
 # Tailwind 4 needs its native oxide binary built.
 allowBuilds:
