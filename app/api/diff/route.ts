@@ -17,6 +17,8 @@ const GITHUB_HOST = 'github.com';
 const GITHUB_RAW_DIFF_HOST = 'patch-diff.githubusercontent.com';
 const NON_DIFF_RESPONSE_MESSAGE = 'GitHub did not return a diff for this URL.';
 const NON_WHITESPACE_PATTERN = /\S/;
+import { resolveServerGitHubToken } from '@/lib/serverGitHubToken';
+
 const RAW_GITHUB_DIFF_PATH_PATTERN =
   /^\/raw\/[^/]+\/[^/]+\/pull\/[^/]+\.(?:diff|patch)$/;
 const GITHUB_PULL_TAB_PATH_PATTERN =
@@ -65,7 +67,11 @@ export async function GET(request: NextRequest) {
   const path = searchParams.get('path');
   const domain = searchParams.get('domain');
   const url = searchParams.get('url');
-  const token = parseBearerToken(request.headers.get('authorization'));
+  // A token pasted into the UI wins; otherwise fall back to the one the CLI
+  // resolved from `gh` at startup, which never leaves this process.
+  const token =
+    parseBearerToken(request.headers.get('authorization')) ??
+    resolveServerGitHubToken();
 
   if (path == null && url == null) {
     return createTextResponse('Path or URL parameter is required', {

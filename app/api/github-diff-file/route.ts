@@ -1,5 +1,6 @@
 import type { ChangeTypes } from '@pierre/diffs';
 import { type NextRequest } from 'next/server';
+import { resolveServerGitHubToken } from '@/lib/serverGitHubToken';
 
 import { loadGitHubDiffFiles } from '@/lib/githubDiffFileServer';
 
@@ -18,7 +19,9 @@ export async function GET(request: NextRequest) {
   const name = params.get('name');
   const type = parseChangeType(params.get('type'));
   const prevName = params.get('prevName') ?? undefined;
-  const token = parseBearerToken(request.headers.get('authorization'));
+  const token =
+    parseBearerToken(request.headers.get('authorization')) ??
+    resolveServerGitHubToken();
 
   if (path == null || name == null || type == null) {
     return createJSONResponse(
