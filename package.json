@@ -1,0 +1,40 @@
+{
+  "name": "@pierre/diffshub",
+  "version": "0.0.0",
+  "private": true,
+  "license": "apache-2.0",
+  "dependencies": {
+    "@pierre/diffs": "workspace:*",
+    "@pierre/icons": "catalog:",
+    "@pierre/theme": "workspace:*",
+    "@pierre/theming": "workspace:*",
+    "@pierre/trees": "workspace:*",
+    "@radix-ui/react-dropdown-menu": "catalog:",
+    "@radix-ui/react-slot": "catalog:",
+    "@radix-ui/react-switch": "catalog:",
+    "@vercel/analytics": "catalog:",
+    "@vercel/speed-insights": "catalog:",
+    "babel-plugin-react-compiler": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "lucide-react": "catalog:",
+    "next": "catalog:",
+    "postcss": "catalog:",
+    "postcss-import": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@types/jsdom": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "jsdom": "catalog:",
+    "typescript": "catalog:"
+  }
+}
