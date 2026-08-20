@@ -1,9 +1,4 @@
-import {
-  IconArrowRightShort,
-  IconBrandDiscord,
-  IconBrandGithub,
-  IconBrandTwitterX,
-} from '@pierre/icons';
+import { IconArrowRightShort, IconBrandGithub } from '@pierre/icons';
 import Link from 'next/link';
 
 import { HomeFetchForm } from './HomeFetchForm';
@@ -27,18 +22,8 @@ const EXAMPLE_URLS = [
 
 const SOCIAL_LINKS = [
   {
-    label: 'X',
-    href: 'https://x.com/pierrecomputer',
-    Icon: IconBrandTwitterX,
-  },
-  {
-    label: 'Discord',
-    href: 'https://discord.gg/pierre',
-    Icon: IconBrandDiscord,
-  },
-  {
     label: 'GitHub',
-    href: 'https://github.com/pierrecomputer/pierre',
+    href: 'https://github.com/jatindotdev/hunkyard',
     Icon: IconBrandGithub,
   },
 ];
@@ -49,13 +34,14 @@ export function HomePage() {
       <section className="relative flex min-h-[100svh] w-2xl max-w-[100vw] flex-col justify-center space-y-4 px-6 pt-8 text-sm min-[340px]:text-base md:block md:min-h-0">
         <h2 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
           <DiffsHubLogo />
-          DiffsHub
+          Hunkyard
         </h2>
         <p className="text-muted-foreground text-pretty">
-          View code changes from any public GitHub diff—PRs, comparisons,
-          commits, diffs, and patches—with a super-freaking-fast, beautiful, and
-          virtualized interface by replacing <code>github.com</code> with{' '}
-          <code>diffshub.com</code>.
+          Review code changes from any GitHub pull request, comparison, commit
+          or patch in a fast, virtualized interface — by replacing{' '}
+          <code>github.com</code> with <code>hunkyard.app</code>. Point it at a
+          local branch or your working tree instead with the{' '}
+          <code>hunk</code> CLI.
         </p>
         <div className="text-muted-foreground flex flex-col gap-[2px] font-mono leading-[22px] tracking-tight">
           <code className="diffshub-border-deleted rounded-l font-normal text-inherit">
@@ -65,8 +51,8 @@ export function HomePage() {
             </span>
           </code>
           <code className="truncate rounded-l border-l-[4px] border-[#07c480] font-normal text-inherit">
-            <code className={DIFF_LINE_ADDED_BADGE}>+ diffshub</code>
-            .com/org/repo/pull/number
+            <code className={DIFF_LINE_ADDED_BADGE}>+ hunkyard</code>
+            .app/org/repo/pull/number
           </code>
         </div>
         <div className="bg-accent md:bg-background overflow-hidden rounded-lg border md:my-6">
@@ -114,7 +100,16 @@ export function HomePage() {
       >
         <Divider />
         <p className="text-muted-foreground text-sm text-pretty">
-          Built by{' '}
+          Built on{' '}
+          <Link
+            href="https://diffshub.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-link"
+          >
+            DiffsHub
+          </Link>{' '}
+          by{' '}
           <Link
             href="https://pierre.computer"
             target="_blank"
@@ -123,7 +118,7 @@ export function HomePage() {
           >
             The Pierre Computer Company
           </Link>{' '}
-          with{' '}
+          (Apache-2.0), with their{' '}
           <Link
             href="https://trees.software/docs#react-api-filetree"
             target="_blank"
@@ -132,7 +127,7 @@ export function HomePage() {
           >
             FileTree
           </Link>{' '}
-          and the new{' '}
+          and{' '}
           <Link
             href="https://diffs.com/docs#codeview"
             target="_blank"
@@ -141,7 +136,7 @@ export function HomePage() {
           >
             CodeView
           </Link>{' '}
-          component.
+          components.
         </p>
         <nav
           aria-label="Social links"

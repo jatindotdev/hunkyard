@@ -9,7 +9,7 @@ export const viewport: Viewport = {
   userScalable: false,
   maximumScale: 1,
   viewportFit: 'cover',
-  // diffshub body uses --diffshub-sidebar-bg (#f7f7f7 / #101010) rather than
+  // The body uses --diffshub-sidebar-bg (#f7f7f7 / #101010) rather than
   // the plain neutral background, so it gets its own theme-color pair for the
   // browser chrome address bar.
   themeColor: [
@@ -18,24 +18,18 @@ export const viewport: Viewport = {
   ],
 };
 
-const PROD_ORIGIN = 'https://diffshub.com';
+const PROD_ORIGIN = 'https://hunkyard.app';
 // In dev, point `metadataBase` at localhost so OG previewers fetch
 // in-progress assets instead of whatever's deployed.
 const isDev = process.env.NODE_ENV !== 'production';
 const DEV_PORT = process.env.PORT ?? '3692';
 const SITE_ORIGIN = isDev ? `http://localhost:${DEV_PORT}` : PROD_ORIGIN;
-const baseTitle = `${SITE_NAME}, from Pierre`;
+const baseTitle = SITE_NAME;
 const taggedTitle = baseTitle;
 const description = SITE_DESCRIPTION;
 const SITE_ICONS: Metadata['icons'] = {
-  icon: [
-    { url: '/diffshub-brand/icon.svg', type: 'image/svg+xml' },
-    { url: '/diffshub-brand/icon.ico', sizes: '32x32' },
-  ],
-  apple: '/diffshub-brand/apple-icon.png',
+  icon: [{ url: '/brand/icon.svg', type: 'image/svg+xml' }],
 };
-const SITE_OG_IMAGE = '/diffshub-brand/opengraph-image.png';
-const SITE_TWITTER_IMAGE = '/diffshub-brand/twitter-image.png';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_ORIGIN),
@@ -51,7 +45,6 @@ export const metadata: Metadata = {
       template: '%s',
     },
     description,
-    images: [SITE_OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
@@ -60,7 +53,6 @@ export const metadata: Metadata = {
       template: '%s',
     },
     description,
-    images: [SITE_TWITTER_IMAGE],
   },
 };
 
