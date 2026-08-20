@@ -165,3 +165,55 @@ export async function readPatch(
   }
   return Buffer.concat(chunks).toString('utf8');
 }
+
+// Emptiness can only be known by trying to read, but a status code has to be
+// chosen before the first byte is sent. So pull one chunk up front: if the
+// stream ends without producing anything, the caller can still answer 422
+// instead of committing a 200 and then aborting the connection mid-body.
+//
+// The peeked chunk is replayed, so no data is lost and nothing more than one
+// chunk is ever buffered.
+export async function openNonEmptyPatchStream(
+  target: GitTarget,
+  repoRoot: string
+): Promise<ReadableStream<Uint8Array>> {
+  const { stream } = await openPatchStream(target, repoRoot);
+  const reader = stream.getReader();
+
+  let first: Uint8Array | undefined;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value != null && value.byteLength > 0) {
+      first = value;
+      break;
+    }
+  }
+
+  if (first == null) {
+    reader.releaseLock();
+    throw new EmptyPatchError(target);
+  }
+
+  const head: Uint8Array = first;
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(head);
+    },
+    async pull(controller) {
+      try {
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          return;
+        }
+        if (value != null) controller.enqueue(value);
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      void reader.cancel(reason);
+    },
+  });
+}
