@@ -24,13 +24,14 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { DiffsHubCommentsList } from './DiffsHubCommentsList';
+import { ReviewSubmitPanel } from './ReviewSubmitPanel';
+import { ReviewThreadsList } from './ReviewThreadsList';
 import { DiffsHubDiffStats } from './DiffsHubDiffStats';
 import { DiffsHubFileTree } from './DiffsHubFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
-import type { ReviewAnnotationMetadata } from '@/lib/review/types';
+import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
 import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
@@ -51,8 +52,6 @@ import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 import type {
   DiffsHubDiffStats as DiffsHubDiffStatsData,
   DiffsHubFileTreeSource,
-  DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentItem,
 } from '@/lib/types';
 
 type SidebarTab = 'files' | 'comments';
@@ -62,11 +61,17 @@ const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 
 interface DiffsHubSidebarProps {
   className?: string;
-  commentSections: readonly DiffsHubSavedCommentItem[];
+  threads: readonly Thread[];
+  // Only set when the source batches; a local review has nothing to submit.
+  onSubmitReview?: (
+    event: 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES',
+    body: string
+  ) => void;
+  reviewBusy?: boolean;
   diffStats: DiffsHubDiffStatsData | null;
   mobileOverlayOpen?: boolean;
   onMobileClose(): void;
-  onSelectComment(comment: DiffsHubSavedCommentEntry): void;
+  onSelectThread(thread: Thread): void;
   onSelectItem(itemId: string): void;
   scrollRef: RefObject<HTMLDivElement | null>;
   source: DiffsHubFileTreeSource;
@@ -77,11 +82,13 @@ interface DiffsHubSidebarProps {
 
 export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   className,
-  commentSections,
+  threads,
+  onSubmitReview,
+  reviewBusy = false,
   diffStats,
   mobileOverlayOpen = false,
   onMobileClose,
-  onSelectComment,
+  onSelectThread,
   onSelectItem,
   scrollRef,
   source,
@@ -90,10 +97,12 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   viewerRef,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
-  let totalCommentCount = 0;
-  for (const section of commentSections) {
-    totalCommentCount += section.comments.length;
-  }
+  // Counts threads rather than comments: a conversation is one thing to read,
+  // and a busy thread should not inflate the badge.
+  const totalCommentCount = threads.length;
+  const pendingCount = threads.filter(
+    (thread) => thread.comments[0]?.pending === true
+  ).length;
   // Pull the resolved Shiki theme so the whole sidebar (tabs row, file
   // tree, diff stats panel, footer) sits on the theme's sidebar surface
   // and its chrome text follows the theme's own foreground tokens
@@ -303,13 +312,19 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             hidden={activeTab !== 'comments'}
             className="h-full min-h-0"
           >
-            <DiffsHubCommentsList
-              commentSections={commentSections}
-              onSelectComment={onSelectComment}
-              onSelectItem={onSelectItem}
+            <ReviewThreadsList
+              threads={threads}
+              onSelectThread={onSelectThread}
             />
           </div>
         </div>
+        {onSubmitReview != null && (
+          <ReviewSubmitPanel
+            pendingCount={pendingCount}
+            busy={reviewBusy}
+            onSubmit={onSubmitReview}
+          />
+        )}
         <DiffsHubDiffStats
           expanded={activeStatusPanel === 'diffStats'}
           onToggle={() => toggleStatusPanel('diffStats')}

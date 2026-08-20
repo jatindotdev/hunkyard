@@ -13,7 +13,7 @@ import {
   useState,
 } from 'react';
 
-import type { ReviewAnnotationMetadata } from '@/lib/review/types';
+import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
@@ -37,7 +37,6 @@ import {
 } from '@/lib/localDiffSource';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
-  DiffsHubSavedCommentEntry,
 } from '@/lib/types';
 
 // Where the diff comes from. GitHub is described by a path on a host; a local
@@ -182,7 +181,6 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   const {
     applyCollapseModeToLoaded,
     commentFileByItemId,
-    commentSections,
     diffStats,
     errorMessage,
     initialItems,
@@ -320,24 +318,49 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     [review]
   );
 
-  const handleSelectComment = useCallback(
-    (comment: DiffsHubSavedCommentEntry) => {
+  const handleSelectThread = useCallback(
+    (thread: Thread) => {
       setFileTreeOverlayOpen(false);
-      viewerRef.current?.setSelectedLines({
-        id: comment.itemId,
-        range: comment.range,
-      });
+      const itemId = itemIdForPath(thread.anchor.path);
+      // A thread can point at a file that is not in the current diff; there is
+      // nothing to scroll to in that case.
+      if (itemId == null) return;
+
+      // Expand first: scrolling into a collapsed file lands nowhere. The old
+      // comment handler skipped this, which is why clicking a comment in a
+      // collapsed file appeared to do nothing.
+      const item = viewerRef.current?.getItem(itemId);
+      if (item != null && item.collapsed === true) {
+        viewerRef.current?.updateItem({ ...item, collapsed: false, version: (item.version ?? 0) + 1 });
+      }
+
+      const side = thread.anchor.side === 'LEFT' ? 'deletions' : 'additions';
+      const range = {
+        start: thread.anchor.startLine ?? thread.anchor.line,
+        end: thread.anchor.line,
+        side,
+        endSide: side,
+      } as const;
+      viewerRef.current?.setSelectedLines({ id: itemId, range });
       viewerRef.current?.scrollTo({
         type: 'line',
-        id: comment.itemId,
-        lineNumber: comment.range.end,
-        side: comment.range.endSide ?? comment.range.side,
+        id: itemId,
+        lineNumber: thread.anchor.line,
+        side,
         align: 'center',
         behavior: 'smooth-auto',
       });
     },
-    []
+    [itemIdForPath, viewerRef]
   );
+
+  const handleSubmitReview = useCallback(
+    (event: 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES', body: string) => {
+      void review.submit(event, body.trim() === '' ? undefined : body);
+    },
+    [review]
+  );
+
   // Withhold the viewer until the persisted themes have been read from
   // localStorage. Otherwise on client-side navigation back into a diff the
   // CodeView would mount during the brief render where lightThemeName/darkThemeName
@@ -385,11 +408,19 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         <>
           <DiffsHubSidebar
             className="[grid-area:viewer] md:[grid-area:tree]"
-            commentSections={commentSections}
+            threads={review.threads}
+            reviewBusy={review.busy}
+            onSubmitReview={
+              // Only offered when the store batches. A local review writes
+              // through, so a submit button would imply something it does not do.
+              review.capabilities?.batches === true
+                ? handleSubmitReview
+                : undefined
+            }
             diffStats={diffStats}
             mobileOverlayOpen={fileTreeOverlayOpen}
             onMobileClose={handleCloseFileTreeOverlay}
-            onSelectComment={handleSelectComment}
+            onSelectThread={handleSelectThread}
             scrollRef={scrollRef}
             source={treeSource}
             streaming={loadState === 'streaming'}
