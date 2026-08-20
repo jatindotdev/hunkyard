@@ -171,11 +171,11 @@ async function main() {
     );
   }
 
-  const nextBin = join(PACKAGE_ROOT, 'node_modules', '.bin', 'next');
-  if (!existsSync(nextBin)) {
+  const serverEntry = join(PACKAGE_ROOT, 'dist', 'server', 'index.js');
+  if (!existsSync(serverEntry)) {
     fail(
-      'could not find the bundled next binary',
-      `Looked in ${nextBin}. If you are working on hunkyard itself, run pnpm install first.`
+      'the built server is missing',
+      `Looked for ${serverEntry}. If you are working on hunkyard itself, run \`pnpm build\` first.`
     );
   }
 
@@ -183,12 +183,14 @@ async function main() {
   const env = {
     ...process.env,
     HUNKYARD_REPO_ROOT: repoRoot ?? '',
-    // Kept out of the browser deliberately: the server holds it and proxies.
+    // Held by this process and proxied; never handed to the browser.
     ...(github == null ? {} : { HUNKYARD_GITHUB_TOKEN: github.token }),
     PORT: String(options.port),
   };
 
-  const server = spawn(nextBin, ['start', '-p', String(options.port)], {
+  // The server is a single bundled file, so this is plain node with no
+  // framework to boot and no package resolution at startup.
+  const server = spawn(process.execPath, [serverEntry], {
     cwd: PACKAGE_ROOT,
     env,
     stdio: ['ignore', 'pipe', 'pipe'],

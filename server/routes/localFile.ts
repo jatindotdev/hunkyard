@@ -22,7 +22,7 @@ function jsonError(message: string, status: number): Response {
   );
 }
 
-export async function GET(request: Request): Promise<Response> {
+export async function handleLocalFile(request: Request): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const name = params.get('name');
   const type = params.get('type');

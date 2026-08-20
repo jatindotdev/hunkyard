@@ -1,3 +1,39 @@
+/* Ioskeley Mono, an OFL-1.1 monospace built with Iosevka in the spirit of
+   Berkeley Mono. Upstream diffshub shipped Berkeley Mono itself, which is
+   commercially licensed and cannot be redistributed; this keeps the look with a
+   licence that permits bundling. Vendored rather than fetched at runtime so a
+   local tool has no network dependency, and OFL.txt sits beside the files as
+   the licence requires. Only the four faces the UI uses are shipped, out of the
+   40 the release contains. */
+@font-face {
+  font-family: 'Ioskeley Mono';
+  src: url('/fonts/IoskeleyMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ioskeley Mono';
+  src: url('/fonts/IoskeleyMono-Italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ioskeley Mono';
+  src: url('/fonts/IoskeleyMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ioskeley Mono';
+  src: url('/fonts/IoskeleyMono-BoldItalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -5,7 +41,7 @@
 @custom-variant dark (&:is(.dark *, .dark));
 
 @theme {
-  --font-geist: var(--font-geist-sans);
+  --font-geist: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -181,7 +217,7 @@
 }
 
 :root {
-  --diffs-font-family: var(--font-mono);
+  --diffs-font-family: 'Ioskeley Mono', ui-monospace, SFMono-Regular, monospace;
   --cv-gutter-vertical: 0px;
   --cv-gutter-horizontal: 0px;
   --cv-mini-gutter-vertical: 0px;

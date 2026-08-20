@@ -16,7 +16,7 @@ import {
   IconSquircleLgFill,
   IconTriangleFill,
 } from '@pierre/icons';
-import Link from 'next/link';
+import { Link } from '@/src/navigation';
 import {
   memo,
   type MouseEvent,

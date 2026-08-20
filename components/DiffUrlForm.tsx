@@ -2,7 +2,7 @@
 
 import { useStableCallback } from '@pierre/diffs/react';
 import { IconX } from '@pierre/icons';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/src/navigation';
 import {
   type FormEvent,
   type ReactNode,

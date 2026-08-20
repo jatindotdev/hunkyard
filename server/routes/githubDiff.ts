@@ -1,4 +1,3 @@
-import { type NextRequest } from 'next/server';
 
 import {
   encodeURLSegment,
@@ -62,8 +61,8 @@ interface PatchFetchResult {
 // Validates the accepted path or URL, normalizes it to a raw diff URL, and
 // returns a streaming proxy response so the client can render files as they
 // arrive instead of waiting for the full patch text.
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
+export async function handleGitHubDiff(request: Request): Promise<Response> {
+  const searchParams = new URL(request.url).searchParams;
   const path = searchParams.get('path');
   const domain = searchParams.get('domain');
   const url = searchParams.get('url');
