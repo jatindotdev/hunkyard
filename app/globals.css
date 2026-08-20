@@ -181,7 +181,7 @@
 }
 
 :root {
-  --diffs-font-family: var(--font-berkeley-mono);
+  --diffs-font-family: var(--font-mono);
   --cv-gutter-vertical: 0px;
   --cv-gutter-horizontal: 0px;
   --cv-mini-gutter-vertical: 0px;

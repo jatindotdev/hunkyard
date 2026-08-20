@@ -1,5 +1,4 @@
-import { Geist } from 'next/font/google';
-import localFont from 'next/font/local';
+import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 
 import { PreloadHighlighter } from '@/components/PreloadHighlighter';
@@ -13,9 +12,9 @@ const geistSans = Geist({
   subsets: ['latin'],
 });
 
-const berkeleyMono = localFont({
-  src: '../public/fonts/BerkeleyMonoVariable.woff2',
-  variable: '--font-berkeley-mono',
+const geistMono = Geist_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
 });
 
 const themeBootstrapScript = `(${String(function applyInitialTheme() {
@@ -66,7 +65,7 @@ export function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${berkeleyMono.variable} ${geistSans.variable}`}
+      className={`${geistMono.variable} ${geistSans.variable}`}
     >
       <head>
         {/* The iOS navbar tint <meta name="theme-color"> is created and
