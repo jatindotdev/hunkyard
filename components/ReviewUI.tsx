@@ -14,6 +14,7 @@ import {
 } from 'react';
 
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
+import { boolPref, oneOf, usePersistedState } from './usePersistedState';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
@@ -61,6 +62,12 @@ export function ReviewUI({ source }: ReviewUIProps) {
   );
 }
 
+const NARROW_VIEWPORT = '(max-width: 767px)';
+
+function isNarrowViewport(): boolean {
+  return window.matchMedia(NARROW_VIEWPORT).matches;
+}
+
 function ReviewUIInner({ source }: ReviewUIProps) {
   const isLocal = source.kind === 'local';
   // `path` remains the loader's identity for the request and the fallback cache
@@ -81,15 +88,40 @@ function ReviewUIInner({ source }: ReviewUIProps) {
       )}`;
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
-  const [diffStyle, setDiffStyle] = useState<'split' | 'unified'>('split');
-  const [collapseMode, setCollapseMode] = useState<'expanded' | 'collapsed'>(
-    'expanded'
+  // Display prefs persist per browser, so a reviewer sets them once rather than
+  // on every navigation. Split view is unusable below the mobile breakpoint, so
+  // that is the default there -- a default, not a clamp: someone who picks split
+  // on a phone keeps it, and picking unified on a desktop is no longer undone
+  // the next time the window crosses the breakpoint.
+  const [diffStyle, setDiffStyle] = usePersistedState<'split' | 'unified'>(
+    'diffStyle',
+    isNarrowViewport() ? 'unified' : 'split',
+    oneOf(['split', 'unified'] as const)
   );
+  const [collapseMode, setCollapseMode] = usePersistedState<
+    'expanded' | 'collapsed'
+  >('collapseMode', 'expanded', oneOf(['expanded', 'collapsed'] as const));
   const [fileTreeOverlayOpen, setFileTreeOverlayOpen] = useState(false);
-  const [overflow, setOverflow] = useState<'wrap' | 'scroll'>('scroll');
-  const [showBackgrounds, setShowBackgrounds] = useState(true);
-  const [diffIndicators, setDiffIndicators] = useState<DiffIndicators>('bars');
-  const [lineNumbers, setLineNumbers] = useState(true);
+  const [overflow, setOverflow] = usePersistedState<'wrap' | 'scroll'>(
+    'overflow',
+    'scroll',
+    oneOf(['wrap', 'scroll'] as const)
+  );
+  const [showBackgrounds, setShowBackgrounds] = usePersistedState(
+    'showBackgrounds',
+    true,
+    boolPref
+  );
+  const [diffIndicators, setDiffIndicators] = usePersistedState<DiffIndicators>(
+    'diffIndicators',
+    'bars',
+    oneOf(['classic', 'bars', 'none'] as const)
+  );
+  const [lineNumbers, setLineNumbers] = usePersistedState(
+    'lineNumbers',
+    true,
+    boolPref
+  );
   const {
     clearToken: clearGitHubToken,
     hasToken: hasGitHubToken,
@@ -264,17 +296,14 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     return () => cancelAnimationFrame(frame);
   }, [loadState]);
 
+  // The tree overlay only exists below the breakpoint, so widening past it has
+  // to close the overlay rather than leave it stranded over the diff.
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 767px)');
-    const updateMobileState = (matches: boolean) => {
-      setDiffStyle(matches ? 'unified' : 'split');
-      if (!matches) setFileTreeOverlayOpen(false);
-    };
+    const mediaQuery = window.matchMedia(NARROW_VIEWPORT);
     const handleChange = (event: MediaQueryListEvent) => {
-      updateMobileState(event.matches);
+      if (!event.matches) setFileTreeOverlayOpen(false);
     };
-
-    updateMobileState(mediaQuery.matches);
+    if (!mediaQuery.matches) setFileTreeOverlayOpen(false);
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);

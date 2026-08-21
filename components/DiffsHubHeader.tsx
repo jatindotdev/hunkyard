@@ -20,9 +20,7 @@ import { type ColorMode } from '@pierre/theming';
 import { Link } from '@/src/navigation';
 import {
   type CSSProperties,
-  type Dispatch,
   memo,
-  type SetStateAction,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -79,12 +77,12 @@ interface HeaderProps {
   onToggleFileTreeOverlay(): void;
   setColorMode(mode: ColorMode): void;
   setDarkThemeName(name: DarkThemeName): void;
-  setDiffIndicators: Dispatch<SetStateAction<DiffIndicators>>;
-  setDiffStyle: Dispatch<SetStateAction<'split' | 'unified'>>;
+  setDiffIndicators: (next: DiffIndicators) => void;
+  setDiffStyle: (next: 'split' | 'unified') => void;
   setLightThemeName(name: LightThemeName): void;
-  setLineNumbers: Dispatch<SetStateAction<boolean>>;
-  setOverflow: Dispatch<SetStateAction<'wrap' | 'scroll'>>;
-  setShowBackgrounds: Dispatch<SetStateAction<boolean>>;
+  setLineNumbers: (next: boolean) => void;
+  setOverflow: (next: 'wrap' | 'scroll') => void;
+  setShowBackgrounds: (next: boolean) => void;
   showBackgrounds: boolean;
 }
 
