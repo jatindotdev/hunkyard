@@ -18,7 +18,14 @@ permissions:
   contents: write
 
 jobs:
+  # Depended on rather than repeated. The checks live in one workflow that CI
+  # also calls, so the release cannot drift from what CI verifies, and nothing
+  # gets published from a commit that failed them.
+  check:
+    uses: ./.github/workflows/checks.yml
+
   release:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Resolve the tag
