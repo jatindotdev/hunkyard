@@ -1,7 +1,7 @@
 'use client';
 
 import { IconArrow } from '@pierre/icons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/Button';
 import { annotationCardBase } from '@/lib/annotation';
@@ -26,6 +26,13 @@ export function DraftCommentAnnotation({
   onSave,
 }: DraftCommentAnnotationProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // The text is owned here rather than read back from the draft store. The
+  // library renders an annotation only when the item's annotation list changes,
+  // and a keystroke changes neither the metadata nor the list -- deliberately, so
+  // typing does not re-tokenize the diff. Reading `draft.body` for `value` would
+  // therefore pin the textarea to whatever it held when the annotation was last
+  // rendered, which is the empty string.
+  const [body, setBody] = useState(draft.body);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -36,7 +43,7 @@ export function DraftCommentAnnotation({
     textarea.setSelectionRange(textarea.value.length, textarea.value.length);
   }, []);
 
-  const canSave = draft.body.trim() !== '' && !busy;
+  const canSave = body.trim() !== '' && !busy;
 
   return (
     <form
@@ -54,11 +61,16 @@ export function DraftCommentAnnotation({
       </div>
       <textarea
         ref={textareaRef}
-        value={draft.body}
+        value={body}
         rows={3}
         placeholder="Leave a comment"
         className="bg-background/60 min-h-16 w-full resize-y rounded-md border p-2 font-sans text-[13px] outline-none focus-visible:ring-1"
-        onChange={(event) => onChange(draft.id, event.target.value)}
+        onChange={(event) => {
+          setBody(event.target.value);
+          // The store still needs every keystroke: saving reads the body from
+          // there, and the queue count is derived from it.
+          onChange(draft.id, event.target.value);
+        }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
             event.preventDefault();
