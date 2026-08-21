@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ steps.tag.outputs.name }}
-          # The tag is signed, and pushing the formula afterwards needs history.
+          # Full history so --verify-tag can check the tag's signature.
           fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2

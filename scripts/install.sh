@@ -125,9 +125,9 @@ if [ "$on_path" = no ]; then
   exit 0
 fi
 
-# homebrew-core ships an unrelated tool also called hunk, so an existing one on
-# PATH may well win and leave this install silently shadowed. Better to say so
-# than to let `hunk` run something else.
+# An unrelated tool of the same name exists, so an existing hunk on PATH may well
+# win and leave this install silently shadowed. Better to name it than to let
+# `hunk` run something else.
 found="$(command -v hunk 2>/dev/null || true)"
 if [ -n "$found" ] && [ "$found" != "${INSTALL_DIR}/hunk" ]; then
   echo

@@ -41,10 +41,9 @@ with a man page so `git hunk --help` works as well. (Git resolves that form as
 `git help hunk`, which reads a man page rather than running the binary, so
 without one it would fail.)
 
-Note that homebrew-core ships an unrelated tool also called `hunk`. If you have
-it, whichever directory comes first on your PATH decides which one runs, and the
-installer says so rather than leaving you to find out. There is deliberately no
-Homebrew formula here: a tap cannot claim a name homebrew-core already has.
+An unrelated tool of the same name exists, so if you already have a `hunk` on
+your PATH, whichever directory comes first decides which one runs. The installer
+names the one that wins rather than leaving you to find out.
 
 It is a single executable with the Bun runtime, the server and the whole client
 compiled into it. Nothing to install alongside it, no Node, no Bun, no
