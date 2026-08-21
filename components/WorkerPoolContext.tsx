@@ -50,6 +50,28 @@ const PoolOptions: WorkerPoolOptions = {
   },
 };
 
+// Shiki's own performance guide recommends the JavaScript regex engine for the
+// web, and @pierre/diffs defaults to it. We deliberately use the Oniguruma
+// WebAssembly engine instead, because the guide's reasoning does not hold for
+// this app.
+//
+// Measured in Chrome, which is where this actually runs, on 5,024 lines of tsx
+// tokenised repeatedly:
+//
+//   oniguruma   create 31ms   first 449ms    steady 204ms   24,620 lines/s
+//   javascript  create  1ms   first 1025ms   steady 570ms    8,810 lines/s
+//
+// The JavaScript engine does create its highlighter faster, which is the
+// guide's argument, but 30ms is swamped by compiling grammars on first use, and
+// sustained it is a third of the speed. A diff viewer exists to render large
+// diffs, so throughput is what matters. The guide's other argument is bundle
+// size, and the 608KB engine is served from localhost by the same binary that
+// serves the app, so it costs no network.
+//
+// The same gap appears under Node's V8 (8,670 lines/s) and Bun's
+// JavaScriptCore (12,989 lines/s), so it is the engine rather than one runtime.
+// Both tokenised twenty languages with no failures, so this is a speed trade
+// rather than a coverage one.
 const HighlighterOptions: WorkerInitializationRenderOptions = {
   // diffshub used to override the default pair with the soft pierre themes;
   // now that the canonical default IS the non-soft pair (shared via theming),

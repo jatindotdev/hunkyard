@@ -136,6 +136,12 @@ avatar. Hunkyard keeps the rendering pipeline and replaces that layer.
 - Content-addressed highlight cache keys from the blob ids in each patch's
   `index` line. Keying on the path meant a working tree kept stale highlighting,
   since its content changes while its path does not.
+- Trimmed the dependency overrides to the two that are load-bearing.
+  `@pierre/theming` pins shiki 4.4.1 while `@pierre/diffs` accepts `^3 || ^4`,
+  which installs two copies and so two grammar registries; and `@pierre/trees`
+  and `@pierre/diffs` pin different `@pierre/theming` patches while both hold
+  resolved-theme state at module scope. Pinning shiki's `@shikijs/*` family
+  separately did nothing, because shiki already pins it exactly.
 - Ported off Next.js to Vite and Hono, then to a single Bun executable: 187MB of
   runtime dependencies down to none at all.
 - Removed Berkeley Mono (commercially licensed, not redistributable) in favour of

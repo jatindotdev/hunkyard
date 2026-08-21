@@ -37,3 +37,10 @@ yarn-error.log*
 
 # build output
 /dist/
+
+# stale Next.js output from before the Vite port. The directory still exists in
+# older checkouts, and dropping these entries once let 784 files of it into a
+# commit, so they stay.
+/.next/
+/out/
+next-env.d.ts

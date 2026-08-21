@@ -12,6 +12,9 @@ export function PreloadHighlighter() {
         'pierre-light-soft',
       ],
       langs: ['zig', 'rust', 'typescript', 'tsx', 'bash'],
+      // Must match WorkerPoolContext, which explains the choice: the
+      // highlighter is a singleton, so the first caller's engine is the one
+      // every later call gets.
       preferredHighlighter: 'shiki-wasm',
     });
   }, []);

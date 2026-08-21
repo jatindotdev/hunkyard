@@ -52,14 +52,10 @@
   "private": true,
   "overrides": {
     "shiki": "4.4.3",
-    "@shikijs/core": "4.4.3",
-    "@shikijs/engine-javascript": "4.4.3",
-    "@shikijs/themes": "4.4.3",
     "@shikijs/transformers": "4.4.3",
     "@pierre/theming": "1.0.1"
   },
   "trustedDependencies": [
-    "@tailwindcss/oxide",
-    "sharp"
+    "@tailwindcss/oxide"
   ]
 }
