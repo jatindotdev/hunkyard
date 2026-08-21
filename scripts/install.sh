@@ -11,7 +11,7 @@ set -eu
 
 REPO="jatindotdev/hunkyard"
 # Which release to install. Override to pin an older one.
-TAG="${HUNK_VERSION:-v0.1.1}"
+TAG="${HUNK_VERSION:-v0.1.2}"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
 MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
@@ -83,28 +83,28 @@ download() {
   return 1
 }
 
-echo "Downloading ${asset}.gz (about 28MB)..."
-download "${asset}.gz" "${tmp}/hunk.gz" show-progress || fail "could not download ${asset}.gz.
+# The binaries are large because each embeds the Bun runtime and the whole
+# client, and GitHub does not compress release assets in transit, so the progress
+# bar is the difference between waiting and wondering.
+echo "Downloading ${asset} (about 75MB)..."
+download "$asset" "${tmp}/hunk" show-progress || fail "could not download ${asset}.
   ${gh_error:-no error reported}
 
 Check that ${TAG} has an asset for your platform, or download it by hand from
 https://github.com/${REPO}/releases/tag/${TAG}"
 
 if download SHA256SUMS "${tmp}/SHA256SUMS"; then
-  # The checksum covers what was downloaded, so it is checked before unpacking.
-  expected="$(grep " ${asset}.gz\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"
+  expected="$(grep " ${asset}\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"
   if [ -n "$expected" ]; then
     if command -v sha256sum >/dev/null 2>&1; then
-      actual="$(sha256sum "${tmp}/hunk.gz" | awk '{print $1}')"
+      actual="$(sha256sum "${tmp}/hunk" | awk '{print $1}')"
     else
-      actual="$(shasum -a 256 "${tmp}/hunk.gz" | awk '{print $1}')"
+      actual="$(shasum -a 256 "${tmp}/hunk" | awk '{print $1}')"
     fi
-    [ "$actual" = "$expected" ] || fail "checksum mismatch for ${asset}.gz"
+    [ "$actual" = "$expected" ] || fail "checksum mismatch for ${asset}"
     echo "Checksum verified."
   fi
 fi
-
-gzip -d "${tmp}/hunk.gz" || fail "could not unpack ${asset}.gz"
 
 mkdir -p "$INSTALL_DIR"
 chmod +x "${tmp}/hunk"
