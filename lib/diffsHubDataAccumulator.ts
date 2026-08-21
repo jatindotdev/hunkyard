@@ -11,8 +11,8 @@ import { contentAddressedCacheKey } from './diffCacheKey';
 import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
-  DiffsHubCommentFileByItemId,
-  DiffsHubCommentSidebarFile,
+  DiffsHubFileByItemId,
+  DiffsHubViewerFile,
   DiffsHubDiffStats,
   DiffsHubFileTreeSource,
 } from './types';
@@ -21,7 +21,7 @@ export interface DiffsHubDataAccumulator {
   diffStats: DiffsHubDiffStats;
   fileIndex: number;
   gitStatusByPath: Map<string, GitStatusEntry>;
-  itemIdToFile: Map<string, DiffsHubCommentSidebarFile>;
+  itemIdToFile: Map<string, DiffsHubViewerFile>;
   items: CodeViewItem<ReviewAnnotationMetadata>[];
   // The last tree source emitted by snapshotDiffsHubTreeSource for this
   // accumulator. Each new snapshot links back to this so the consumer can
@@ -50,7 +50,7 @@ interface CodeViewPathState {
 }
 
 export interface LoadedDiffsHubData {
-  itemIdToFile: DiffsHubCommentFileByItemId;
+  itemIdToFile: DiffsHubFileByItemId;
   diffStats: DiffsHubDiffStats;
   items: CodeViewItem<ReviewAnnotationMetadata>[];
   treeSource: DiffsHubFileTreeSource;

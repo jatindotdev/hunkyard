@@ -58,7 +58,7 @@ export const ThreadAnnotation = memo(function ThreadAnnotation({
 
       {thread.comments.map((comment) => (
         <div key={comment.id} className="flex gap-2.5">
-          <CommentAuthorAvatar seed={comment.author.login} className="size-6" />
+          <CommentAuthorAvatar author={comment.author} className="size-6" />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2">
               <strong className="text-[13px]">{comment.author.login}</strong>

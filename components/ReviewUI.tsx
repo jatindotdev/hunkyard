@@ -28,7 +28,6 @@ import {
   docsThemeCatalog,
   themeController,
 } from '@/components/themeController';
-import { preloadAvatars } from '@/lib/annotation';
 import { createGitHubDiffFileLoader } from '@/lib/githubDiffFileLoader';
 import { createLocalDiffFileLoader } from '@/lib/localDiffFileLoader';
 import {
@@ -80,7 +79,6 @@ function ReviewUIInner({ source }: ReviewUIProps) {
           ? { path: source.path }
           : { path: source.path, domain: source.domain }
       )}`;
-  useEffect(preloadAvatars, []);
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
   const [diffStyle, setDiffStyle] = useState<'split' | 'unified'>('split');
@@ -180,7 +178,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   }, []);
   const {
     applyCollapseModeToLoaded,
-    commentFileByItemId,
+    fileByItemId,
     diffStats,
     errorMessage,
     initialItems,
@@ -223,20 +221,20 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   // Repository paths and viewer item ids are not interchangeable: ids carry
   // decoration. Both directions come from the accumulator's own map.
   const pathForItemId = useCallback(
-    (itemId: string) => commentFileByItemId?.get(itemId)?.path,
-    [commentFileByItemId]
+    (itemId: string) => fileByItemId?.get(itemId)?.path,
+    [fileByItemId]
   );
   const itemIdForPath = useMemo(() => {
     const byPath = new Map<string, string>();
-    if (commentFileByItemId != null) {
-      for (const [itemId, file] of commentFileByItemId) {
+    if (fileByItemId != null) {
+      for (const [itemId, file] of fileByItemId) {
         // Later entries win: the accumulator renames the older item when a path
         // repeats, so the undecorated id is the current one.
         byPath.set(file.path, itemId);
       }
     }
     return (path: string) => byPath.get(path);
-  }, [commentFileByItemId]);
+  }, [fileByItemId]);
 
   // Reload when the diff on disk changes, holding the scroll position so an
   // edit does not throw the reviewer back to the top of the file list.

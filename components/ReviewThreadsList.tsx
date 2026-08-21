@@ -105,7 +105,7 @@ export const ReviewThreadsList = memo(function ReviewThreadsList({
                 }
               >
                 <CommentAuthorAvatar
-                  seed={first?.author.login ?? 'you'}
+                  author={first?.author ?? { login: 'you' }}
                   className="size-5"
                 />
                 <span className="min-w-0 flex-1">

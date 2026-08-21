@@ -8,9 +8,7 @@ import {
 } from '@pierre/diffs';
 import { type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
 import {
-  type Dispatch,
   type RefObject,
-  type SetStateAction,
   useCallback,
   useEffect,
   useRef,
@@ -39,10 +37,9 @@ import {
   streamGitPatchFiles,
 } from '@/lib/streamGitPatchFiles';
 import type {
-  DiffsHubCommentFileByItemId,
+  DiffsHubFileByItemId,
   DiffsHubDiffStats,
   DiffsHubFileTreeSource,
-  DiffsHubSavedCommentItem,
   ViewerLoadState,
 } from '@/lib/types';
 
@@ -75,8 +72,7 @@ interface UsePatchLoaderOptions {
 
 interface UsePatchLoaderResult {
   applyCollapseModeToLoaded(mode: 'expanded' | 'collapsed'): void;
-  commentFileByItemId: DiffsHubCommentFileByItemId | null;
-  commentSections: DiffsHubSavedCommentItem[];
+  fileByItemId: DiffsHubFileByItemId | null;
   diffStats: DiffsHubDiffStats | null;
   errorMessage: string | null;
   initialItems: CodeViewItem<ReviewAnnotationMetadata>[];
@@ -84,7 +80,6 @@ interface UsePatchLoaderResult {
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
   retryLoad(): void;
-  setCommentSections: Dispatch<SetStateAction<DiffsHubSavedCommentItem[]>>;
   treeSource: DiffsHubFileTreeSource | null;
   viewerKey: number;
 }
@@ -110,11 +105,8 @@ export function usePatchLoader({
     null
   );
   const [diffStats, setDiffStats] = useState<DiffsHubDiffStats | null>(null);
-  const [commentFileByItemId, setCommentFileByItemId] =
-    useState<DiffsHubCommentFileByItemId | null>(null);
-  const [commentSections, setCommentSections] = useState<
-    DiffsHubSavedCommentItem[]
-  >([]);
+  const [fileByItemId, setFileByItemId] =
+    useState<DiffsHubFileByItemId | null>(null);
   const [loadState, setLoadState] = useState<ViewerLoadState>('fetching');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -243,8 +235,7 @@ export function usePatchLoader({
     setInitialItems([]);
     setTreeSource(null);
     setDiffStats(null);
-    setCommentFileByItemId(null);
-    setCommentSections([]);
+    setFileByItemId(null);
     onLoadStart();
     setErrorMessage(null);
     setLoadState('fetching');
@@ -268,8 +259,7 @@ export function usePatchLoader({
           }
 
           setTreeSource(loadedData.treeSource);
-          setCommentFileByItemId(loadedData.itemIdToFile);
-          setCommentSections([]);
+          setFileByItemId(loadedData.itemIdToFile);
           setDiffStats(loadedData.diffStats);
           prepareItemsForViewer(loadedData.items);
           setInitialItems(loadedData.items);
@@ -331,7 +321,7 @@ export function usePatchLoader({
           pendingTreePublishFileCount = 0;
           hasPublishedTree = true;
           lastTreePublishTime = performance.now();
-          setCommentFileByItemId(accumulator.itemIdToFile);
+          setFileByItemId(accumulator.itemIdToFile);
           setDiffStats({ ...accumulator.diffStats });
           setTreeSource(snapshotDiffsHubTreeSource(accumulator));
         };
@@ -484,7 +474,7 @@ export function usePatchLoader({
           return;
         }
 
-        setCommentFileByItemId(new Map(accumulator.itemIdToFile));
+        setFileByItemId(new Map(accumulator.itemIdToFile));
         setDiffStats({ ...accumulator.diffStats });
         setLoadState('ready');
       } catch (error) {
@@ -528,8 +518,7 @@ export function usePatchLoader({
 
   return {
     applyCollapseModeToLoaded,
-    commentFileByItemId,
-    commentSections,
+    fileByItemId,
     diffStats,
     errorMessage,
     initialItems,
@@ -537,7 +526,6 @@ export function usePatchLoader({
     onLineLinkChange: handleLineLinkChange,
     onViewerReady: tryApplyLineHashTarget,
     retryLoad,
-    setCommentSections,
     treeSource,
     viewerKey,
   };

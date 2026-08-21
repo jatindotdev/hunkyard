@@ -1,4 +1,3 @@
-import type { AnnotationSide, SelectedLineRange } from '@pierre/diffs';
 import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
 
 export type ViewerLoadState =
@@ -8,71 +7,12 @@ export type ViewerLoadState =
   | 'ready'
   | 'error';
 
-export interface SavedCommentMetadata {
-  kind: 'saved';
-  key: string;
-  author: string;
-  message: string;
-  range: SelectedLineRange;
-}
-
-export interface DraftCommentMetadata {
-  kind: 'draft';
-  key: string;
-  message: string;
-  range: SelectedLineRange;
-}
-
-export type CommentMetadata = SavedCommentMetadata | DraftCommentMetadata;
-
-export interface DiffsHubCommentSidebarFile {
+export interface DiffsHubViewerFile {
   fileOrder: number;
   path: string;
 }
 
-export type DiffsHubCommentFileByItemId = ReadonlyMap<
-  string,
-  DiffsHubCommentSidebarFile
->;
-
-// Whether the line the comment is anchored to is a real addition/deletion or
-// an unchanged context line shown in the diff. Tracked so the sidebar can
-// render "Line N" without a misleading + / - sigil for context lines.
-export type CommentLineType = 'change' | 'context';
-
-export interface DiffsHubSavedCommentEvent {
-  author: string;
-  itemId: string;
-  key: string;
-  lineNumber: number;
-  lineType: CommentLineType;
-  message: string;
-  range: SelectedLineRange;
-  side: AnnotationSide;
-}
-
-export interface DiffsHubDeletedCommentEvent {
-  itemId: string;
-  key: string;
-}
-
-export interface DiffsHubSavedCommentEntry {
-  author: string;
-  itemId: string;
-  key: string;
-  lineNumber: number;
-  lineType: CommentLineType;
-  message: string;
-  range: SelectedLineRange;
-  side: AnnotationSide;
-}
-
-export interface DiffsHubSavedCommentItem {
-  comments: DiffsHubSavedCommentEntry[];
-  fileOrder: number;
-  itemId: string;
-  path: string;
-}
+export type DiffsHubFileByItemId = ReadonlyMap<string, DiffsHubViewerFile>;
 
 // The fully pre-computed input this tree needs for a given fetch. It is built
 // once at fetch time by snapshotDiffsHubTreeSource and stored alongside the
