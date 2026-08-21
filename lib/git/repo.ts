@@ -1,5 +1,7 @@
 import { findRepoRoot } from './exec';
+import { repoIdFor } from '../repos/id';
 import { defaultRepoId, lookupRepo } from '../repos/registry';
+import type { RegisteredRepo } from '../repos/registry';
 
 export const REPO_ROOT_ENV = 'HUNKYARD_REPO_ROOT';
 
@@ -13,32 +15,64 @@ export class NoRepositoryError extends Error {
   }
 }
 
-// An id the registry does not know. Distinct from having no repository at all,
-// because it is the caller naming something wrong rather than the server being
-// unconfigured, and the two deserve different status codes.
+// A repository the request named that cannot be resolved. Distinct from having
+// no repository at all, because it is the caller naming something wrong rather
+// than the server being unconfigured, and the two deserve different codes.
 export class UnknownRepositoryError extends NoRepositoryError {
   constructor(id: string) {
-    super(`No repository is registered as ${id}. Run \`hunk\` in it again.`);
+    super(`${id} is not a known repository id or a path inside a git repository.`);
     this.name = 'UnknownRepositoryError';
   }
 }
 
+// The repository to use when the registry is empty, which is the case under
+// `bun dev`: there is no CLI invocation to have registered anything, so the
+// repository being reviewed is the one the server was started in.
+//
+// Exposed so the repos endpoint reports the same thing the diff routes read.
+// Without that the client is told there is nothing to review while every other
+// route would happily serve it.
+export async function resolveFallbackRepo(): Promise<RegisteredRepo | null> {
+  const configured = process.env[REPO_ROOT_ENV] ?? process.cwd();
+  if (configured.trim() === '') return null;
+  const root = await findRepoRoot(configured);
+  if (root == null) return null;
+  return { id: repoIdFor(root), root, lastUsedAt: new Date().toISOString() };
+}
+
 // Which repository a request is about.
 //
-// A request names a repository by id, never by path. The id is only meaningful
-// against the registry, and only a local `hunk` invocation can add to it, so a
-// page that reaches this port can address the repositories you have opened and
-// nothing else. That boundary is what makes the path confinement in files.ts
-// meaningful: without it, a request-supplied root would reach any directory on
-// the machine.
+// `repo` is either an id from the registry, which is what `hunk` puts in the URL
+// because it reads well, or a path to any repository on the machine. The
+// registry is a list of what you have opened, for the default and for
+// `hunk status`; it is not an allowlist.
+//
+// What keeps that from being a way to read your disk from a web page is in
+// server/guard.ts, not here: the Host check refuses a name we do not answer on,
+// so DNS rebinding fails, and no route sends CORS headers, so a foreign page can
+// start a request but never read the response. Writes additionally need an
+// Origin we recognise. Path confinement in files.ts still applies within
+// whichever repository is resolved.
 export async function resolveRequestRepoRoot(
   request: Request
 ): Promise<string> {
-  const id = new URL(request.url).searchParams.get('repo');
-  if (id != null && id !== '') {
-    const repo = await lookupRepo(id);
-    if (repo == null) throw new UnknownRepositoryError(id);
-    return normalise(repo.root);
+  const requested = new URL(request.url).searchParams.get('repo');
+  if (requested != null && requested !== '') {
+    const repo = await lookupRepo(requested);
+    if (repo != null) return normalise(repo.root);
+
+    // The dev fallback has an id like any other repository, so a client that
+    // read it from /api/repos can name it here.
+    const fallback = await resolveFallbackRepo();
+    if (fallback?.id === requested) return normalise(fallback.root);
+
+    // Otherwise it is a path. git decides whether it is a repository, so a
+    // directory that is not one fails here rather than half-working, and a
+    // subdirectory resolves to its work tree.
+    const root = await findRepoRoot(requested);
+    if (root != null) return root;
+
+    throw new UnknownRepositoryError(requested);
   }
 
   // No id: the most recently opened repository. This is what a hand-typed URL
@@ -50,11 +84,9 @@ export async function resolveRequestRepoRoot(
     if (repo != null) return normalise(repo.root);
   }
 
-  // Nothing registered at all. In dev there is no CLI to have registered
-  // anything, so the repository you are reviewing is the one you are in.
-  const configured = process.env[REPO_ROOT_ENV] ?? process.cwd();
-  if (configured.trim() === '') throw new NoRepositoryError();
-  return normalise(configured);
+  const fallback = await resolveFallbackRepo();
+  if (fallback == null) throw new NoRepositoryError();
+  return normalise(fallback.root);
 }
 
 // Normalise through git so a subdirectory still resolves to the work tree, and

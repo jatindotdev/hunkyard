@@ -1,14 +1,17 @@
 import { Hono } from 'hono';
 
+import { resolveFallbackRepo } from '../../lib/git/repo';
 import {
   listRepos,
   readControlToken,
   registerRepo,
 } from '../../lib/repos/registry';
 
-// Registering a repository tells the daemon to read a directory, so it is gated
-// on a secret only local processes can read. The browser client never registers
-// anything: it addresses repositories a `hunk` invocation already added.
+// Registering is no longer a privilege boundary: a request can name any
+// repository by path. It still writes the recents list that gives `hunk status`
+// and the default repository their contents, so it stays behind a token only
+// local processes can read, to keep a web page from filling that list with
+// noise. The browser client never registers anything.
 async function isControlRequest(request: Request): Promise<boolean> {
   const token = await readControlToken();
   if (token == null) return false;
@@ -23,7 +26,15 @@ export function createReposApp(): Hono {
   // Readable without the token: it is the list the UI needs to render, and it
   // says nothing a page could not learn by asking for each id in turn.
   app.get('/api/repos', async (c) => {
-    const repos = await listRepos();
+    const registered = await listRepos();
+    // With nothing registered, report the directory the server was started in,
+    // which is what the diff routes fall back to. `bun dev` has no CLI
+    // invocation to have registered anything.
+    const repos =
+      registered.length > 0
+        ? registered
+        : [await resolveFallbackRepo()].filter((repo) => repo != null);
+
     return c.json(
       {
         repos: repos.map((repo) => ({ id: repo.id, root: repo.root })),

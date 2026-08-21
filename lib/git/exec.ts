@@ -166,7 +166,15 @@ export async function verifyRev(
 
 // The repository root for a directory, or null when outside a work tree.
 export async function findRepoRoot(cwd: string): Promise<string | null> {
-  const result = await runGit(['rev-parse', '--show-toplevel'], { cwd });
+  let result;
+  try {
+    result = await runGit(['rev-parse', '--show-toplevel'], { cwd });
+  } catch {
+    // A cwd that does not exist fails the spawn itself rather than returning a
+    // git exit code. "Not a repository" is the honest answer either way, and
+    // the alternative is an ENOENT about posix_spawn reaching the caller.
+    return null;
+  }
   if (!isGitSuccess(result.code)) return null;
   const root = result.stdout.toString('utf8').trim();
   return root === '' ? null : root;

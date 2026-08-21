@@ -11,6 +11,14 @@ machine, and renders diffs of a size the GitHub UI gives up on.
 curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 ```
 
+Or with Homebrew. This repository is its own tap, so there is no second one to
+keep in step:
+
+```bash
+brew tap jatindotdev/hunkyard https://github.com/jatindotdev/hunkyard
+brew install hunk
+```
+
 ```bash
 hunk                    # review what you have not committed
 hunk --staged           # review what you are about to commit
@@ -81,9 +89,11 @@ names we actually answer on. A page can also fire a write at the real address
 without being able to read the reply, so anything that is not a GET needs a
 recognised `Origin`.
 
-The daemon only serves repositories a local `hunk` invocation registered, and
-registering needs a token that lives in a `0600` file. So a page can address the
-repositories you have opened, and nothing else on disk.
+A request names a repository either by the id `hunk` puts in the URL or by path,
+and any repository on the machine is reachable. What stops that being a way to
+read your disk from a web page is the pair of checks above plus the absence of
+CORS headers: a foreign page can start a request but cannot read the response,
+and the repositories you have opened are a recents list rather than a gate.
 
 The trade is that a review is yours: there is no URL to send anyone.
 
