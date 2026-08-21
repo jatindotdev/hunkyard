@@ -49,6 +49,9 @@ export function composeReleaseNotes({
   const filled = template
     .replace('{{NOTES}}', notes)
     .replace(/\{\{VERSION\}\}/g, version)
+    // Short first: the long form is a substring of the placeholder name, so
+    // replacing {{COMMIT}} ahead of it would leave a stray `_SHORT`.
+    .replace(/\{\{COMMIT_SHORT\}\}/g, commit.slice(0, 7))
     .replace(/\{\{COMMIT\}\}/g, commit)
     .replace(/\{\{RUN_URL\}\}/g, runUrl);
 

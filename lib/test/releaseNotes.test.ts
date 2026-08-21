@@ -90,3 +90,28 @@ describe('composeReleaseNotes', () => {
     ).toThrow(/unfilled \{\{MYSTERY\}\}/);
   });
 });
+
+describe('the commit in the footer', () => {
+  const base = {
+    version: 'v0.1.0',
+    changelog: '## v0.1.0\n\nnotes\n',
+    commit: '1f014f7024fbcc62940b2a43564cd01b4e02b926',
+    runUrl: 'https://example.test/run/1',
+  };
+
+  test('is shown short and linked long', () => {
+    const notes = composeReleaseNotes({
+      ...base,
+      template: '{{NOTES}} [`{{COMMIT_SHORT}}`](https://x/commit/{{COMMIT}})',
+    });
+    expect(notes).toContain('[`1f014f7`](https://x/commit/1f014f7024fbcc62940b2a43564cd01b4e02b926)');
+  });
+
+  // {{COMMIT}} is a substring of {{COMMIT_SHORT}}, so replacing it first would
+  // leave a stray `_SHORT` in the published notes.
+  test('does not leave _SHORT behind', () => {
+    expect(
+      composeReleaseNotes({ ...base, template: '{{NOTES}} {{COMMIT_SHORT}}' })
+    ).not.toContain('_SHORT');
+  });
+});

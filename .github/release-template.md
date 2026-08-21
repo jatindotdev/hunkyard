@@ -50,7 +50,7 @@ artifacts rather than of a rebuild.
 ---
 
 {{VERSION}} · built by [this workflow run]({{RUN_URL}}) from
-[`{{COMMIT}}`](https://github.com/jatindotdev/hunkyard/commit/{{COMMIT}})
+[`{{COMMIT_SHORT}}`](https://github.com/jatindotdev/hunkyard/commit/{{COMMIT}})
 
 Built on [DiffsHub](https://diffshub.com) by
 [The Pierre Computer Company](https://pierre.computer), Apache-2.0. See `NOTICE`.
