@@ -38,6 +38,11 @@ jobs:
       - name: Install
         run: bun install --frozen-lockfile
 
+      # Before building, because a tag with no notes should fail in seconds
+      # rather than after every target has been cross-compiled.
+      - name: Compose the release notes
+        run: bun scripts/releaseNotes.ts "${{ steps.tag.outputs.name }}" > /tmp/notes.md
+
       - name: Refuse a tag that disagrees with package.json
         run: |
           set -euo pipefail
@@ -66,10 +71,12 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" dist/release/hunk-* dist/release/git-hunk.1 \
               dist/release/SHA256SUMS --clobber
+            # Re-running a release should correct its notes too.
+            gh release edit "$tag" --notes-file /tmp/notes.md
           else
             gh release create "$tag" \
               --title "hunkyard $tag" \
-              --generate-notes \
+              --notes-file /tmp/notes.md \
               --verify-tag \
               dist/release/hunk-* dist/release/git-hunk.1 dist/release/SHA256SUMS
           fi

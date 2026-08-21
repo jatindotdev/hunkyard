@@ -124,18 +124,26 @@ Pushing a `v*` tag builds every target and publishes the release. `bun build
 --compile` is not reproducible, so `SHA256SUMS` describes the artifacts that run
 produced and nothing else.
 
-`scripts/drive.mjs` drives the app in headless Chrome over the DevTools
-Protocol, as a list of steps, which is how the UI gets verified:
-
-```bash
-node scripts/drive.mjs settle:9000 nav:http://hunkyard.localhost:4865/local \
-  drag:344,159,344,179 key:c probe shot:/tmp/a.png
-```
+`bun test` includes browser tests that drive real Chrome over the DevTools
+Protocol (`lib/test/ui.integration.test.ts`). Bun recommends happy-dom for DOM
+testing and it is right for a component in isolation, but it has no layout
+engine, so `getBoundingClientRect` returns 0x0. The diff surface is virtualized
+and measures item heights, and selecting lines means dragging over a gutter at a
+coordinate, so those checks need a real browser. Workers do run under happy-dom,
+since Bun provides real ones.
 
 Waits are real elapsed time. `--virtual-time-budget` cannot be used here: it
 advances the main thread's clock but not a worker's, and the viewer is gated on
 the highlight pool booting, so under virtual time the page reaches `ready`
 before the pool exists and the diff never appears.
+
+For looking at something rather than asserting it, `scripts/drive.ts` shares the
+same client:
+
+```bash
+bun scripts/drive.ts http://hunkyard.localhost:4865/local \
+  drag:344,159,344,179 key:c shot:/tmp/a.png
+```
 
 ## What changed from upstream
 

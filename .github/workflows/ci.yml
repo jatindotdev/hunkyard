@@ -33,13 +33,21 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
-      # The git layer's tests run against real repositories they create in a
-      # temp directory, configuring their own identity, so git is all they need.
-      - name: Test
-        run: bun test
-
+      # Before the tests, because the browser ones serve the built client. One
+      # ordering beats splitting the suite around it.
       - name: Build
         run: bun run build
+
+      # The git layer's tests run against real repositories they create in a temp
+      # directory, configuring their own identity, so git is all they need. The
+      # browser ones drive real Chrome, which is the only place shadow DOM, a
+      # virtualized surface with real layout, the highlight worker pool and key
+      # events can be checked together. CI=true makes a missing Chrome a failure
+      # rather than a silent skip, so this cannot quietly stop covering the UI.
+      - name: Test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: bun test
 
       # A binary that compiles but cannot serve is the failure worth catching
       # here, and it is not something the unit tests can see.

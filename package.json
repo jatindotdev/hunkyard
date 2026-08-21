@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@fontsource-variable/geist": "^5.3.0",
+    "@happy-dom/global-registrator": "^20.11.6",
     "@hono/node-server": "^2.1.1",
     "@hugeicons/core-free-icons": "4.3.0",
     "@hugeicons/react": "1.1.10",
