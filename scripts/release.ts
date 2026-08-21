@@ -36,6 +36,8 @@ if (!(await Bun.file('dist/client/index.html').exists())) {
 await rm(OUT_DIR, { recursive: true, force: true });
 await mkdir(OUT_DIR, { recursive: true });
 
+// A file literally named git-hunk on PATH is all `git hunk` needs, so the
+// release ships one alongside each binary rather than a second copy.
 const results: { name: string; mb: string; ms: number }[] = [];
 for (const { target, name } of TARGETS) {
   const started = Bun.nanoseconds();
@@ -68,6 +70,16 @@ for (const { target, name } of TARGETS) {
   });
   console.log(`  ${name.padEnd(28)} ${results.at(-1)?.mb} MB`);
 }
+
+// Checksums, so an install script can verify what it downloaded.
+const checksums: string[] = [];
+for (const { name } of results) {
+  const digest = new Bun.CryptoHasher('sha256')
+    .update(await Bun.file(`${OUT_DIR}/${name}`).bytes())
+    .digest('hex');
+  checksums.push(`${digest}  ${name}`);
+}
+await Bun.write(`${OUT_DIR}/SHA256SUMS`, `${checksums.join('\n')}\n`);
 
 console.log(
   `\nhunkyard ${version}: ${results.length} binaries in ${OUT_DIR}, ` +

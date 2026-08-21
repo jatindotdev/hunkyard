@@ -8,19 +8,33 @@ already a pull request. Hunkyard reviews any of them, runs entirely on your
 machine, and renders diffs of a size the GitHub UI gives up on.
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
+```
+
+```bash
 hunk                    # review what you have not committed
 hunk --staged           # review what you are about to commit
 hunk main...my-branch   # review a branch as a PR would show it
 hunk HEAD~3             # review the last three commits
 hunk owner/repo#123     # review a pull request
+
+hunk status             # what is running, and which repositories it serves
+hunk stop               # stop it
 ```
 
-It serves itself at `http://hunkyard.localhost:4865` and opens a browser.
-Ctrl-C stops it.
+`hunk` opens a browser and returns. It serves at
+`http://hunkyard.localhost:4865`, in the background, and keeps running until
+you stop it, so the second review of the day costs 44ms rather than a restart.
+It serves every repository you have opened, so running `hunk` in another one
+just works. Use `--foreground` to hold the terminal instead.
 
-`hunk` is a single executable with the Bun runtime, the server and the whole
-client compiled into it. Nothing to install alongside it, no Node, no Bun, no
-`node_modules` — download the binary for your platform and run it.
+`git hunk` works too, on the symlink the installer puts next to the binary.
+(`git hunk --help` is intercepted by git looking for a man page; use
+`git hunk -h`.)
+
+It is a single executable with the Bun runtime, the server and the whole client
+compiled into it. Nothing to install alongside it, no Node, no Bun, no
+`node_modules`.
 
 Built on [DiffsHub](https://diffshub.com) by
 [The Pierre Computer Company](https://pierre.computer) (Apache-2.0), using their
@@ -52,12 +66,23 @@ selected lines, `n`/`p` between threads, `⌘↵` to submit, `?` for the list.
 ## Everything stays on your machine
 
 There is no hosted service and no account. `hunk` binds loopback and serves both
-the app and the data, so it is all one origin — no CORS, no pairing, no
-permission prompt for reaching localhost from a public page.
+the app and the data, so it is all one origin: no CORS, no pairing, no permission
+prompt for reaching localhost from a public page.
 
-A GitHub token is only needed for pull requests, and only a private one at that.
-It is read from `gh auth token` or `GH_TOKEN`, stays in the CLI process, and is
-proxied rather than handed to the browser.
+A GitHub token is only needed for pull requests, and only private ones at that.
+It is read from `gh auth token` or `GH_TOKEN`, stays in the server process, and
+is proxied rather than handed to the browser.
+
+Binding a port your browser can reach has two consequences, and each gets its own
+answer. A page can point a hostname it controls at `127.0.0.1` and have your
+browser treat its origin as ours, so the `Host` header is checked against the
+names we actually answer on. A page can also fire a write at the real address
+without being able to read the reply, so anything that is not a GET needs a
+recognised `Origin`.
+
+The daemon only serves repositories a local `hunk` invocation registered, and
+registering needs a token that lives in a `0600` file. So a page can address the
+repositories you have opened, and nothing else on disk.
 
 The trade is that a review is yours: there is no URL to send anyone.
 
@@ -77,7 +102,7 @@ each time.
 bun install
 bun dev                 # http://hunkyard.localhost:4865, API included
 bun run build           # client, then a binary at dist/hunk
-bun run build:release   # cross-compiled binaries for every platform
+bun run build:release   # cross-compiled binaries for every platform, plus checksums
 bun test
 bun run typecheck
 ```
