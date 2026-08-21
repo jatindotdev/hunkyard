@@ -2,7 +2,12 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:net';
 
+import { runMain } from 'citty';
+
 import { version } from '../package.json';
+import { startForwarder } from '../lib/proxy/forward';
+import { buildCommands, selectCommand } from './commands';
+import { installService, uninstallService } from './service';
 import {
   clearDaemonPid,
   readDaemonPid,
@@ -14,13 +19,7 @@ import {
   registerRepo,
 } from '../lib/repos/registry';
 import { startServer } from '../server/index';
-import {
-  CliError,
-  HELP,
-  parseArgs,
-  resolveViewerPath,
-  viewerUrl,
-} from './cli-core';
+import { CliError, resolveViewerPath, viewerUrl } from './cli-core';
 
 // Set by the parent when it re-launches itself detached, so the child knows to
 // serve rather than spawn another child.
@@ -209,32 +208,12 @@ async function runStop(port: number): Promise<void> {
   process.stdout.write(`Stopped the hunk server on port ${port}.\n`);
 }
 
-async function main(): Promise<void> {
-  // The detached child re-enters here with nothing to do but serve.
-  const inherited = process.env[SERVE_ENV];
-  if (inherited != null && inherited !== '') {
-    await serve(Number(inherited));
-    return;
-  }
-
-  let options;
-  try {
-    options = parseArgs(process.argv.slice(2));
-  } catch (error) {
-    if (error instanceof CliError) fail(error.message, error.hint);
-    throw error;
-  }
-  if (options.help) {
-    process.stdout.write(HELP);
-    return;
-  }
-  if (options.version) {
-    process.stdout.write(`${version}\n`);
-    return;
-  }
-  if (options.command === 'status') return runStatus(options.port);
-  if (options.command === 'stop') return runStop(options.port);
-
+async function review(options: {
+  target?: string;
+  port: number;
+  open: boolean;
+  foreground: boolean;
+}): Promise<void> {
   let viewer;
   try {
     viewer = resolveViewerPath(options.target);
@@ -317,6 +296,36 @@ async function main(): Promise<void> {
   if (options.open) openBrowser(url);
 }
 
-main().catch((error) => {
+// Wrapped rather than run at the top level: --bytecode compiles to CJS, which
+// has no top-level await.
+async function main(): Promise<void> {
+  // The detached child re-enters with nothing to do but serve.
+  const inherited = process.env[SERVE_ENV];
+  if (inherited != null && inherited !== '') {
+    await serve(Number(inherited));
+    return;
+  }
+
+  const commands = buildCommands({
+    fail,
+    review,
+    status: runStatus,
+    stop: runStop,
+    install: (port) => installService(port),
+    uninstall: () => uninstallService(),
+    forward: async ({ from, to }) => {
+      startForwarder({ from, to });
+      process.stdout.write(`forwarding ${from} to ${to}\n`);
+      // Held open by the listener; the service manager stops it.
+      await new Promise(() => {});
+    },
+  });
+
+  const { name, rawArgs } = selectCommand(process.argv.slice(2));
+  const command = commands[name] as Parameters<typeof runMain>[0];
+  await runMain(command, { rawArgs });
+}
+
+main().catch((error: unknown) => {
   fail(error instanceof Error ? error.message : String(error));
 });

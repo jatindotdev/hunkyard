@@ -65,6 +65,23 @@ compress release assets in transit either, so that is the size on the wire.
 </details>
 
 <details>
+<summary>Serving <code>hunkyard.localhost</code> with no port</summary>
+
+Port 80 needs root and the server does not, so the bare URL is opt-in:
+
+```bash
+hunk install     # one sudo, once
+hunk uninstall   # undoes it
+```
+
+That installs a forwarder from `127.0.0.1:80` to the server's port, as a
+LaunchDaemon on macOS or a systemd unit on Linux. Only the listener runs
+privileged; the server does not know it exists, and connections simply fail when
+no server is running, exactly as they would without it. Windows has no
+privileged-port concept, so there is nothing to install.
+</details>
+
+<details>
 <summary>An unrelated tool is also called <code>hunk</code></summary>
 
 If you already have one on your PATH, whichever directory comes first decides
