@@ -308,6 +308,7 @@ async function main(): Promise<void> {
 
   const commands = buildCommands({
     fail,
+    version,
     review,
     status: runStatus,
     stop: runStop,

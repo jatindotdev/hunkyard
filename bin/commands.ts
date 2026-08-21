@@ -13,6 +13,10 @@ const portArg = {
 };
 
 export interface Handlers {
+  // citty's built-in --version flag reads meta.version and errors with "No
+  // version specified" without it, which is how `hunk --version` broke when the
+  // hand-rolled flag handling went.
+  version: string;
   // Reporting rather than throwing: citty does not export its own error type,
   // and a plain Error reaches `console.error(error)`, which prints the object
   // and a source excerpt instead of a message.
@@ -49,6 +53,7 @@ export function buildCommands(handlers: Handlers) {
   const review = defineCommand({
     meta: {
       name: 'hunk',
+      version: handlers.version,
       description:
         'Review code changes from a local repository or a pull request.\n\n' +
         'Commands: status, stop, install, uninstall',
