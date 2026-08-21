@@ -4,7 +4,10 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from '@pierre/diffs';
-import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
+import type {
+  FileTreeGitStatusPatch,
+  GitStatusEntry,
+} from '@pierre/trees';
 
 import type { ReviewAnnotationMetadata } from './review/types';
 import { contentAddressedCacheKey } from './diffCacheKey';
@@ -12,6 +15,7 @@ import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
   DiffsHubFileByItemId,
+  DiffsHubFileLineCounts,
   DiffsHubViewerFile,
   DiffsHubDiffStats,
   DiffsHubFileTreeSource,
@@ -34,6 +38,7 @@ export interface DiffsHubDataAccumulator {
   pendingItemById: Map<string, CodeViewItem<ReviewAnnotationMetadata>>;
   pathToItemId: Map<string, string>;
   pathStateByTreePath: Map<string, CodeViewPathState>;
+  lineCountsByPath: Map<string, DiffsHubFileLineCounts>;
   paths: string[];
 }
 
@@ -76,6 +81,7 @@ export function createDiffsHubDataAccumulator(): DiffsHubDataAccumulator {
     pendingItemById: new Map(),
     pathToItemId: new Map(),
     pathStateByTreePath: new Map(),
+    lineCountsByPath: new Map(),
     paths: [],
   };
 }
@@ -88,13 +94,18 @@ export function appendFileDiffToDiffsHubData(
   const { diffStats } = accumulator;
   diffStats.fileCount++;
   diffStats.totalLinesOfCode += fileDiff.unifiedLineCount;
+  let added = 0;
+  let deleted = 0;
   for (const hunk of fileDiff.hunks) {
-    diffStats.addedLines += hunk.additionLines;
-    diffStats.deletedLines += hunk.deletionLines;
+    added += hunk.additionLines;
+    deleted += hunk.deletionLines;
   }
+  diffStats.addedLines += added;
+  diffStats.deletedLines += deleted;
 
   const path = fileDiff.name;
   const treePath = treePathPrefix == null ? path : `${treePathPrefix}/${path}`;
+  accumulator.lineCountsByPath.set(treePath, { added, deleted });
   const previousPathState =
     path.length === 0
       ? undefined
@@ -173,6 +184,7 @@ export function snapshotDiffsHubTreeSource(
     pathCount: accumulator.paths.length,
     paths: accumulator.paths,
     pathToItemId: accumulator.pathToItemId,
+    lineCountsByPath: accumulator.lineCountsByPath,
     previousSource,
   };
   accumulator.lastTreeSource = snapshot;

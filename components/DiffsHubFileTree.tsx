@@ -5,6 +5,8 @@ import type {
   FileTreeBatchOperation,
   FileTree as FileTreeModel,
   FileTreeOptions,
+  FileTreeRowDecoration,
+  FileTreeRowDecorationContext,
 } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
 import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
@@ -78,7 +80,47 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
     }
   );
 
+  // Added and deleted counts per row, in the tree's own decoration lane -- the
+  // git status glyph has a separate lane of its own, so the two coexist.
+  //
+  // @pierre/trees reads this callback once, at construction, and offers no way
+  // to invalidate a rendered row, so only values that are fixed for the life of
+  // the review belong here. A file's line counts are: they are known when its
+  // path is added and never change while it is on screen.
+  const renderRowDecoration = useStableCallback(
+    ({ item }: FileTreeRowDecorationContext): FileTreeRowDecoration | null => {
+      if (item.kind !== 'file') return null;
+      const counts = sourceRef.current.lineCountsByPath.get(item.path);
+      if (counts == null) return null;
+      // `parts` is what makes the two colours possible; the library does not
+      // re-export its element type from the package root, so it is spelled out.
+      const parts: { text: string; color?: string }[] = [];
+      if (counts.added > 0) {
+        parts.push({
+          text: `+${counts.added}`,
+          color: 'var(--trees-git-added-color, var(--color-success))',
+        });
+      }
+      if (counts.deleted > 0) {
+        parts.push({
+          // The library concatenates parts with nothing between them, so the
+          // separating space has to live inside a part's own text.
+          text: `${parts.length > 0 ? ' ' : ''}-${counts.deleted}`,
+          color: 'var(--trees-git-deleted-color, var(--color-destructive))',
+        });
+      }
+      if (parts.length === 0) return null;
+      return {
+        // The fallback for a build that ignores `parts`.
+        text: parts.map((part) => part.text).join(''),
+        title: `${counts.added} added, ${counts.deleted} deleted`,
+        parts,
+      };
+    }
+  );
+
   const { model } = useFileTree({
+    renderRowDecoration,
     ...BASE_FILE_TREE_OPTIONS,
     gitStatus: source.gitStatus,
     paths: initialPathsRef.current,

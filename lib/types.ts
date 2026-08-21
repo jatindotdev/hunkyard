@@ -32,12 +32,21 @@ export type DiffsHubFileByItemId = ReadonlyMap<string, DiffsHubViewerFile>;
 // iterating `paths`. The `readonly` markers and ReadonlyMap type enforce the
 // read-only side; pathCount is what keeps later in-place growth invisible to
 // this snapshot.
+// A file's own added/deleted line counts, for the tree row decoration.
+export interface DiffsHubFileLineCounts {
+  added: number;
+  deleted: number;
+}
+
 export interface DiffsHubFileTreeSource {
   gitStatus: readonly GitStatusEntry[];
   gitStatusPatch?: FileTreeGitStatusPatch;
   pathCount: number;
   paths: readonly string[];
   pathToItemId: ReadonlyMap<string, string>;
+  // Per-file line counts, keyed by tree path. A file's counts are known the
+  // moment its path is added, so a row never renders ahead of its own numbers.
+  lineCountsByPath: ReadonlyMap<string, DiffsHubFileLineCounts>;
   previousSource?: DiffsHubFileTreeSource;
 }
 

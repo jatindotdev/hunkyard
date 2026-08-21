@@ -40,5 +40,8 @@ export function filterDiffsHubFileTreeSource(
     pathCount: filteredPaths.length,
     paths: filteredPaths,
     pathToItemId: filteredPathToItemId,
+    // Counts are per file, so a filtered view reuses the same map rather than
+    // rebuilding one: a path the filter dropped is simply never looked up.
+    lineCountsByPath: source.lineCountsByPath,
   };
 }
