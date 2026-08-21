@@ -50,7 +50,16 @@ export type ReviewSource =
   | { kind: 'github'; domain?: string; initialUrl: string; path: string }
   // `repoRoot` is resolved on the server and passed down purely for display;
   // the client never uses it to address anything.
-  | { kind: 'local'; target: string | undefined; repoRoot?: string };
+  | {
+      kind: 'local';
+      target: string | undefined;
+      // Which registered repository this review is of. Absent only until the
+      // client has learned the default and put it in the URL.
+      repoId: string | undefined;
+      // Resolved on the server and passed down purely for display; the client
+      // never uses it to address anything.
+      repoRoot?: string;
+    };
 
 interface ReviewUIProps {
   source: ReviewSource;
@@ -66,6 +75,18 @@ export function ReviewUI({ source }: ReviewUIProps) {
   );
 }
 
+// Every local endpoint takes the same two identifiers: which repository, and
+// which target within it.
+function localApiQuery(
+  target: string | undefined,
+  repoId: string | undefined
+): URLSearchParams {
+  const params = new URLSearchParams();
+  if (target != null) params.set('target', target);
+  if (repoId != null) params.set('repo', repoId);
+  return params;
+}
+
 const NARROW_VIEWPORT = '(max-width: 767px)';
 
 function isNarrowViewport(): boolean {
@@ -76,15 +97,16 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   const isLocal = source.kind === 'local';
   // `path` remains the loader's identity for the request and the fallback cache
   // seed; for a local review that is the canonical /local/<spec> path.
-  const path = isLocal ? encodeLocalDiffPath(source.target) : source.path;
+  const repoId = source.kind === 'local' ? source.repoId : undefined;
+  const path = isLocal
+    ? encodeLocalDiffPath(source.target, repoId)
+    : source.path;
   const domain = isLocal ? undefined : source.domain;
   // A local diff has no upstream page, so there is nothing for the header's
   // "open source" link to point at.
   const initialUrl = isLocal ? '' : source.initialUrl;
   const patchRequestUrl = isLocal
-    ? `/api/local-diff?${new URLSearchParams(
-        source.target == null ? {} : { target: source.target }
-      )}`
+    ? `/api/local-diff?${localApiQuery(source.target, repoId)}`
     : `/api/diff?${new URLSearchParams(
         source.domain == null || source.domain === ''
           ? { path: source.path }
@@ -200,7 +222,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     // Local expansion reads the repository directly, so it must not be gated on
     // a GitHub token the way the GitHub loader is.
     if (source.kind === 'local') {
-      return createLocalDiffFileLoader(source.target);
+      return createLocalDiffFileLoader(source.target, { repoId });
     }
     return domain == null && hasGitHubToken
       ? createGitHubDiffFileLoader(path, {
@@ -208,7 +230,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
           getToken: () => githubTokenRef.current,
         })
       : undefined;
-  }, [domain, hasGitHubToken, path, source]);
+  }, [domain, hasGitHubToken, path, repoId, source]);
   const handlePatchLoadStart = useCallback(() => {
     setFileTreeOverlayOpen(false);
   }, []);
@@ -238,14 +260,11 @@ function ReviewUIInner({ source }: ReviewUIProps) {
 
   // Review threads, owned here so the diff reloading cannot take them with it.
   const reviewQuery = useMemo(() => {
-    const params = new URLSearchParams();
-    if (isLocal) {
-      if (source.target != null) params.set('target', source.target);
-    } else {
-      params.set('path', source.path);
+    if (source.kind === 'local') {
+      return localApiQuery(source.target, repoId).toString();
     }
-    return params.toString();
-  }, [isLocal, source]);
+    return new URLSearchParams({ path: source.path }).toString();
+  }, [repoId, source]);
 
   // Viewed state is per review: a pull request and a local target each keep
   // their own progress, so switching between them does not mix the two.
@@ -289,6 +308,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   useLocalDiffWatch({
     enabled: isLocal,
     onChanged: handleLocalChange,
+    repoId,
     target: isLocal ? source.target : undefined,
   });
 

@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import { runGit } from '../../lib/git/exec';
-import { resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import { resolveRequestRepoRoot } from '../../lib/git/repo';
 import { parseGitHubDiffSource } from '../../lib/githubDiffSource';
 import { getPullHeadSha } from '../../lib/review/github';
 import { GitHubThreadStore } from '../../lib/review/GitHubThreadStore';
@@ -21,8 +21,9 @@ async function resolveLocalAuthor(repoRoot: string): Promise<string> {
 }
 
 async function resolveStore(
-  params: URLSearchParams
+  request: Request
 ): Promise<{ store: ThreadStore; author?: string; headCommitId?: string }> {
+  const params = new URL(request.url).searchParams;
   const path = params.get('path');
 
   // A GitHub path wins when present: the same page can only be one or the other.
@@ -57,7 +58,7 @@ async function resolveStore(
     };
   }
 
-  const repoRoot = await resolveConfiguredRepoRoot();
+  const repoRoot = await resolveRequestRepoRoot(request);
   const target = params.get('target') ?? '';
   const [author, head] = await Promise.all([
     resolveLocalAuthor(repoRoot),
@@ -107,7 +108,7 @@ export function createThreadsApp(): Hono {
     run: (store: ThreadStore) => Promise<unknown>
   ): Promise<Response> => {
     try {
-      const { store } = await resolveStore(new URL(c.req.url).searchParams);
+      const { store } = await resolveStore(c.req.raw);
       const result = (await run(store)) ?? {};
       return c.json(result, 200, NO_STORE_RECORD);
     } catch (error) {
@@ -122,8 +123,7 @@ export function createThreadsApp(): Hono {
   // and whether resolving is available.
   app.get('/api/review/capabilities', async (c) => {
     try {
-      const params = new URL(c.req.url).searchParams;
-      const { store, author, headCommitId } = await resolveStore(params);
+      const { store, author, headCommitId } = await resolveStore(c.req.raw);
       return c.json(
         {
           batches: store.batches,

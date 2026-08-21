@@ -11,10 +11,12 @@ import {
 describe('parseArgs', () => {
   test('no arguments means the working tree on the default port', () => {
     expect(parseArgs([])).toEqual({
+      command: 'review',
       open: true,
       port: DEFAULT_PORT,
       help: false,
       version: false,
+      foreground: false,
       target: undefined,
     });
   });
@@ -127,5 +129,26 @@ describe('viewerUrl', () => {
     expect(viewerUrl(4865, '/local')).toBe(
       'http://hunkyard.localhost:4865/local'
     );
+  });
+});
+
+describe('commands', () => {
+  test('status and stop are commands in the first position', () => {
+    expect(parseArgs(['status']).command).toBe('status');
+    expect(parseArgs(['stop']).command).toBe('stop');
+  });
+
+  // A branch really can be called `stop`, so only the first argument is read as
+  // a command; anywhere else it is a revspec like any other.
+  test('a target named like a command is still a target', () => {
+    expect(parseArgs(['main...stop']).command).toBe('review');
+    expect(parseArgs(['main...stop']).target).toBe('main...stop');
+    expect(parseArgs(['--no-open', 'stop']).target).toBe('stop');
+    expect(parseArgs(['--no-open', 'stop']).command).toBe('review');
+  });
+
+  test('--foreground opts out of the background server', () => {
+    expect(parseArgs(['--foreground']).foreground).toBe(true);
+    expect(parseArgs([]).foreground).toBe(false);
   });
 });

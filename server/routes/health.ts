@@ -1,16 +1,21 @@
-import { resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import { listRepos } from '../../lib/repos/registry';
+import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
 
-// Lets a second `hunk` invocation tell whether the port is occupied by us and,
-// if so, which repository we are serving -- so it can reuse the server instead
-// of failing, but still refuse to silently show the wrong repository.
-//
-// Resolution goes through the same path the diff routes use, so this cannot
-// report a different repository from the one they would read.
+// Lets a `hunk` invocation tell whether the port is occupied by us, so it can
+// reuse a running daemon instead of starting a second one. It no longer reports
+// a single repository: the daemon serves every registered repository at once, so
+// there is nothing for a second invocation to conflict with.
 export async function handleHealth(): Promise<Response> {
-  const repoRoot = await resolveConfiguredRepoRoot().catch(() => null);
+  const repos = await listRepos();
 
   return Response.json(
-    { app: 'hunkyard', repoRoot },
+    {
+      app: 'hunkyard',
+      repos: repos.length,
+      // A later invocation cannot hand a token to an already-running server, so
+      // it needs to be able to see whether this one has one.
+      github: resolveServerGitHubToken() != null,
+    },
     { headers: { 'Cache-Control': 'no-store' } }
   );
 }

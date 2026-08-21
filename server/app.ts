@@ -6,6 +6,7 @@ import { handleHealth } from './routes/health';
 import { handleLocalDiff } from './routes/localDiff';
 import { handleLocalEvents } from './routes/localEvents';
 import { handleLocalFile } from './routes/localFile';
+import { createReposApp } from './routes/repos';
 import { createThreadsApp } from './routes/threads';
 
 // Every handler already takes a Web Request and returns a Web Response, so
@@ -20,6 +21,7 @@ export function createApiApp(): Hono {
   app.get('/api/local-file', (c) => handleLocalFile(c.req.raw));
   app.get('/api/local-events', (c) => handleLocalEvents(c.req.raw));
 
+  app.route('/', createReposApp());
   app.route('/', createThreadsApp());
 
   return app;

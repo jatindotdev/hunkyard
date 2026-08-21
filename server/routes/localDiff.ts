@@ -1,4 +1,8 @@
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import {
+  NoRepositoryError,
+  resolveRequestRepoRoot,
+  UnknownRepositoryError,
+} from '../../lib/git/repo';
 import {
   EmptyPatchError,
   UnknownRevisionError,
@@ -24,7 +28,7 @@ export async function handleLocalDiff(request: Request): Promise<Response> {
   const target = new URL(request.url).searchParams.get('target') ?? undefined;
 
   try {
-    const repoRoot = await resolveConfiguredRepoRoot();
+    const repoRoot = await resolveRequestRepoRoot(request);
     const resolved = resolveGitTarget(target ?? undefined);
     // Revisions are verified, and the first chunk is peeked, before any
     // byte reaches the client -- so both a typo'd branch and an empty diff can
@@ -41,6 +45,9 @@ export async function handleLocalDiff(request: Request): Promise<Response> {
       },
     });
   } catch (error) {
+    if (error instanceof UnknownRepositoryError) {
+      return textResponse(error.message, 404);
+    }
     if (error instanceof NoRepositoryError) {
       return textResponse(error.message, 503);
     }

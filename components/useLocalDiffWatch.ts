@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 interface UseLocalDiffWatchOptions {
   // Undefined disables watching entirely, which is how a GitHub review opts out.
   target: string | undefined;
+  repoId: string | undefined;
   enabled: boolean;
   onChanged(): void;
 }
@@ -17,6 +18,7 @@ interface UseLocalDiffWatchOptions {
 // cleanly rather than looking like a failure.
 export function useLocalDiffWatch({
   target,
+  repoId,
   enabled,
   onChanged,
 }: UseLocalDiffWatchOptions): void {
@@ -32,6 +34,7 @@ export function useLocalDiffWatch({
 
     const params = new URLSearchParams();
     if (target != null) params.set('target', target);
+    if (repoId != null) params.set('repo', repoId);
     const source = new EventSource(`/api/local-events?${params}`);
 
     const handleChanged = () => onChangedRef.current();
@@ -41,5 +44,5 @@ export function useLocalDiffWatch({
       source.removeEventListener('changed', handleChanged);
       source.close();
     };
-  }, [enabled, target]);
+  }, [enabled, repoId, target]);
 }

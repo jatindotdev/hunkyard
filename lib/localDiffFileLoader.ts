@@ -14,6 +14,7 @@ const UNHYDRATABLE = new Set(['new', 'deleted']);
 
 interface LocalDiffFileLoaderOptions {
   endpoint?: string;
+  repoId?: string;
 }
 
 function isFileContents(value: unknown): value is FileContents {
@@ -77,6 +78,7 @@ export function createLocalDiffFileLoader(
   options: LocalDiffFileLoaderOptions = {}
 ): FileDiffContentsLoader {
   const endpoint = options.endpoint ?? DEFAULT_ENDPOINT;
+  const { repoId } = options;
   // Requests are keyed by the blob ids in the patch, so a file that changed on
   // disk is refetched while an unchanged one is served from here.
   const cache = new Map<string, Promise<FileDiffLoadedFiles>>();
@@ -104,6 +106,7 @@ export function createLocalDiffFileLoader(
       type: fileDiff.type,
     });
     if (target != null) params.set('target', target);
+    if (repoId != null) params.set('repo', repoId);
     if (fileDiff.prevName != null) params.set('prevName', fileDiff.prevName);
 
     const promise = (async () => {

@@ -14,11 +14,15 @@ export class CliError extends Error {
   }
 }
 
+export type CliCommand = 'review' | 'status' | 'stop';
+
 export interface CliOptions {
+  command: CliCommand;
   open: boolean;
   port: number;
   help: boolean;
   version: boolean;
+  foreground: boolean;
   target?: string;
 }
 
@@ -31,6 +35,8 @@ export const HELP = `hunk - review code changes from a local repository or a pul
 
 Usage
   hunk [target] [options]
+  hunk status
+  hunk stop
 
 Targets
   (none)             unstaged changes in the working tree
@@ -43,11 +49,20 @@ Targets
   A three-dot range is diffed against the merge base, the same anchor GitHub
   uses for a pull request, so line numbers agree with the eventual PR.
 
+Commands
+  status             show the running server and the repositories it serves
+  stop               stop the running server
+
 Options
   -p, --port <n>     port to serve on (default ${DEFAULT_PORT})
       --no-open      print the URL instead of opening a browser
+      --foreground   hold the terminal instead of running in the background
   -h, --help         show this message
   -v, --version      print the version
+
+The server runs in the background and serves every repository you have opened,
+so running hunk in a second repository does not need it restarted. It keeps
+running until you stop it.
 
 Examples
   hunk                          review what you have not committed
@@ -69,10 +84,12 @@ function parsePort(value: string | undefined): number {
 
 export function parseArgs(argv: readonly string[]): CliOptions {
   const options: CliOptions = {
+    command: 'review',
     open: true,
     port: DEFAULT_PORT,
     help: false,
     version: false,
+    foreground: false,
   };
   const targets: string[] = [];
 
@@ -82,6 +99,16 @@ export function parseArgs(argv: readonly string[]): CliOptions {
     if (arg === '-v' || arg === '--version') return { ...options, version: true };
     if (arg === '--no-open') {
       options.open = false;
+      continue;
+    }
+    if (arg === '--foreground' || arg === '--fg') {
+      options.foreground = true;
+      continue;
+    }
+    // A bare `status` or `stop` in the first position is a command. Later, or
+    // anywhere else, it is a revspec -- a branch really can be called `stop`.
+    if (i === 0 && (arg === 'status' || arg === 'stop')) {
+      options.command = arg;
       continue;
     }
     if (arg === '-p' || arg === '--port') {

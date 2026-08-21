@@ -3,7 +3,11 @@ import {
   loadLocalDiffFiles,
   type HydratableChangeType,
 } from '../../lib/git/files';
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import {
+  NoRepositoryError,
+  resolveRequestRepoRoot,
+  UnknownRepositoryError,
+} from '../../lib/git/repo';
 import { resolveGitTarget } from '../../lib/git/targets';
 
 // Only the types the client asks us to hydrate. `new` and `deleted` are refused
@@ -34,7 +38,7 @@ export async function handleLocalFile(request: Request): Promise<Response> {
   }
 
   try {
-    const repoRoot = await resolveConfiguredRepoRoot();
+    const repoRoot = await resolveRequestRepoRoot(request);
     const files = await loadLocalDiffFiles({
       repoRoot,
       target: resolveGitTarget(target),
@@ -44,6 +48,9 @@ export async function handleLocalFile(request: Request): Promise<Response> {
     });
     return Response.json(files, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    if (error instanceof UnknownRepositoryError) {
+      return jsonError(error.message, 404);
+    }
     if (error instanceof NoRepositoryError) return jsonError(error.message, 503);
     // A traversal attempt is a client error, and the message deliberately does
     // not echo a resolved filesystem path back.

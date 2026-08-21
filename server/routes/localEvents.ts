@@ -1,4 +1,8 @@
-import { NoRepositoryError, resolveConfiguredRepoRoot } from '../../lib/git/repo';
+import {
+  NoRepositoryError,
+  resolveRequestRepoRoot,
+  UnknownRepositoryError,
+} from '../../lib/git/repo';
 import { resolveGitTarget } from '../../lib/git/targets';
 import { isWatchableTarget, watchTarget } from '../../lib/git/watch';
 
@@ -9,9 +13,14 @@ export async function handleLocalEvents(request: Request): Promise<Response> {
 
   let repoRoot: string;
   try {
-    repoRoot = await resolveConfiguredRepoRoot();
+    repoRoot = await resolveRequestRepoRoot(request);
   } catch (error) {
-    const status = error instanceof NoRepositoryError ? 503 : 500;
+    const status =
+      error instanceof UnknownRepositoryError
+        ? 404
+        : error instanceof NoRepositoryError
+          ? 503
+          : 500;
     return new Response(
       error instanceof Error ? error.message : 'Failed to watch the repository.',
       { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }

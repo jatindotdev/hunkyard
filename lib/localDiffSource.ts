@@ -26,9 +26,20 @@ export function parseLocalDiffSource(
   return { kind: 'local', target: trimmed === '' ? undefined : trimmed };
 }
 
-export function encodeLocalDiffPath(target: string | undefined): string {
-  if (target == null || target.trim() === '') return `/${LOCAL_ROUTE_PREFIX}`;
-  return `/${LOCAL_ROUTE_PREFIX}/${encodeURIComponent(target.trim())}`;
+// The repository goes in the query rather than a path segment: a revspec can be
+// anything, so `/local/<repo>/<spec>` could not be told apart from a spec whose
+// first segment happens to look like a repository id.
+export function encodeLocalDiffPath(
+  target: string | undefined,
+  repoId?: string
+): string {
+  const spec =
+    target == null || target.trim() === ''
+      ? `/${LOCAL_ROUTE_PREFIX}`
+      : `/${LOCAL_ROUTE_PREFIX}/${encodeURIComponent(target.trim())}`;
+  return repoId == null || repoId === ''
+    ? spec
+    : `${spec}?repo=${encodeURIComponent(repoId)}`;
 }
 
 // A label for the header. There is no external URL for a local review, so the
