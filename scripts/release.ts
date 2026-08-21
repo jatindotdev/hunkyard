@@ -1,5 +1,11 @@
 #!/usr/bin/env bun
-// Cross-compiles hunk for every platform we ship, into dist/release.
+// Cross-compiles hunk for every platform we ship, into dist/release, writes
+// SHA256SUMS, and updates the Homebrew formula to match.
+//
+// `bun build --compile` is not reproducible: two identical invocations differ by
+// a few hundred bytes. So upload the artifacts this run produced. Rebuilding
+// after this point invalidates both SHA256SUMS and the formula, and brew would
+// refuse the download without saying why.
 //
 // Run `bun run build:client` first: the client is embedded with --asset, so each
 // binary carries the same already-built client rather than rebuilding it per
@@ -90,6 +96,49 @@ for (const name of artifacts) {
   checksums.push(`${digest}  ${name}`);
 }
 await Bun.write(`${OUT_DIR}/SHA256SUMS`, `${checksums.join('\n')}\n`);
+
+// The Homebrew formula lives in this repository, so its checksums are written
+// here rather than copied by hand into a second one. Every asset it names must
+// be present, or brew would install a binary whose hash it cannot check.
+const digestByName = new Map(
+  checksums.map((line) => {
+    const [digest, name] = line.split(/\s+/);
+    return [name ?? '', digest ?? ''];
+  })
+);
+const FORMULA_ASSETS = [
+  'hunk-darwin-arm64',
+  'hunk-darwin-x64',
+  'hunk-linux-arm64',
+  'hunk-linux-x64',
+  'git-hunk.1',
+];
+
+const formulaPath = 'Formula/hunk.rb';
+let formula = await Bun.file(formulaPath).text();
+formula = formula.replace(
+  /version "[^"]*"/,
+  `version "${version}"`
+);
+for (const asset of FORMULA_ASSETS) {
+  const digest = digestByName.get(asset);
+  if (digest == null || digest === '') {
+    console.error(`\n${asset} has no checksum; the formula names it.`);
+    process.exit(1);
+  }
+  // Each url line is followed by the sha256 for that asset, so the digest is
+  // replaced positionally against the asset it belongs to.
+  const pattern = new RegExp(
+    `(url "[^"]*/${asset.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&')}"\\s*\\n\\s*sha256 ")[^"]*(")`
+  );
+  if (!pattern.test(formula)) {
+    console.error(`\nFormula has no url/sha256 pair for ${asset}.`);
+    process.exit(1);
+  }
+  formula = formula.replace(pattern, `$1${digest}$2`);
+}
+await Bun.write(formulaPath, formula);
+console.log(`\n  ${formulaPath} updated for ${version}`);
 
 console.log(
   `\nhunkyard ${version}: ${results.length} binaries and a man page in ` +

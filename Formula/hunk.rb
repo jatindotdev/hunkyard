@@ -14,34 +14,34 @@
 class Hunk < Formula
   desc "Code review for a pull request, a local branch, or uncommitted work"
   homepage "https://github.com/jatindotdev/hunkyard"
-  version "0.0.0"
+  version "0.1.0"
   license "Apache-2.0"
 
   on_macos do
     on_arm do
       url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/hunk-darwin-arm64"
-      sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+      sha256 "7979864951ff2026d7607d18aa9b714a58cc2160bf9cc3d691ff5a799d2de654"
     end
     on_intel do
       url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/hunk-darwin-x64"
-      sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+      sha256 "cb411614bc61d097d48c92230698fd8b6ea6375ee63bffb1cf2eaf27a5ca29cc"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/hunk-linux-arm64"
-      sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+      sha256 "512d5035efc2ed1bf483117012aeb85ce9c5d73d5a5be0a7f732c90c35dc4d09"
     end
     on_intel do
       url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/hunk-linux-x64"
-      sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+      sha256 "24b77fd14ae2afaf06636bc68d70296ec0945f40c7aeab641b39959521e52f55"
     end
   end
 
   resource "man" do
     url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/git-hunk.1"
-    sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+    sha256 "79778fd2b0a9247e175733cd1dfdcb21be36acf315e68679d965c2240ade7602"
   end
 
   def install
