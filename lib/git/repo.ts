@@ -17,7 +17,7 @@ export class NoRepositoryError extends Error {
 // path checks in files.ts meaningful.
 export async function resolveConfiguredRepoRoot(): Promise<string> {
   // The CLI always sets this. Falling back to the working directory is for
-  // `pnpm dev`, where the repository you are reviewing is the one you are in.
+  // `bun dev`, where the repository you are reviewing is the one you are in.
   const configured = process.env[REPO_ROOT_ENV] ?? process.cwd();
   if (configured.trim() === '') {
     throw new NoRepositoryError();

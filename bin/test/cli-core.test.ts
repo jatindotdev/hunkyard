@@ -6,7 +6,7 @@ import {
   parseArgs,
   resolveViewerPath,
   viewerUrl,
-} from '../cli-core.mjs';
+} from '../cli-core';
 
 describe('parseArgs', () => {
   test('no arguments means the working tree on the default port', () => {
@@ -55,7 +55,7 @@ describe('parseArgs', () => {
       throw new Error('expected a throw');
     } catch (error) {
       expect(error).toBeInstanceOf(CliError);
-      expect(error.hint).toContain('quoting');
+      expect((error as CliError).hint).toContain('quoting');
     }
   });
 
@@ -116,8 +116,8 @@ describe('resolveViewerPath', () => {
       throw new Error('expected a throw');
     } catch (error) {
       expect(error).toBeInstanceOf(CliError);
-      expect(error.message).toContain('gitlab.com');
-      expect(error.hint).toContain('revspec');
+      expect((error as CliError).message).toContain('gitlab.com');
+      expect((error as CliError).hint).toContain('revspec');
     }
   });
 });

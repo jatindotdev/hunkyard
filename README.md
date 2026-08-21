@@ -8,15 +8,19 @@ already a pull request. Hunkyard reviews any of them, runs entirely on your
 machine, and renders diffs of a size the GitHub UI gives up on.
 
 ```bash
-npx hunkyard                    # review what you have not committed
-hunk --staged                   # review what you are about to commit
-hunk main...my-branch           # review a branch as a PR would show it
-hunk HEAD~3                     # review the last three commits
-hunk owner/repo#123             # review a pull request
+hunk                    # review what you have not committed
+hunk --staged           # review what you are about to commit
+hunk main...my-branch   # review a branch as a PR would show it
+hunk HEAD~3             # review the last three commits
+hunk owner/repo#123     # review a pull request
 ```
 
 It serves itself at `http://hunkyard.localhost:4865` and opens a browser.
 Ctrl-C stops it.
+
+`hunk` is a single executable with the Bun runtime, the server and the whole
+client compiled into it. Nothing to install alongside it, no Node, no Bun, no
+`node_modules` — download the binary for your platform and run it.
 
 Built on [DiffsHub](https://diffshub.com) by
 [The Pierre Computer Company](https://pierre.computer) (Apache-2.0), using their
@@ -70,11 +74,12 @@ each time.
 ## Develop
 
 ```bash
-pnpm install
-pnpm dev          # http://hunkyard.localhost:4865, API included
-pnpm build        # production build
-pnpm test         # bun test
-pnpm typecheck    # tsc --noEmit
+bun install
+bun dev                 # http://hunkyard.localhost:4865, API included
+bun run build           # client, then a binary at dist/hunk
+bun run build:release   # cross-compiled binaries for every platform
+bun test
+bun run typecheck
 ```
 
 `scripts/drive.mjs` drives the app in headless Chrome over the DevTools
@@ -105,7 +110,8 @@ avatar. Hunkyard keeps the rendering pipeline and replaces that layer.
 - Content-addressed highlight cache keys from the blob ids in each patch's
   `index` line. Keying on the path meant a working tree kept stale highlighting,
   since its content changes while its path does not.
-- Ported off Next.js to Vite and Hono: 187MB of runtime dependencies down to 3MB.
+- Ported off Next.js to Vite and Hono, then to a single Bun executable: 187MB of
+  runtime dependencies down to none at all.
 - Removed Berkeley Mono (commercially licensed, not redistributable) in favour of
   [Ioskeley Mono](https://github.com/ahatem/IoskeleyMono), and the bundled Pierre
   staff photos the demo comment layer used.

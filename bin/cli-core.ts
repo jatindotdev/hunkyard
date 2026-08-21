@@ -1,15 +1,30 @@
-// Pure argument handling, kept out of hunk.mjs so it can be unit tested
-// without spawning a server.
+// Pure argument handling, kept out of the entry point so it can be unit tested
+// without starting a server.
 
 export const DEFAULT_PORT = 4865;
 export const HOSTNAME = 'hunkyard.localhost';
 
 export class CliError extends Error {
-  constructor(message, hint) {
+  readonly hint: string | undefined;
+
+  constructor(message: string, hint?: string) {
     super(message);
     this.name = 'CliError';
     this.hint = hint;
   }
+}
+
+export interface CliOptions {
+  open: boolean;
+  port: number;
+  help: boolean;
+  version: boolean;
+  target?: string;
+}
+
+export interface ViewerTarget {
+  kind: 'local' | 'github';
+  path: string;
 }
 
 export const HELP = `hunk - review code changes from a local repository or a pull request
@@ -42,7 +57,7 @@ Examples
   hunk headout/absolut#1527     review a pull request
 `;
 
-function parsePort(value) {
+function parsePort(value: string | undefined): number {
   const port = Number(value);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new CliError(
@@ -52,9 +67,14 @@ function parsePort(value) {
   return port;
 }
 
-export function parseArgs(argv) {
-  const options = { open: true, port: DEFAULT_PORT, help: false, version: false };
-  const targets = [];
+export function parseArgs(argv: readonly string[]): CliOptions {
+  const options: CliOptions = {
+    open: true,
+    port: DEFAULT_PORT,
+    help: false,
+    version: false,
+  };
+  const targets: string[] = [];
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
@@ -89,7 +109,9 @@ export function parseArgs(argv) {
 // Recognises the GitHub forms so `hunk owner/repo#1` works, and treats anything
 // else as a local revspec. Deliberately conservative: a bare `foo/bar` is far
 // likelier to be a branch than a repository, so it stays local.
-export function resolveViewerPath(target) {
+export function resolveViewerPath(
+  target: string | undefined
+): ViewerTarget {
   if (target == null) return { kind: 'local', path: '/local' };
 
   const shorthand = /^([\w.-]+)\/([\w.-]+)#(\d+)$/.exec(target);
@@ -99,7 +121,7 @@ export function resolveViewerPath(target) {
   }
 
   if (/^https?:\/\//i.test(target)) {
-    let url;
+    let url: URL;
     try {
       url = new URL(target);
     } catch {
@@ -117,6 +139,6 @@ export function resolveViewerPath(target) {
   return { kind: 'local', path: `/local/${encodeURIComponent(target)}` };
 }
 
-export function viewerUrl(port, path) {
+export function viewerUrl(port: number, path: string): string {
   return `http://${HOSTNAME}:${port}${path}`;
 }

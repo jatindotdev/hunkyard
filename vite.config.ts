@@ -27,11 +27,12 @@ function apiDevServer(): Plugin {
                 server.ssrLoadModule('/server/app.ts') as Promise<
                   typeof import('./server/app.ts')
                 >,
+                // Vite's dev middleware is node-shaped (req, res), so the
+                // bridge to a Web Request is too. Production is Bun.serve and
+                // needs none of this, which is why it is a dev dependency.
                 import('@hono/node-server'),
               ]
             );
-            // Same node-to-Web translation production uses, so the two cannot
-            // drift.
             getRequestListener(createApiApp().fetch)(req, res);
           } catch (error) {
             server.config.logger.error(String(error));
