@@ -5,14 +5,8 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 #
-# While the repository is private, that URL and the release assets both 404 for
-# an unauthenticated client. Run this from a checkout instead, and it falls back
-# to `gh release download`, which uses your existing GitHub login:
-#
-#   sh scripts/install.sh
-#
 # Set HUNK_INSTALL_DIR to install somewhere other than ~/.local/bin, and
-# HUNK_MAN_DIR for the man page.
+# HUNK_MAN_DIR for the man page. HUNK_VERSION pins an older release.
 set -eu
 
 REPO="jatindotdev/hunkyard"
@@ -53,9 +47,9 @@ command -v curl >/dev/null 2>&1 || fail "curl is required"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-# Falls back to gh, which carries credentials, so a private repository works for
-# whoever can already read it. gh's own message is kept, because "download
-# failed" on its own is never enough to act on.
+# Plain curl is the path; gh is a fallback for a release whose assets curl cannot
+# reach, and its own message is kept, because "download failed" on its own is
+# never enough to act on.
 download() {
   name="$1"
   out="$2"
@@ -79,8 +73,7 @@ echo "Downloading ${asset}..."
 download "$asset" "${tmp}/hunk" || fail "could not download ${asset}.
   ${gh_error:-no error reported}
 
-If the repository is private, install gh and run \`gh auth login\`. Otherwise
-download the asset by hand from
+Check that ${TAG} has an asset for your platform, or download it by hand from
 https://github.com/${REPO}/releases/tag/${TAG}"
 
 if download SHA256SUMS "${tmp}/SHA256SUMS"; then

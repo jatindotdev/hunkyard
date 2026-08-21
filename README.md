@@ -11,14 +11,6 @@ machine, and renders diffs of a size the GitHub UI gives up on.
 curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 ```
 
-While this repository is private, that URL and the release assets both 404 for
-anyone unauthenticated, so run the script from a checkout instead. It falls back
-to `gh release download`, which uses your existing GitHub login:
-
-```bash
-sh scripts/install.sh
-```
-
 ```bash
 hunk                    # review what you have not committed
 hunk --staged           # review what you are about to commit
