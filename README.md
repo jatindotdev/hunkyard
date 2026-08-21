@@ -19,14 +19,6 @@ to `gh release download`, which uses your existing GitHub login:
 sh scripts/install.sh
 ```
 
-Or with Homebrew. This repository is its own tap, so there is no second one to
-keep in step:
-
-```bash
-brew tap jatindotdev/hunkyard https://github.com/jatindotdev/hunkyard
-brew install hunk
-```
-
 ```bash
 hunk                    # review what you have not committed
 hunk --staged           # review what you are about to commit
@@ -48,6 +40,11 @@ just works. Use `--foreground` to hold the terminal instead.
 with a man page so `git hunk --help` works as well. (Git resolves that form as
 `git help hunk`, which reads a man page rather than running the binary, so
 without one it would fail.)
+
+Note that homebrew-core ships an unrelated tool also called `hunk`. If you have
+it, whichever directory comes first on your PATH decides which one runs, and the
+installer says so rather than leaving you to find out. There is deliberately no
+Homebrew formula here: a tap cannot claim a name homebrew-core already has.
 
 It is a single executable with the Bun runtime, the server and the whole client
 compiled into it. Nothing to install alongside it, no Node, no Bun, no
@@ -128,9 +125,9 @@ bun run typecheck
 
 CI runs the same three commands on every push, then builds the binary and smoke
 tests it: health, the embedded client, and a real diff from a scratch repository.
-Pushing a `v*` tag builds every target and publishes the release, which is also
-what writes the Homebrew formula's checksums, since `bun build --compile` is not
-reproducible and only the uploaded artifacts' hashes are valid.
+Pushing a `v*` tag builds every target and publishes the release. `bun build
+--compile` is not reproducible, so `SHA256SUMS` describes the artifacts that run
+produced and nothing else.
 
 `scripts/drive.mjs` drives the app in headless Chrome over the DevTools
 Protocol, as a list of steps, which is how the UI gets verified:

@@ -14,8 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  # Creating the release, uploading its assets, and pushing the formula's
-  # checksums back to main.
+  # Creating the release and uploading its assets.
   contents: write
 
 jobs:
@@ -53,10 +52,8 @@ jobs:
         run: bun test
 
       # Everything is built here, once. bun build --compile is not
-      # reproducible, so the checksums in SHA256SUMS and in the Homebrew formula
-      # are only valid for these artifacts. Rebuilding anywhere else would make
-      # brew refuse the download without explaining why, which is the whole
-      # reason this is a single step and not split across jobs.
+      # reproducible, so SHA256SUMS is only valid for these artifacts, and
+      # splitting the build across jobs would describe files nobody has.
       - name: Build every target
         run: bun run build:release
 
@@ -76,27 +73,3 @@ jobs:
               --verify-tag \
               dist/release/hunk-* dist/release/git-hunk.1 dist/release/SHA256SUMS
           fi
-
-      # The formula's checksums describe the artifacts just uploaded, so they
-      # have to land on main rather than staying on the tag nobody installs from.
-      - name: Commit the formula's checksums
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- Formula/hunk.rb; then
-            echo "Formula already matches these artifacts."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula/hunk.rb
-          git commit -m "build(brew): checksums for ${{ steps.tag.outputs.name }}"
-          # main may have moved while this ran; a merge keeps both rather than
-          # dropping either.
-          git fetch origin main
-          git rebase origin/main || {
-            echo "Formula commit conflicts with main; apply it by hand." >&2
-            exit 1
-          }
-          git push origin HEAD:main

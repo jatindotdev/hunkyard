@@ -114,10 +114,28 @@ fi
 echo "Installed hunk to ${INSTALL_DIR}/hunk"
 
 case ":${PATH}:" in
-  *":${INSTALL_DIR}:"*) echo "Run it with: hunk" ;;
-  *)
-    echo
-    echo "${INSTALL_DIR} is not on your PATH. Add this to your shell profile:"
-    echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
-    ;;
+  *":${INSTALL_DIR}:"*) on_path=yes ;;
+  *) on_path=no ;;
 esac
+
+if [ "$on_path" = no ]; then
+  echo
+  echo "${INSTALL_DIR} is not on your PATH. Add this to your shell profile:"
+  echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
+  exit 0
+fi
+
+# homebrew-core ships an unrelated tool also called hunk, so an existing one on
+# PATH may well win and leave this install silently shadowed. Better to say so
+# than to let `hunk` run something else.
+found="$(command -v hunk 2>/dev/null || true)"
+if [ -n "$found" ] && [ "$found" != "${INSTALL_DIR}/hunk" ]; then
+  echo
+  echo "Another hunk is earlier on your PATH and will win:"
+  echo "  $found"
+  echo
+  echo "Run this one as ${INSTALL_DIR}/hunk, put ${INSTALL_DIR} first on PATH,"
+  echo "or remove the other one."
+else
+  echo "Run it with: hunk"
+fi
