@@ -5,10 +5,19 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 #
-# Set HUNK_INSTALL_DIR to install somewhere other than ~/.local/bin.
+# While the repository is private, that URL and the release assets both 404 for
+# an unauthenticated client. Run this from a checkout instead, and it falls back
+# to `gh release download`, which uses your existing GitHub login:
+#
+#   sh scripts/install.sh
+#
+# Set HUNK_INSTALL_DIR to install somewhere other than ~/.local/bin, and
+# HUNK_MAN_DIR for the man page.
 set -eu
 
 REPO="jatindotdev/hunkyard"
+# Which release to install. Override to pin an older one.
+TAG="${HUNK_VERSION:-v0.1.0}"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
 MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
@@ -37,18 +46,44 @@ if [ "$os" = "linux" ] && (ldd --version 2>&1 | grep -qi musl); then
 fi
 
 asset="hunk-${os}-${arch}${suffix}"
-base="https://github.com/${REPO}/releases/latest/download"
+base="https://github.com/${REPO}/releases/download/${TAG}"
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-echo "Downloading ${asset}..."
-curl -fsSL "${base}/${asset}" -o "${tmp}/hunk" ||
-  fail "could not download ${base}/${asset}"
+# Falls back to gh, which carries credentials, so a private repository works for
+# whoever can already read it. gh's own message is kept, because "download
+# failed" on its own is never enough to act on.
+download() {
+  name="$1"
+  out="$2"
+  if curl -fsSL "${base}/${name}" -o "$out" 2>/dev/null; then
+    return 0
+  fi
+  if ! command -v gh >/dev/null 2>&1; then
+    gh_error="gh is not installed"
+    return 1
+  fi
+  # An explicit tag rather than the default "latest": a draft release is not
+  # latest, so omitting it fails on a release that is still being assembled.
+  gh_error=$(
+    gh release download "$TAG" --repo "$REPO" --pattern "$name" \
+      --output "$out" --clobber 2>&1
+  ) && return 0
+  return 1
+}
 
-if curl -fsSL "${base}/SHA256SUMS" -o "${tmp}/SHA256SUMS" 2>/dev/null; then
+echo "Downloading ${asset}..."
+download "$asset" "${tmp}/hunk" || fail "could not download ${asset}.
+  ${gh_error:-no error reported}
+
+If the repository is private, install gh and run \`gh auth login\`. Otherwise
+download the asset by hand from
+https://github.com/${REPO}/releases/tag/${TAG}"
+
+if download SHA256SUMS "${tmp}/SHA256SUMS"; then
   expected="$(grep " ${asset}\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"
   if [ -n "$expected" ]; then
     if command -v sha256sum >/dev/null 2>&1; then
@@ -70,7 +105,7 @@ ln -sf "${INSTALL_DIR}/hunk" "${INSTALL_DIR}/git-hunk"
 
 # `git hunk --help` is resolved by git as `git help hunk`, which looks for a man
 # page and never runs the binary. Installing one is what makes that form work.
-if curl -fsSL "${base}/git-hunk.1" -o "${tmp}/git-hunk.1" 2>/dev/null; then
+if download git-hunk.1 "${tmp}/git-hunk.1"; then
   mkdir -p "$MAN_DIR"
   mv "${tmp}/git-hunk.1" "${MAN_DIR}/git-hunk.1"
   echo "Installed the man page to ${MAN_DIR}/git-hunk.1"
