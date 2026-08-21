@@ -1,10 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-  composeReleaseNotes,
-  extractSection,
-  MissingChangelogSection,
-} from '@/lib/releaseNotes';
+import { extractSection, MissingChangelogSection } from '@/lib/releaseNotes';
 
 const CHANGELOG = `# Changelog
 
@@ -29,7 +25,7 @@ Older.
 
 describe('extractSection', () => {
   test('takes only the named version', () => {
-    expect(extractSection(CHANGELOG, 'v0.1.0')).toBe('First release.');
+    expect(extractSection(CHANGELOG, 'v0.1.0').trim()).toBe('First release.');
   });
 
   // Deeper headings are part of the section; only a sibling ## ends it.
@@ -41,7 +37,7 @@ describe('extractSection', () => {
   });
 
   test('reads the last section, which has no following heading', () => {
-    expect(extractSection(CHANGELOG, 'v0.0.1')).toBe('Older.');
+    expect(extractSection(CHANGELOG, 'v0.0.1').trim()).toBe('Older.');
   });
 
   test('refuses a version with no section', () => {
@@ -62,56 +58,5 @@ describe('extractSection', () => {
     expect(() => extractSection('## v0.1.00\n\nx\n', 'v0.1.0')).toThrow(
       MissingChangelogSection
     );
-  });
-});
-
-describe('composeReleaseNotes', () => {
-  const base = {
-    version: 'v0.1.0',
-    changelog: CHANGELOG,
-    template: '# {{VERSION}}\n\n{{NOTES}}\n\nfrom {{COMMIT}} via {{RUN_URL}}\n',
-    commit: 'abc1234',
-    runUrl: 'https://example.test/run/1',
-  };
-
-  test('fills every placeholder', () => {
-    const notes = composeReleaseNotes(base);
-    expect(notes).toContain('# v0.1.0');
-    expect(notes).toContain('First release.');
-    expect(notes).toContain('from abc1234 via https://example.test/run/1');
-    expect(notes).not.toContain('{{');
-  });
-
-  // A template and a composer that disagree would publish a literal
-  // {{PLACEHOLDER}} to the release page, which nobody checks before it is live.
-  test('refuses a placeholder it does not know', () => {
-    expect(() =>
-      composeReleaseNotes({ ...base, template: '{{NOTES}} {{MYSTERY}}' })
-    ).toThrow(/unfilled \{\{MYSTERY\}\}/);
-  });
-});
-
-describe('the commit in the footer', () => {
-  const base = {
-    version: 'v0.1.0',
-    changelog: '## v0.1.0\n\nnotes\n',
-    commit: '1f014f7024fbcc62940b2a43564cd01b4e02b926',
-    runUrl: 'https://example.test/run/1',
-  };
-
-  test('is shown short and linked long', () => {
-    const notes = composeReleaseNotes({
-      ...base,
-      template: '{{NOTES}} [`{{COMMIT_SHORT}}`](https://x/commit/{{COMMIT}})',
-    });
-    expect(notes).toContain('[`1f014f7`](https://x/commit/1f014f7024fbcc62940b2a43564cd01b4e02b926)');
-  });
-
-  // {{COMMIT}} is a substring of {{COMMIT_SHORT}}, so replacing it first would
-  // leave a stray `_SHORT` in the published notes.
-  test('does not leave _SHORT behind', () => {
-    expect(
-      composeReleaseNotes({ ...base, template: '{{NOTES}} {{COMMIT_SHORT}}' })
-    ).not.toContain('_SHORT');
   });
 });

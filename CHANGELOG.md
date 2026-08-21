@@ -1,9 +1,8 @@
 # Changelog
 
-Each release's notes are taken from its section here, so a section is required
-before a tag can be published. The surrounding boilerplate, including the
-screenshot and the install instructions, lives in
-`.github/release-template.md`.
+A release's notes are its section here, and nothing else: install and usage live
+in the README rather than being repeated on every release page. A section is
+required before a tag can be published.
 
 Headings inside a release's section must be `###` or deeper. A `##` is how the
 next version is found, so using one for a subsection silently truncates the
