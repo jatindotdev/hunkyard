@@ -53,14 +53,21 @@ jobs:
             exit 1
           fi
 
+      # Before the tests, because the browser ones serve the built client, and
+      # because the cross-compile step needs it embedded anyway.
+      - name: Build the client
+        run: bun run build:client
+
       - name: Test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
         run: bun test
 
-      # Everything is built here, once. bun build --compile is not
+      # Every target is cross-compiled here, once. bun build --compile is not
       # reproducible, so SHA256SUMS is only valid for these artifacts, and
       # splitting the build across jobs would describe files nobody has.
-      - name: Build every target
-        run: bun run build:release
+      - name: Cross-compile every target
+        run: bun scripts/release.ts
 
       - name: Publish the release
         env:
