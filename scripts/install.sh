@@ -10,8 +10,12 @@
 set -eu
 
 REPO="jatindotdev/hunkyard"
-# Which release to install. Override to pin an older one.
-TAG="${HUNK_VERSION:-v0.1.2}"
+# Empty means the latest release. Pinning a tag here instead would be worse than
+# it looks: raw.githubusercontent.com serves this script with a five minute
+# cache, so a copy naming a specific release outlives that release being
+# replaced, and installs break for reasons nobody can see. `latest` is resolved
+# by GitHub at download time, so a stale copy of this script still works.
+TAG="${HUNK_VERSION:-}"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
 MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
@@ -40,7 +44,13 @@ if [ "$os" = "linux" ] && (ldd --version 2>&1 | grep -qi musl); then
 fi
 
 asset="hunk-${os}-${arch}${suffix}"
-base="https://github.com/${REPO}/releases/download/${TAG}"
+if [ -n "$TAG" ]; then
+  base="https://github.com/${REPO}/releases/download/${TAG}"
+  release="$TAG"
+else
+  base="https://github.com/${REPO}/releases/latest/download"
+  release="the latest release"
+fi
 
 command -v curl >/dev/null 2>&1 || fail "curl is required"
 
@@ -52,9 +62,9 @@ trap 'rm -rf "$tmp"' EXIT
 # never enough to act on.
 #
 # `progress` is set for the binary and empty for the small files. Without it a
-# 28MB download prints nothing for half a minute, which reads as a hang. The
-# timeouts matter for the same reason in reverse: a stalled transfer should fail
-# with a message rather than wait forever.
+# 75MB download prints nothing at all, which reads as a hang. The timeouts matter
+# for the same reason in reverse: a stalled transfer should fail with a message
+# rather than wait forever.
 download() {
   name="$1"
   out="$2"
@@ -77,21 +87,23 @@ download() {
   # An explicit tag rather than the default "latest": a draft release is not
   # latest, so omitting it fails on a release that is still being assembled.
   gh_error=$(
-    gh release download "$TAG" --repo "$REPO" --pattern "$name" \
+    # shellcheck disable=SC2086
+    gh release download $TAG --repo "$REPO" --pattern "$name" \
       --output "$out" --clobber 2>&1
   ) && return 0
   return 1
 }
 
-# The binaries are large because each embeds the Bun runtime and the whole
-# client, and GitHub does not compress release assets in transit, so the progress
-# bar is the difference between waiting and wondering.
-echo "Downloading ${asset} (about 75MB)..."
+# The binaries are large, 75MB and up, because each embeds the Bun runtime and
+# the whole client, and GitHub does not compress release assets in transit. The
+# progress bar is the difference between waiting and wondering; the size it
+# reports is the real one, which is why none is stated here.
+echo "Downloading ${asset} from ${release}..."
 download "$asset" "${tmp}/hunk" show-progress || fail "could not download ${asset}.
   ${gh_error:-no error reported}
 
-Check that ${TAG} has an asset for your platform, or download it by hand from
-https://github.com/${REPO}/releases/tag/${TAG}"
+Check that ${release} has an asset for your platform, or download it by hand
+from https://github.com/${REPO}/releases"
 
 if download SHA256SUMS "${tmp}/SHA256SUMS"; then
   expected="$(grep " ${asset}\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"

@@ -75,9 +75,16 @@ export async function resolveRequestRepoRoot(
     throw new UnknownRepositoryError(requested);
   }
 
-  // No id: the most recently opened repository. This is what a hand-typed URL
-  // and `bun dev` both hit, and what the client redirects away from once it
-  // learns the id.
+  // Nothing named. An explicit environment variable comes first: it is
+  // configuration, and losing to a recents list would mean `bun dev` in this
+  // checkout opening whichever repository you last ran hunk in.
+  const configured = process.env[REPO_ROOT_ENV];
+  if (configured != null && configured.trim() !== '') {
+    return normalise(configured);
+  }
+
+  // Then the most recently opened repository, which is what a hand-typed URL
+  // hits and what the client redirects away from once it learns the id.
   const fallbackId = await defaultRepoId();
   if (fallbackId != null) {
     const repo = await lookupRepo(fallbackId);

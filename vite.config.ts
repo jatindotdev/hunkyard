@@ -15,6 +15,10 @@ function apiDevServer(): Plugin {
   return {
     name: 'hunkyard-api',
     configureServer(server: ViteDevServer) {
+      // Dev reviews this checkout. Without saying so the server falls through to
+      // the registry's most recently opened repository, so `bun dev` here would
+      // show whichever repository hunk was last run in.
+      process.env.HUNKYARD_REPO_ROOT ??= server.config.root;
       server.middlewares.use((req, res, next) => {
         if (req.url?.startsWith('/api/') !== true) {
           next();

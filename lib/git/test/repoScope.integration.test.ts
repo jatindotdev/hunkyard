@@ -91,3 +91,41 @@ async function realRoot(path: string): Promise<string> {
   const result = await runGit(['rev-parse', '--show-toplevel'], { cwd: path });
   return result.stdout.toString('utf8').trim();
 }
+
+// The environment variable is configuration; a recents list is a convenience.
+// Losing to it meant `bun dev` in this checkout opened whichever repository was
+// last reviewed, which is how this was found.
+describe('resolution order', () => {
+  test('an explicit repo root outranks the registry default', async () => {
+    const { registerRepo } = await import('../../repos/registry');
+    await registerRepo(repoRoot);
+
+    const other = await mkdtemp(join(tmpdir(), 'hunk-other-'));
+    await runGit(['init'], { cwd: other });
+    const previous = process.env.HUNKYARD_REPO_ROOT;
+    process.env.HUNKYARD_REPO_ROOT = other;
+    try {
+      const resolved = await resolveRequestRepoRoot(await requestFor(undefined));
+      expect(resolved).toBe(await realRoot(other));
+      expect(resolved).not.toBe(await realRoot(repoRoot));
+    } finally {
+      if (previous == null) delete process.env.HUNKYARD_REPO_ROOT;
+      else process.env.HUNKYARD_REPO_ROOT = previous;
+      await rm(other, { recursive: true, force: true });
+    }
+  });
+
+  test('the registry default applies when nothing is configured', async () => {
+    const { registerRepo } = await import('../../repos/registry');
+    await registerRepo(repoRoot);
+    const previous = process.env.HUNKYARD_REPO_ROOT;
+    delete process.env.HUNKYARD_REPO_ROOT;
+    try {
+      expect(await resolveRequestRepoRoot(await requestFor(undefined))).toBe(
+        await realRoot(repoRoot)
+      );
+    } finally {
+      if (previous != null) process.env.HUNKYARD_REPO_ROOT = previous;
+    }
+  });
+});

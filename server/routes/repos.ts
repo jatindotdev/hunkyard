@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import { resolveFallbackRepo } from '../../lib/git/repo';
+import { REPO_ROOT_ENV, resolveFallbackRepo } from '../../lib/git/repo';
 import {
   listRepos,
   readControlToken,
@@ -27,13 +27,21 @@ export function createReposApp(): Hono {
   // says nothing a page could not learn by asking for each id in turn.
   app.get('/api/repos', async (c) => {
     const registered = await listRepos();
-    // With nothing registered, report the directory the server was started in,
-    // which is what the diff routes fall back to. `bun dev` has no CLI
-    // invocation to have registered anything.
-    const repos =
-      registered.length > 0
+    const fallback = await resolveFallbackRepo();
+    // The environment variable is configuration and outranks the recents list,
+    // matching how the diff routes resolve a request that names nothing. Under
+    // `bun dev` it is unset, so this is the directory the server started in and
+    // there is usually nothing registered anyway.
+    const configuredFirst =
+      process.env[REPO_ROOT_ENV] != null &&
+      process.env[REPO_ROOT_ENV]?.trim() !== '' &&
+      fallback != null;
+
+    const repos = configuredFirst
+      ? [fallback, ...registered.filter((repo) => repo.id !== fallback?.id)]
+      : registered.length > 0
         ? registered
-        : [await resolveFallbackRepo()].filter((repo) => repo != null);
+        : [fallback].filter((repo) => repo != null);
 
     return c.json(
       {
