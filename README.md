@@ -169,4 +169,5 @@ Binary and image files render a placeholder row rather than a real diff, since
 
 ## License
 
-Apache-2.0, inherited from upstream. See `LICENSE.md`.
+Apache-2.0, inherited from upstream. See `LICENSE` for the terms and `NOTICE`
+for the attribution.
