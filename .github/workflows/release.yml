@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build and publish
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  # Creating the release, uploading its assets, and pushing the formula's
+  # checksums back to main.
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the tag
+        id: tag
+        run: echo "name=${{ inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.tag.outputs.name }}
+          # The tag is signed, and pushing the formula afterwards needs history.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Refuse a tag that disagrees with package.json
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.name }}"
+          version="$(bun -e 'console.log(require("./package.json").version)')"
+          if [ "$tag" != "v$version" ]; then
+            echo "Tag $tag does not match package.json version $version." >&2
+            exit 1
+          fi
+
+      - name: Test
+        run: bun test
+
+      # Everything is built here, once. bun build --compile is not
+      # reproducible, so the checksums in SHA256SUMS and in the Homebrew formula
+      # are only valid for these artifacts. Rebuilding anywhere else would make
+      # brew refuse the download without explaining why, which is the whole
+      # reason this is a single step and not split across jobs.
+      - name: Build every target
+        run: bun run build:release
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.name }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/release/hunk-* dist/release/git-hunk.1 \
+              dist/release/SHA256SUMS --clobber
+          else
+            gh release create "$tag" \
+              --title "hunkyard $tag" \
+              --generate-notes \
+              --verify-tag \
+              dist/release/hunk-* dist/release/git-hunk.1 dist/release/SHA256SUMS
+          fi
+
+      # The formula's checksums describe the artifacts just uploaded, so they
+      # have to land on main rather than staying on the tag nobody installs from.
+      - name: Commit the formula's checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- Formula/hunk.rb; then
+            echo "Formula already matches these artifacts."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/hunk.rb
+          git commit -m "build(brew): checksums for ${{ steps.tag.outputs.name }}"
+          # main may have moved while this ran; a merge keeps both rather than
+          # dropping either.
+          git fetch origin main
+          git rebase origin/main || {
+            echo "Formula commit conflicts with main; apply it by hand." >&2
+            exit 1
+          }
+          git push origin HEAD:main

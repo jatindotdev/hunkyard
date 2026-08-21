@@ -126,6 +126,12 @@ bun test
 bun run typecheck
 ```
 
+CI runs the same three commands on every push, then builds the binary and smoke
+tests it: health, the embedded client, and a real diff from a scratch repository.
+Pushing a `v*` tag builds every target and publishes the release, which is also
+what writes the Homebrew formula's checksums, since `bun build --compile` is not
+reproducible and only the uploaded artifacts' hashes are valid.
+
 `scripts/drive.mjs` drives the app in headless Chrome over the DevTools
 Protocol, as a list of steps, which is how the UI gets verified:
 

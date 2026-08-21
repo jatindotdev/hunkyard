@@ -4,6 +4,11 @@ import { createServer } from 'node:net';
 
 import { version } from '../package.json';
 import {
+  clearDaemonPid,
+  readDaemonPid,
+  writeDaemonPid,
+} from '../lib/repos/daemonPid';
+import {
   ensureControlToken,
   listRepos,
   registerRepo,
@@ -109,16 +114,17 @@ function openBrowser(url: string): void {
 
 // Runs the server in this process until stopped. This is what the detached
 // child does, and what --foreground does in the terminal.
-function serve(port: number): void {
+async function serve(port: number): Promise<void> {
   let server;
   try {
     server = startServer({ port });
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   }
+  await writeDaemonPid(port);
   const stop = () => {
     server.stop();
-    process.exit(0);
+    void clearDaemonPid(port).finally(() => process.exit(0));
   };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
@@ -170,28 +176,36 @@ async function runStatus(port: number): Promise<void> {
 async function runStop(port: number): Promise<void> {
   const health = await describeServer(port);
   if (health == null) {
+    // Nothing is serving, so any pid recorded for this port is from a server
+    // that was killed rather than stopped. Left alone it accumulates one file
+    // per port ever used.
+    await clearDaemonPid(port);
     process.stdout.write(`No hunk server on port ${port}.\n`);
     return;
   }
 
-  // Asking the server to stop itself would need an authenticated endpoint that
-  // exists for nothing else, so the pid is found the same way anything else
-  // finds what holds a port.
-  const listing = spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
-    encoding: 'utf8',
-  });
-  const pids = listing.stdout
-    .split('\n')
-    .map((line) => Number(line.trim()))
-    .filter((pid) => Number.isInteger(pid) && pid > 0);
+  // The server records its own pid, so stopping it needs nothing from the
+  // system. lsof is the fallback, for a daemon started by an older build: it is
+  // absent from minimal Linux images and does not exist on Windows.
+  const recorded = await readDaemonPid(port);
+  const pids =
+    recorded != null
+      ? [recorded]
+      : spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
+          encoding: 'utf8',
+        })
+          .stdout?.split('\n')
+          .map((line) => Number(line.trim()))
+          .filter((pid) => Number.isInteger(pid) && pid > 0) ?? [];
 
   if (pids.length === 0) {
     fail(
-      `could not find the process listening on port ${port}`,
+      `could not find the process serving port ${port}`,
       'It answered a health check, so something is there. Stop it by hand.'
     );
   }
   for (const pid of pids) process.kill(pid, 'SIGTERM');
+  await clearDaemonPid(port);
   process.stdout.write(`Stopped the hunk server on port ${port}.\n`);
 }
 
@@ -199,7 +213,7 @@ async function main(): Promise<void> {
   // The detached child re-enters here with nothing to do but serve.
   const inherited = process.env[SERVE_ENV];
   if (inherited != null && inherited !== '') {
-    serve(Number(inherited));
+    await serve(Number(inherited));
     return;
   }
 
@@ -269,7 +283,7 @@ async function main(): Promise<void> {
     if (repo != null) process.stdout.write(`  reviewing  ${repo.root}\n`);
     process.stdout.write(`\n  Ctrl-C to stop\n\n`);
     if (options.open) openBrowser(url);
-    serve(options.port);
+    await serve(options.port);
     return;
   }
 
