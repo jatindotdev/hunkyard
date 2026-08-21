@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { buildCommands, selectCommand } from '../commands';
+import { assertKnownFlags, buildCommands, selectCommand } from '../commands';
 
 function stub() {
   const noop = async () => {};
@@ -61,5 +61,50 @@ describe('selectCommand', () => {
   test('only reads the first argument as a command', () => {
     expect(selectCommand(['main...stop']).name).toBe('review');
     expect(selectCommand(['--no-open', 'stop']).name).toBe('review');
+  });
+});
+
+describe('assertKnownFlags', () => {
+  const args = {
+    target: { type: 'positional' },
+    staged: { type: 'boolean' },
+    open: { type: 'boolean' },
+    port: { type: 'string', alias: 'p' },
+  };
+  const reject = (raw: string[]) => () =>
+    assertKnownFlags(raw, args, (message) => {
+      throw new Error(message);
+    });
+
+  test('accepts what is declared, in every spelling', () => {
+    expect(reject(['--staged'])).not.toThrow();
+    expect(reject(['--no-open'])).not.toThrow();
+    expect(reject(['-p', '4900'])).not.toThrow();
+    expect(reject(['--port=4900'])).not.toThrow();
+    expect(reject(['--help'])).not.toThrow();
+    expect(reject(['--version'])).not.toThrow();
+  });
+
+  test('accepts positionals and values', () => {
+    expect(reject(['main...feature'])).not.toThrow();
+    expect(reject(['--port', '4900', 'HEAD~3'])).not.toThrow();
+  });
+
+  // citty ignores flags it was never told about, so `--stagedd` reviewed the
+  // working tree and `--prot 4900` left 4900 to be read as a revspec. Both were
+  // quiet successes doing the wrong thing.
+  test('refuses a typo rather than ignoring it', () => {
+    expect(reject(['--stagedd'])).toThrow('unknown option --stagedd');
+    expect(reject(['--prot', '4900'])).toThrow('unknown option --prot');
+    expect(reject(['-x'])).toThrow('unknown option -x');
+  });
+
+  test('stops treating things as flags after a bare --', () => {
+    expect(reject(['--', '--whatever'])).not.toThrow();
+  });
+
+  // A lone dash is a conventional stand-in for stdin, not a flag to reject.
+  test('leaves a bare dash alone', () => {
+    expect(reject(['-'])).not.toThrow();
   });
 });

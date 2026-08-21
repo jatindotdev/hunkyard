@@ -65,6 +65,10 @@ export function buildCommands(handlers: Handlers) {
         description:
           'main...feature, HEAD~3, a1b2c3d, owner/repo#123, or a github.com URL',
       },
+      worktree: {
+        type: 'boolean',
+        description: 'unstaged changes, which is the default',
+      },
       staged: { type: 'boolean', description: 'staged changes only' },
       cached: { type: 'boolean', description: 'alias of --staged' },
       all: { type: 'boolean', description: 'staged and unstaged together' },
@@ -84,7 +88,9 @@ export function buildCommands(handlers: Handlers) {
         ? '--all'
         : args.staged || args.cached
           ? '--staged'
-          : undefined;
+          : args.worktree
+            ? '--worktree'
+            : undefined;
       if (flagTarget != null && args.target != null) {
         handlers.fail(
           `expected one target, got ${flagTarget} and ${args.target}`,
@@ -142,6 +148,39 @@ export function buildCommands(handlers: Handlers) {
   });
 
   return { review, status, stop, install, uninstall, forward };
+}
+
+// citty accepts flags it was never told about and ignores them, so `--stagedd`
+// silently reviews the working tree and `--prot 4900` leaves 4900 to be read as
+// a revspec. Neither should be a quiet success, so unknown flags are rejected
+// here before citty parses.
+export function assertKnownFlags(
+  rawArgs: readonly string[],
+  args: Record<string, { type: string; alias?: string | string[] }>,
+  fail: (message: string, hint?: string) => never
+): void {
+  const known = new Set(['--help', '-h', '--version', '-v']);
+  for (const [name, definition] of Object.entries(args)) {
+    if (definition.type === 'positional') continue;
+    known.add(`--${name}`);
+    // citty spells the negation of a boolean this way.
+    if (definition.type === 'boolean') known.add(`--no-${name}`);
+    for (const alias of [definition.alias ?? []].flat()) {
+      known.add(alias.length === 1 ? `-${alias}` : `--${alias}`);
+    }
+  }
+
+  for (const raw of rawArgs) {
+    // Everything after a bare `--` is a value, not a flag.
+    if (raw === '--') break;
+    if (!raw.startsWith('-') || raw === '-') continue;
+    const flag = raw.split('=')[0] as string;
+    if (known.has(flag)) continue;
+    fail(
+      `unknown option ${flag}`,
+      'Run `hunk --help` for the options, or quote it if it is a revspec.'
+    );
+  }
 }
 
 // citty throws on a first argument that is not a known subcommand, and ours is

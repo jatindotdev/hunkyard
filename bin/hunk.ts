@@ -6,7 +6,7 @@ import { runMain } from 'citty';
 
 import { version } from '../package.json';
 import { startForwarder } from '../lib/proxy/forward';
-import { buildCommands, selectCommand } from './commands';
+import { assertKnownFlags, buildCommands, selectCommand } from './commands';
 import { installService, uninstallService } from './service';
 import {
   clearDaemonPid,
@@ -324,6 +324,11 @@ async function main(): Promise<void> {
 
   const { name, rawArgs } = selectCommand(process.argv.slice(2));
   const command = commands[name] as Parameters<typeof runMain>[0];
+  assertKnownFlags(
+    rawArgs,
+    (command.args ?? {}) as Parameters<typeof assertKnownFlags>[1],
+    fail
+  );
   await runMain(command, { rawArgs });
 }
 
