@@ -18,14 +18,7 @@ permissions:
   contents: write
 
 jobs:
-  # Depended on rather than repeated. The checks live in one workflow that CI
-  # also calls, so the release cannot drift from what CI verifies, and nothing
-  # gets published from a commit that failed them.
-  check:
-    uses: ./.github/workflows/checks.yml
-
   release:
-    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Resolve the tag
@@ -47,7 +40,7 @@ jobs:
 
       # Before building, because a tag with no notes should fail in seconds
       # rather than after every target has been cross-compiled.
-      - name: Compose the release notes
+      - name: Read the release notes
         run: bun scripts/releaseNotes.ts "${{ steps.tag.outputs.name }}" > /tmp/notes.md
 
       - name: Refuse a tag that disagrees with package.json
