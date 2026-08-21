@@ -12,6 +12,8 @@ import {
 } from '@pierre/diffs';
 import { type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
 import { IconChevronSm } from '@pierre/icons';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
+import { HugeiconsIcon } from '@hugeicons/react';
 import {
   memo,
   type RefObject,
@@ -30,6 +32,7 @@ import { isDiffItem } from '@/lib/isDiffItem';
 import { DraftCommentAnnotation } from './DraftCommentAnnotation';
 import { ThreadAnnotation } from './ThreadAnnotation';
 import type { DraftComment } from './useReviewThreads';
+import type { ViewedFile } from './useViewedFiles';
 import {
   areAnnotationsEqual,
   projectAnnotations,
@@ -44,6 +47,7 @@ import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
 import {
   classifyNonTextFile,
   describeNonTextFile,
+  type NonTextReason,
 } from '@/lib/nonTextFile';
 
 function getNextItemVersion(item: CodeViewItem<ReviewAnnotationMetadata>): number {
@@ -90,6 +94,11 @@ interface DiffsHubViewerProps {
   onSaveDraft(draftId: string): void;
   onRemoveComment(threadId: string, commentId: string): void;
   onToggleResolved(thread: Thread): void;
+  // Which files the reviewer has finished with. Owned by ReviewUI so it can
+  // persist, and so the tree and the header agree on one set.
+  isViewedAt(path: string, blobId: string | undefined): boolean;
+  onToggleViewed(file: ViewedFile, viewed: boolean): void;
+  onReconcileViewed(files: readonly ViewedFile[]): void;
   overflow: 'wrap' | 'scroll';
   showBackgrounds: boolean;
   diffIndicators: DiffIndicators;
@@ -120,6 +129,9 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   onSaveDraft,
   onRemoveComment,
   onToggleResolved,
+  isViewedAt,
+  onToggleViewed,
+  onReconcileViewed,
   overflow,
   showBackgrounds,
   diffIndicators,
@@ -226,6 +238,28 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
     onStartDraft(thread.anchor, thread.id);
   });
 
+  // Collapses or expands one item, keeping it anchored if it starts above the
+  // viewport -- collapsing a file the reviewer has scrolled past would otherwise
+  // yank the content under them.
+  const setItemCollapsed = useStableCallback(
+    (itemId: string, collapsed: boolean) => {
+      const { current: viewerHandle } = viewerRef;
+      const viewer = viewerHandle?.getInstance();
+      const item = viewerHandle?.getItem(itemId);
+      if (viewerHandle == null || viewer == null || item == null) return;
+      if (item.collapsed === collapsed) return;
+
+      const itemTop = viewer.getTopForItem(itemId);
+      item.collapsed = collapsed;
+      item.version = getNextItemVersion(item);
+      if (!viewerHandle.updateItem(item)) return;
+
+      if (itemTop != null && itemTop < viewer.getScrollTop()) {
+        viewer.scrollTo({ type: 'item', id: item.id, align: 'start' });
+      }
+    }
+  );
+
   const handleToggleItemCollapsed = useStableCallback((itemId: string) => {
     const { current: viewerHandle } = viewerRef;
     const viewer = viewerHandle?.getInstance();
@@ -252,6 +286,47 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       });
     }
   });
+
+  // Marking a file viewed collapses it, which is the point of the gesture: the
+  // reviewer is saying they are done with it. Unchecking expands it again.
+  const handleToggleViewed = useStableCallback(
+    (file: ViewedFile, viewed: boolean) => {
+      onToggleViewed(file, viewed);
+      const itemId = itemIdForPath(file.path);
+      if (itemId != null) setItemCollapsed(itemId, viewed);
+    }
+  );
+
+  // A file marked viewed in an earlier session should come back collapsed. This
+  // runs once per item, on first sight: re-applying it on every change would
+  // re-collapse a viewed file the reviewer just expanded to look at again.
+  const collapseInitializedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const { current: viewer } = viewerRef;
+    if (viewer == null) return;
+
+    const files: ViewedFile[] = [];
+    for (const item of initialItems) {
+      if (!isDiffItem(item)) continue;
+      const path = pathForItemId(item.id);
+      if (path == null) continue;
+      const file = { path, blobId: item.fileDiff.newObjectId };
+      files.push(file);
+      if (collapseInitializedRef.current.has(item.id)) continue;
+      collapseInitializedRef.current.add(item.id);
+      if (isViewedAt(file.path, file.blobId)) setItemCollapsed(item.id, true);
+    }
+    // Storage hygiene, not the collapse decision: isViewedAt compares blob ids
+    // itself, so a file whose contents changed is already unviewed here.
+    onReconcileViewed(files);
+  }, [
+    initialItems,
+    isViewedAt,
+    onReconcileViewed,
+    pathForItemId,
+    setItemCollapsed,
+    viewerRef,
+  ]);
 
   const renderReviewAnnotation = useStableCallback(
     (
@@ -300,8 +375,28 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   const renderHeaderMetadata = useStableCallback(
     (item: CodeViewItem<ReviewAnnotationMetadata>) => {
       if (item.type !== 'diff') return null;
+      const path = pathForItemId(item.id);
       const reason = classifyNonTextFile(item.fileDiff);
-      if (reason == null) return null;
+      return (
+        <>
+          {reason != null && renderNonTextBadge(reason)}
+          {path != null && (
+            <ViewedCheckbox
+              viewed={isViewedAt(path, item.fileDiff.newObjectId)}
+              onToggle={(viewed) =>
+                handleToggleViewed(
+                  { path, blobId: item.fileDiff.newObjectId },
+                  viewed
+                )
+              }
+            />
+          )}
+        </>
+      );
+    }
+  );
+
+  function renderNonTextBadge(reason: NonTextReason) {
       return (
         <span
           className="text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] leading-none"
@@ -314,8 +409,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
           {describeNonTextFile(reason)}
         </span>
       );
-    }
-  );
+  }
 
   const renderHeaderPrefix = useStableCallback(
     (item: CodeViewItem<ReviewAnnotationMetadata>) => {
@@ -399,6 +493,41 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
     />
   );
 });
+
+interface ViewedCheckboxProps {
+  viewed: boolean;
+  onToggle(viewed: boolean): void;
+}
+
+function ViewedCheckbox({ viewed, onToggle }: ViewedCheckboxProps) {
+  return (
+    <label
+      className="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1.5 font-sans text-[11px] leading-none"
+      // The header is itself clickable (it collapses the file), so the gesture
+      // has to stop here or checking the box would also collapse it twice.
+      onClick={(event) => event.stopPropagation()}
+    >
+      <input
+        type="checkbox"
+        checked={viewed}
+        onChange={(event) => onToggle(event.currentTarget.checked)}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden="true"
+        className={cn(
+          'flex size-3.5 items-center justify-center rounded-[3px] border transition-colors',
+          viewed
+            ? 'border-transparent bg-[var(--color-primary,currentColor)] text-[var(--color-primary-foreground,white)]'
+            : 'border-current'
+        )}
+      >
+        {viewed && <HugeiconsIcon icon={Tick02Icon} className="size-3" />}
+      </span>
+      Viewed
+    </label>
+  );
+}
 
 interface CollapseDiffButtonProps {
   disabled?: boolean;

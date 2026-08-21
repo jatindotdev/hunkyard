@@ -69,6 +69,8 @@ interface DiffsHubSidebarProps {
   ) => void;
   reviewBusy?: boolean;
   diffStats: DiffsHubDiffStatsData | null;
+  // How many files the reviewer has marked viewed, for the Files tab badge.
+  viewedCount: number;
   mobileOverlayOpen?: boolean;
   onMobileClose(): void;
   onSelectThread(thread: Thread): void;
@@ -86,6 +88,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   onSubmitReview,
   reviewBusy = false,
   diffStats,
+  viewedCount,
   mobileOverlayOpen = false,
   onMobileClose,
   onSelectThread,
@@ -236,10 +239,22 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             <ButtonGroupItem
               value="files"
               size="icon-only"
-              className="shadow-none"
+              className={cn(
+                'shadow-none',
+                viewedCount > 0 && diffStats != null && 'w-auto gap-1 pr-1'
+              )}
             >
               <IconFileTree className="size-4 md:size-3" />
               <span className="sr-only">Files</span>
+              {viewedCount > 0 && diffStats != null && (
+                <span
+                  aria-hidden="true"
+                  title={`${viewedCount} of ${diffStats.fileCount} files viewed`}
+                  className="inline-flex h-3.5 items-center justify-center rounded-full bg-[color-mix(in_srgb,currentColor_18%,transparent)] px-1 text-[10px] leading-none font-medium tabular-nums"
+                >
+                  {viewedCount}/{diffStats.fileCount}
+                </span>
+              )}
             </ButtonGroupItem>
             <ButtonGroupItem
               value="comments"

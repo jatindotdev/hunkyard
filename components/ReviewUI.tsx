@@ -15,6 +15,7 @@ import {
 
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
 import { boolPref, oneOf, usePersistedState } from './usePersistedState';
+import { useViewedFiles } from './useViewedFiles';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
@@ -243,6 +244,12 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     return params.toString();
   }, [isLocal, source]);
 
+  // Viewed state is per review: a pull request and a local target each keep
+  // their own progress, so switching between them does not mix the two.
+  const viewed = useViewedFiles(
+    domain == null || domain === '' ? path : `${domain}${path}`
+  );
+
   const review = useReviewThreads({
     query: reviewQuery,
     // Threads only mean something for a pull request or a local review, and
@@ -434,6 +441,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
       {viewerAvailable && treeSource != null ? (
         <>
           <DiffsHubSidebar
+            viewedCount={viewed.viewedPaths.size}
             className="[grid-area:viewer] md:[grid-area:tree]"
             threads={review.threads}
             reviewBusy={review.busy}
@@ -456,6 +464,9 @@ function ReviewUIInner({ source }: ReviewUIProps) {
             onSelectItem={handleSelectTreeItem}
           />
           <DiffsHubViewer
+            isViewedAt={viewed.isViewedAt}
+            onToggleViewed={viewed.setViewed}
+            onReconcileViewed={viewed.reconcile}
             key={viewerKey}
             className="[grid-area:viewer]"
             diffStyle={diffStyle}
