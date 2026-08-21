@@ -44,7 +44,11 @@ function apiDevServer(): Plugin {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
+  // The server bundle needs no static assets: the client build already copied
+  // public/ next to index.html, and that is the directory the server serves
+  // from. Left on, the SSR build copies the fonts a second time.
+  publicDir: isSsrBuild ? false : undefined,
   plugins: [
     // Note: Next ran this app through the React Compiler. @vitejs/plugin-react
     // v6 uses oxc rather than babel and has no hook for it, so auto-memoisation
@@ -77,4 +81,4 @@ export default defineConfig({
     // Everything local is served from this hostname so the origin is stable.
     allowedHosts: ['hunkyard.localhost'],
   },
-});
+}));

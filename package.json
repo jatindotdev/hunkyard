@@ -12,7 +12,8 @@
     "build": "vite build && vite build --ssr server/index.ts --outDir dist/server",
     "start": "node dist/server/index.js",
     "test": "bun test",
-    "typecheck": "tsc --noEmit --pretty"
+    "typecheck": "tsc --noEmit --pretty",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.0",
@@ -52,7 +53,6 @@
   "files": [
     "dist",
     "bin",
-    "public",
     "README.md",
     "LICENSE.md"
   ]
