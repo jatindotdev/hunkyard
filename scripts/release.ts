@@ -39,6 +39,7 @@ await mkdir(OUT_DIR, { recursive: true });
 // A file literally named git-hunk on PATH is all `git hunk` needs, so the
 // release ships one alongside each binary rather than a second copy.
 const results: { name: string; mb: string; ms: number }[] = [];
+const artifacts: string[] = [];
 for (const { target, name } of TARGETS) {
   const started = Bun.nanoseconds();
   const outfile = `${OUT_DIR}/${name}`;
@@ -68,12 +69,21 @@ for (const { target, name } of TARGETS) {
     mb: (size / 1024 / 1024).toFixed(1),
     ms: Math.round((Bun.nanoseconds() - started) / 1e6),
   });
+  artifacts.push(name);
   console.log(`  ${name.padEnd(28)} ${results.at(-1)?.mb} MB`);
 }
 
+// Shipped with the binaries because `git hunk --help` is resolved by git as
+// `git help hunk`, which looks for a man page and never runs the executable.
+await Bun.write(
+  `${OUT_DIR}/git-hunk.1`,
+  await Bun.file('packaging/git-hunk.1').text()
+);
+artifacts.push('git-hunk.1');
+
 // Checksums, so an install script can verify what it downloaded.
 const checksums: string[] = [];
-for (const { name } of results) {
+for (const name of artifacts) {
   const digest = new Bun.CryptoHasher('sha256')
     .update(await Bun.file(`${OUT_DIR}/${name}`).bytes())
     .digest('hex');
@@ -82,6 +92,7 @@ for (const { name } of results) {
 await Bun.write(`${OUT_DIR}/SHA256SUMS`, `${checksums.join('\n')}\n`);
 
 console.log(
-  `\nhunkyard ${version}: ${results.length} binaries in ${OUT_DIR}, ` +
+  `\nhunkyard ${version}: ${results.length} binaries and a man page in ` +
+    `${OUT_DIR}, ` +
     `${Math.round(results.reduce((total, r) => total + r.ms, 0) / 1000)}s total`
 );

@@ -10,6 +10,7 @@ set -eu
 
 REPO="jatindotdev/hunkyard"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
+MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
 fail() {
   echo "install: $1" >&2
@@ -66,6 +67,14 @@ mv "${tmp}/hunk" "${INSTALL_DIR}/hunk"
 # Git runs any git-<name> on PATH as `git <name>`, and does not care that it is
 # a link, so one binary serves both names.
 ln -sf "${INSTALL_DIR}/hunk" "${INSTALL_DIR}/git-hunk"
+
+# `git hunk --help` is resolved by git as `git help hunk`, which looks for a man
+# page and never runs the binary. Installing one is what makes that form work.
+if curl -fsSL "${base}/git-hunk.1" -o "${tmp}/git-hunk.1" 2>/dev/null; then
+  mkdir -p "$MAN_DIR"
+  mv "${tmp}/git-hunk.1" "${MAN_DIR}/git-hunk.1"
+  echo "Installed the man page to ${MAN_DIR}/git-hunk.1"
+fi
 
 echo "Installed hunk to ${INSTALL_DIR}/hunk"
 

@@ -1,0 +1,107 @@
+.TH GIT-HUNK 1 "2026-08-21" "hunkyard" "Git Manual"
+.SH NAME
+git-hunk \- review code changes from a local repository or a pull request
+.SH SYNOPSIS
+.B git hunk
+[\fItarget\fR] [\fIoptions\fR]
+.br
+.B git hunk status
+.br
+.B git hunk stop
+.SH DESCRIPTION
+Opens a review of local changes, a branch, or a GitHub pull request in your
+browser.
+.PP
+The server runs in the background and serves every repository you have opened,
+so running
+.B hunk
+in a second repository does not need it restarted. It keeps running until you
+stop it.
+.PP
+.B git hunk
+and
+.B hunk
+are the same executable; the installer links both names.
+.SH TARGETS
+.TP
+(none)
+Unstaged changes in the working tree.
+.TP
+.B \-\-staged
+Staged changes only.
+.TP
+.B \-\-all
+Staged and unstaged together.
+.TP
+.I revspec
+A range or revision, such as
+.IR main...feature ,
+.IR HEAD~3 ,
+.IR a1b2c3d ,
+or
+.IR v1.0...v2.0 .
+A three-dot range is diffed against the merge base, the same anchor GitHub uses
+for a pull request, so line numbers agree with the eventual PR.
+.TP
+.I owner/repo#123
+A GitHub pull request.
+.TP
+.I url
+A github.com pull request, commit or compare URL.
+.SH COMMANDS
+.TP
+.B status
+Show the running server and the repositories it serves.
+.TP
+.B stop
+Stop the running server.
+.SH OPTIONS
+.TP
+.BR \-p ", " \-\-port " " \fIn\fR
+Port to serve on. Defaults to 4865.
+.TP
+.B \-\-no\-open
+Print the URL instead of opening a browser.
+.TP
+.B \-\-foreground
+Hold the terminal instead of running in the background.
+.TP
+.BR \-h ", " \-\-help
+Show the short help.
+.TP
+.BR \-v ", " \-\-version
+Print the version.
+.SH FILES
+.TP
+.I .hunkyard/review.md
+Review threads for a local target, written in the repository being reviewed.
+.SH ENVIRONMENT
+.TP
+.B GH_TOKEN
+.TQ
+.B GITHUB_TOKEN
+A GitHub token for pull requests. Read from
+.B gh auth token
+when neither is set. Only private pull requests need one. It stays in the server
+process and is never handed to the browser.
+.SH EXAMPLES
+Review what you have not committed:
+.PP
+.RS
+.B git hunk
+.RE
+.PP
+Review a branch the way its pull request will show it:
+.PP
+.RS
+.B git hunk main...my\-branch
+.RE
+.PP
+Review a pull request:
+.PP
+.RS
+.B git hunk owner/repo#123
+.RE
+.SH SEE ALSO
+.BR git-diff (1),
+.BR git-range-diff (1)

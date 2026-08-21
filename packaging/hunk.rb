@@ -31,10 +31,18 @@ class Hunk < Formula
     end
   end
 
+  resource "man" do
+    url "https://github.com/jatindotdev/hunkyard/releases/download/v#{version}/git-hunk.1"
+    sha256 "REPLACE_WITH_SHA256SUMS_ENTRY"
+  end
+
   def install
     bin.install Dir["hunk-*"].first => "hunk"
     # Git runs any git-<name> on PATH as `git <name>`, so one binary serves both.
     bin.install_symlink bin/"hunk" => "git-hunk"
+    # `git hunk --help` is resolved by git as `git help hunk`, which looks for a
+    # man page rather than running the binary.
+    resource("man").stage { man1.install "git-hunk.1" }
   end
 
   test do

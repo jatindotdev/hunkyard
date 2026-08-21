@@ -28,9 +28,10 @@ you stop it, so the second review of the day costs 44ms rather than a restart.
 It serves every repository you have opened, so running `hunk` in another one
 just works. Use `--foreground` to hold the terminal instead.
 
-`git hunk` works too, on the symlink the installer puts next to the binary.
-(`git hunk --help` is intercepted by git looking for a man page; use
-`git hunk -h`.)
+`git hunk` works too, on the symlink the installer puts next to the binary,
+with a man page so `git hunk --help` works as well. (Git resolves that form as
+`git help hunk`, which reads a man page rather than running the binary, so
+without one it would fail.)
 
 It is a single executable with the Bun runtime, the server and the whole client
 compiled into it. Nothing to install alongside it, no Node, no Bun, no
