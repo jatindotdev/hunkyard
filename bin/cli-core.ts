@@ -69,7 +69,7 @@ Examples
   hunk --staged                 review what you are about to commit
   hunk main...my-branch         review a branch as a PR would show it
   hunk HEAD                     review the last commit
-  hunk headout/absolut#1527     review a pull request
+  hunk facebook/react#28000     review a pull request
 `;
 
 function parsePort(value: string | undefined): number {

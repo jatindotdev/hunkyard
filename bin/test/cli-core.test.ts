@@ -88,9 +88,9 @@ describe('resolveViewerPath', () => {
   });
 
   test('owner/repo#N is a pull request', () => {
-    expect(resolveViewerPath('headout/absolut#1527')).toEqual({
+    expect(resolveViewerPath('facebook/react#28000')).toEqual({
       kind: 'github',
-      path: '/headout/absolut/pull/1527',
+      path: '/facebook/react/pull/28000',
     });
   });
 
