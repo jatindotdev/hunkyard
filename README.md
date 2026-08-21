@@ -33,6 +33,9 @@ with a man page so `git hunk --help` works as well. (Git resolves that form as
 `git help hunk`, which reads a man page rather than running the binary, so
 without one it would fail.)
 
+The binaries are shipped gzipped, about 29MB for macOS on Apple silicon, because
+each one embeds the Bun runtime and the whole client.
+
 An unrelated tool of the same name exists, so if you already have a `hunk` on
 your PATH, whichever directory comes first decides which one runs. The installer
 names the one that wins rather than leaving you to find out.

@@ -9,7 +9,7 @@
 // Run `bun run build:client` first: the client is embedded with --asset, so each
 // binary carries the same already-built client rather than rebuilding it per
 // target.
-import { rm, mkdir } from 'node:fs/promises';
+import { mkdir, rm } from 'node:fs/promises';
 import { version } from '../package.json';
 
 interface Target {
@@ -43,7 +43,7 @@ await mkdir(OUT_DIR, { recursive: true });
 
 // A file literally named git-hunk on PATH is all `git hunk` needs, so the
 // release ships one alongside each binary rather than a second copy.
-const results: { name: string; mb: string; ms: number }[] = [];
+const results: { name: string; mb: string; rawMb: string; ms: number }[] = [];
 const artifacts: string[] = [];
 for (const { target, name } of TARGETS) {
   const started = Bun.nanoseconds();
@@ -68,14 +68,26 @@ for (const { target, name } of TARGETS) {
     process.exit(1);
   }
 
-  const size = Bun.file(outfile).size;
+  // Shipped gzipped: the binaries are most of the Bun runtime and compress about
+  // 2.7x, which is the difference between a download that looks stuck and one
+  // that finishes. gzip rather than zstd, which is smaller again but is not
+  // installed everywhere a one-line shell installer has to run.
+  const raw = await Bun.file(outfile).bytes();
+  const packed = Bun.gzipSync(raw, { level: 6 });
+  await Bun.write(`${outfile}.gz`, packed);
+  await rm(outfile);
+
   results.push({
-    name,
-    mb: (size / 1024 / 1024).toFixed(1),
+    name: `${name}.gz`,
+    mb: (packed.length / 1024 / 1024).toFixed(1),
+    rawMb: (raw.length / 1024 / 1024).toFixed(1),
     ms: Math.round((Bun.nanoseconds() - started) / 1e6),
   });
-  artifacts.push(name);
-  console.log(`  ${name.padEnd(28)} ${results.at(-1)?.mb} MB`);
+  artifacts.push(`${name}.gz`);
+  const row = results.at(-1);
+  console.log(
+    `  ${`${name}.gz`.padEnd(31)} ${row?.mb} MB  (from ${row?.rawMb} MB)`
+  );
 }
 
 // Shipped with the binaries because `git hunk --help` is resolved by git as

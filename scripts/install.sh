@@ -11,7 +11,7 @@ set -eu
 
 REPO="jatindotdev/hunkyard"
 # Which release to install. Override to pin an older one.
-TAG="${HUNK_VERSION:-v0.1.0}"
+TAG="${HUNK_VERSION:-v0.1.1}"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
 MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
@@ -50,10 +50,24 @@ trap 'rm -rf "$tmp"' EXIT
 # Plain curl is the path; gh is a fallback for a release whose assets curl cannot
 # reach, and its own message is kept, because "download failed" on its own is
 # never enough to act on.
+#
+# `progress` is set for the binary and empty for the small files. Without it a
+# 28MB download prints nothing for half a minute, which reads as a hang. The
+# timeouts matter for the same reason in reverse: a stalled transfer should fail
+# with a message rather than wait forever.
 download() {
   name="$1"
   out="$2"
-  if curl -fsSL "${base}/${name}" -o "$out" 2>/dev/null; then
+  # Third argument, any value, asks for the progress bar.
+  if [ -n "${3:-}" ]; then
+    noise="--progress-bar"
+  else
+    noise="-s"
+  fi
+  if curl -fL "$noise" \
+    --connect-timeout 20 --retry 2 --retry-delay 1 \
+    --speed-limit 1024 --speed-time 60 \
+    "${base}/${name}" -o "$out"; then
     return 0
   fi
   if ! command -v gh >/dev/null 2>&1; then
@@ -69,25 +83,28 @@ download() {
   return 1
 }
 
-echo "Downloading ${asset}..."
-download "$asset" "${tmp}/hunk" || fail "could not download ${asset}.
+echo "Downloading ${asset}.gz (about 28MB)..."
+download "${asset}.gz" "${tmp}/hunk.gz" show-progress || fail "could not download ${asset}.gz.
   ${gh_error:-no error reported}
 
 Check that ${TAG} has an asset for your platform, or download it by hand from
 https://github.com/${REPO}/releases/tag/${TAG}"
 
 if download SHA256SUMS "${tmp}/SHA256SUMS"; then
-  expected="$(grep " ${asset}\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"
+  # The checksum covers what was downloaded, so it is checked before unpacking.
+  expected="$(grep " ${asset}.gz\$" "${tmp}/SHA256SUMS" | awk '{print $1}')"
   if [ -n "$expected" ]; then
     if command -v sha256sum >/dev/null 2>&1; then
-      actual="$(sha256sum "${tmp}/hunk" | awk '{print $1}')"
+      actual="$(sha256sum "${tmp}/hunk.gz" | awk '{print $1}')"
     else
-      actual="$(shasum -a 256 "${tmp}/hunk" | awk '{print $1}')"
+      actual="$(shasum -a 256 "${tmp}/hunk.gz" | awk '{print $1}')"
     fi
-    [ "$actual" = "$expected" ] || fail "checksum mismatch for ${asset}"
+    [ "$actual" = "$expected" ] || fail "checksum mismatch for ${asset}.gz"
     echo "Checksum verified."
   fi
 fi
+
+gzip -d "${tmp}/hunk.gz" || fail "could not unpack ${asset}.gz"
 
 mkdir -p "$INSTALL_DIR"
 chmod +x "${tmp}/hunk"
