@@ -11,6 +11,8 @@
 //   wait:<ms>        sleep in real time
 //   click:<text>     click the first button/tab whose text starts with <text>
 //   key:<key>        dispatch a real keydown/keyup (e.g. j, Escape, Meta+Enter)
+//   drag:x1,y1,x2,y2 press, move and release, for selecting lines in the diff
+//                    (which lives in shadow DOM, so there is nothing to click)
 //   eval:<expr>      evaluate an expression and print the result
 //   probe            print title, body text, shadow-DOM sample
 //   shot:<path>      write a PNG
@@ -233,6 +235,22 @@ try {
       await call('Input.dispatchKeyEvent', { type: 'keyUp', ...key, text: undefined });
       console.log(`key: ${arg}`);
       await sleep(600);
+    } else if (name === 'drag') {
+      const [x1, y1, x2, y2] = arg.split(',').map(Number);
+      const mouse = (type, x, y) =>
+        call('Input.dispatchMouseEvent', {
+          type,
+          x,
+          y,
+          button: 'left',
+          buttons: type === 'mouseReleased' ? 0 : 1,
+          clickCount: 1,
+        });
+      await mouse('mousePressed', x1, y1);
+      await mouse('mouseMoved', x2, y2);
+      await mouse('mouseReleased', x2, y2);
+      console.log(`drag: ${x1},${y1} -> ${x2},${y2}`);
+      await sleep(800);
     } else if (name === 'eval') {
       console.log(`eval ${arg} => ${JSON.stringify(await evaluate(arg))}`);
     } else if (name === 'probe') {

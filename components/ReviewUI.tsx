@@ -16,6 +16,9 @@ import {
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
 import { boolPref, oneOf, usePersistedState } from './usePersistedState';
 import { useViewedFiles } from './useViewedFiles';
+import { useReviewKeyboard } from './useReviewKeyboard';
+import { KeyboardHelp } from './KeyboardHelp';
+import type { ReviewViewerCommands } from './DiffsHubViewer';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
@@ -388,6 +391,55 @@ function ReviewUIInner({ source }: ReviewUIProps) {
     [itemIdForPath, viewerRef]
   );
 
+  // The keyboard map. Files come from the loaded items in display order; the
+  // thread walk and the submit chord reuse the same handlers the sidebar does,
+  // so a shortcut can never drift from what a click would do.
+  const viewerCommandsRef = useRef<ReviewViewerCommands | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const keyboardItemIds = useMemo(
+    () => initialItems.map((item) => item.id),
+    [initialItems]
+  );
+  const orderedThreads = useMemo(
+    () =>
+      [...review.threads].sort((left, right) => {
+        const leftIndex = keyboardItemIds.indexOf(
+          itemIdForPath(left.anchor.path) ?? ''
+        );
+        const rightIndex = keyboardItemIds.indexOf(
+          itemIdForPath(right.anchor.path) ?? ''
+        );
+        if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+        return left.anchor.line - right.anchor.line;
+      }),
+    [itemIdForPath, keyboardItemIds, review.threads]
+  );
+  const focusedThreadIndexRef = useRef(-1);
+  const handleWalkThreads = useCallback(
+    (delta: 1 | -1) => {
+      if (orderedThreads.length === 0) return;
+      const next = Math.min(
+        Math.max(focusedThreadIndexRef.current + delta, 0),
+        orderedThreads.length - 1
+      );
+      focusedThreadIndexRef.current = next;
+      handleSelectThread(orderedThreads[next]);
+    },
+    [handleSelectThread, orderedThreads]
+  );
+  const { focusedItemId } = useReviewKeyboard({
+    itemIds: keyboardItemIds,
+    focusItem: handleSelectTreeItem,
+    toggleViewed: (itemId) => viewerCommandsRef.current?.toggleViewedForItem(itemId),
+    startComment: () => viewerCommandsRef.current?.startCommentAtSelection(),
+    selectThread: handleWalkThreads,
+    // Only a batched review has anything to submit; a local one writes on save.
+    submitReview: review.capabilities?.batches
+      ? () => handleSubmitReview('COMMENT', '')
+      : undefined,
+    toggleHelp: () => setHelpOpen((open) => !open),
+  });
+
   const handleSubmitReview = useCallback(
     (event: 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES', body: string) => {
       void review.submit(event, body.trim() === '' ? undefined : body);
@@ -442,6 +494,9 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         <>
           <DiffsHubSidebar
             viewedCount={viewed.viewedPaths.size}
+            focusedPath={
+              focusedItemId == null ? undefined : pathForItemId(focusedItemId)
+            }
             className="[grid-area:viewer] md:[grid-area:tree]"
             threads={review.threads}
             reviewBusy={review.busy}
@@ -464,6 +519,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
             onSelectItem={handleSelectTreeItem}
           />
           <DiffsHubViewer
+            commandsRef={viewerCommandsRef}
             isViewedAt={viewed.isViewedAt}
             onToggleViewed={viewed.setViewed}
             onReconcileViewed={viewed.reconcile}
@@ -513,6 +569,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
           state={loadState}
         />
       )}
+      <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
     </ReviewGrid>
   );
 }

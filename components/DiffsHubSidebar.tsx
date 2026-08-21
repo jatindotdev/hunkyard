@@ -71,6 +71,9 @@ interface DiffsHubSidebarProps {
   diffStats: DiffsHubDiffStatsData | null;
   // How many files the reviewer has marked viewed, for the Files tab badge.
   viewedCount: number;
+  // The file the keyboard map is currently on, mirrored into the tree so j/k
+  // shows where it has landed.
+  focusedPath?: string;
   mobileOverlayOpen?: boolean;
   onMobileClose(): void;
   onSelectThread(thread: Thread): void;
@@ -89,6 +92,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   reviewBusy = false,
   diffStats,
   viewedCount,
+  focusedPath,
   mobileOverlayOpen = false,
   onMobileClose,
   onSelectThread,
@@ -140,6 +144,14 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
     () => filterDiffsHubFileTreeSource(source, selectedStatuses),
     [source, selectedStatuses]
   );
+  useEffect(() => {
+    if (focusedPath == null || fileTreeModel == null) return;
+    // @pierre/trees exposes no selection setter on the tree itself, so the
+    // selection has to be driven through the item handle.
+    fileTreeModel.getItem(focusedPath)?.select();
+    fileTreeModel.scrollToPath(focusedPath, { offset: 'nearest' });
+  }, [fileTreeModel, focusedPath]);
+
   const handleModelReady = useCallback((model: FileTree | null) => {
     setFileTreeModel(model);
   }, []);

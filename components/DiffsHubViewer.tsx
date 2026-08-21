@@ -72,7 +72,18 @@ function updateViewerDiffItem(
   return viewer.updateItem(item) ? item : undefined;
 }
 
+// Actions the keyboard map needs that only the viewer can perform, because they
+// act on the line selection. The selection stays here rather than being lifted:
+// ReviewUI re-rendering on every drag would re-render the whole diff.
+export interface ReviewViewerCommands {
+  // Starts a draft on the current selection. False when nothing is selected.
+  startCommentAtSelection(): boolean;
+  // Flips one file's viewed state, collapsing or expanding it to match.
+  toggleViewedForItem(itemId: string): void;
+}
+
 interface DiffsHubViewerProps {
+  commandsRef: RefObject<ReviewViewerCommands | null>;
   className?: string;
   diffStyle: 'split' | 'unified';
   // Review state, owned by ReviewUI. The viewer renders it and reports
@@ -113,6 +124,7 @@ interface DiffsHubViewerProps {
 }
 
 export const DiffsHubViewer = memo(function DiffsHubViewer({
+  commandsRef,
   className,
   diffStyle,
   threads,
@@ -233,6 +245,29 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       onStartDraft(anchorFromSelection(range, path, headCommitId));
     }
   );
+
+  const startCommentAtSelection = useStableCallback(() => {
+    if (selectedLines == null) return false;
+    const path = pathForItemId(selectedLines.id);
+    if (path == null) return false;
+    onStartDraft(anchorFromSelection(selectedLines.range, path, headCommitId));
+    return true;
+  });
+
+  const toggleViewedForItem = useStableCallback((itemId: string) => {
+    const item = viewerRef.current?.getItem(itemId);
+    const path = pathForItemId(itemId);
+    if (item == null || !isDiffItem(item) || path == null) return;
+    const file = { path, blobId: item.fileDiff.newObjectId };
+    handleToggleViewed(file, !isViewedAt(file.path, file.blobId));
+  });
+
+  useEffect(() => {
+    commandsRef.current = { startCommentAtSelection, toggleViewedForItem };
+    return () => {
+      commandsRef.current = null;
+    };
+  }, [commandsRef, startCommentAtSelection, toggleViewedForItem]);
 
   const handleReply = useStableCallback((thread: Thread) => {
     onStartDraft(thread.anchor, thread.id);
