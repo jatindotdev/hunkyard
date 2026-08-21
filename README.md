@@ -1,15 +1,34 @@
-# Hunkyard
+<h1 align="center">Hunkyard</h1>
 
-Code review that works on a pull request, a local branch, or whatever you have
-not committed yet.
+<p align="center">
+  Code review that works on a pull request, a local branch,<br>
+  or whatever you have not committed yet.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jatindotdev/hunkyard/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jatindotdev/hunkyard/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/jatindotdev/hunkyard/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jatindotdev/hunkyard?label=release"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jatindotdev/hunkyard?color=blue"></a>
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey">
+</p>
+
+![hunkyard reviewing a working tree](docs/screenshot.png)
 
 GitHub's review UI is slow on large diffs and can only review something that is
 already a pull request. Hunkyard reviews any of them, runs entirely on your
 machine, and renders diffs of a size the GitHub UI gives up on.
 
+## Install
+
 ```bash
 curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 ```
+
+One executable with the Bun runtime, the server and the whole client compiled
+into it. Nothing to install alongside it: no Node, no Bun, no `node_modules`.
+`HUNK_VERSION` pins a release, `HUNK_INSTALL_DIR` chooses where it lands.
+
+## Use
 
 ```bash
 hunk                    # review what you have not committed
@@ -23,32 +42,35 @@ hunk stop               # stop it
 ```
 
 `hunk` opens a browser and returns. It serves at
-`http://hunkyard.localhost:4865`, in the background, and keeps running until
-you stop it, so the second review of the day costs 44ms rather than a restart.
-It serves every repository you have opened, so running `hunk` in another one
-just works. Use `--foreground` to hold the terminal instead.
+`http://hunkyard.localhost:4865`, in the background, and keeps running until you
+stop it, so the second review of the day costs 44ms rather than a restart. It
+serves every repository you have opened, so running `hunk` in another one just
+works. Use `--foreground` to hold the terminal instead.
 
-`git hunk` works too, on the symlink the installer puts next to the binary,
-with a man page so `git hunk --help` works as well. (Git resolves that form as
+<details>
+<summary><b>git hunk</b> works too</summary>
+
+The installer puts a `git-hunk` symlink next to the binary, with a man page, so
+`git hunk` and `git hunk --help` both work. Git resolves the second as
 `git help hunk`, which reads a man page rather than running the binary, so
-without one it would fail.)
+without one it would fail.
+</details>
 
-The binaries are large, about 75MB for macOS on Apple silicon, because each one
-embeds the Bun runtime and the whole client. They are uncompressed, so one
-downloaded from the releases page runs after a chmod.
+<details>
+<summary>The binaries are large, about 75MB</summary>
 
-An unrelated tool of the same name exists, so if you already have a `hunk` on
-your PATH, whichever directory comes first decides which one runs. The installer
-names the one that wins rather than leaving you to find out.
+Each one embeds the Bun runtime and the whole client. They are uncompressed, so
+one downloaded from the releases page runs after a `chmod`. GitHub does not
+compress release assets in transit either, so that is the size on the wire.
+</details>
 
-It is a single executable with the Bun runtime, the server and the whole client
-compiled into it. Nothing to install alongside it, no Node, no Bun, no
-`node_modules`.
+<details>
+<summary>An unrelated tool is also called <code>hunk</code></summary>
 
-Built on [DiffsHub](https://diffshub.com) by
-[The Pierre Computer Company](https://pierre.computer) (Apache-2.0), using their
-[`@pierre/diffs`](https://diffs.com) and [`@pierre/trees`](https://trees.software)
-libraries for the virtualized diff surface and file tree.
+If you already have one on your PATH, whichever directory comes first decides
+which runs. The installer names the one that wins rather than leaving you to
+find out.
+</details>
 
 ## What it does
 
@@ -69,8 +91,24 @@ read your review back.
 collapsed across restarts, per file and per blob, so one file changing does not
 discard the rest of your progress. Display preferences persist too.
 
-**Keyboard.** `j`/`k` between files, `v` to mark viewed, `c` to comment on the
-selected lines, `n`/`p` between threads, `⌘↵` to submit, `?` for the list.
+**Keyboard.**
+
+| | |
+| --- | --- |
+| `j` `k` | between files |
+| `n` `p` | between comment threads |
+| `v` | mark the current file viewed |
+| `c` | comment on the selected lines |
+| `⌘↵` | submit the review |
+| `?` | this list |
+| `F2` `F3` | diff stats, system monitor |
+
+## Not yet
+
+- Image and binary files render a placeholder row rather than a real diff, since
+  `@pierre/diffs` has no binary handling of its own.
+- No command palette.
+- No way to share a review. It is yours, on your machine.
 
 ## Everything stays on your machine
 
@@ -95,8 +133,6 @@ read your disk from a web page is the pair of checks above plus the absence of
 CORS headers: a foreign page can start a request but cannot read the response,
 and the repositories you have opened are a recents list rather than a gate.
 
-The trade is that a review is yours: there is no URL to send anyone.
-
 ## Why `hunkyard.localhost`
 
 RFC 6761 reserves `.localhost`, so the name resolves to `127.0.0.1` with no
@@ -104,8 +140,8 @@ RFC 6761 reserves `.localhost`, so the name resolves to `127.0.0.1` with no
 works too. Port **4865** is `HUNK` on a phone keypad.
 
 The point is a stable origin. An ephemeral port would mean a new origin on every
-restart, and `localStorage` — viewed state, display preferences — would reset
-each time.
+restart, so `localStorage` would reset each time, losing viewed state and
+display preferences.
 
 ## Develop
 
@@ -176,8 +212,13 @@ avatar. Hunkyard keeps the rendering pipeline and replaces that layer.
   specifiers pinned to literals, moonrepo and the TS project references dropped,
   `@pierre/*` consumed from npm.
 
-Binary and image files render a placeholder row rather than a real diff, since
-`@pierre/diffs` has no binary handling of its own.
+## Built on
+
+[DiffsHub](https://diffshub.com) by
+[The Pierre Computer Company](https://pierre.computer), using their
+[`@pierre/diffs`](https://diffs.com) and
+[`@pierre/trees`](https://trees.software) libraries for the virtualized diff
+surface and file tree.
 
 ## License
 
