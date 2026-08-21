@@ -39,6 +39,7 @@ hunk owner/repo#123     # review a pull request
 
 hunk status             # what is running, and which repositories it serves
 hunk stop               # stop it
+hunk forget <id>        # drop a repository from that list (--all for every one)
 ```
 
 `hunk` opens a browser and returns. It serves at

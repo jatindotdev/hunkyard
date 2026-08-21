@@ -12,6 +12,7 @@ function stub() {
     review: noop,
     status: noop,
     stop: noop,
+    forget: noop,
     install: noop,
     uninstall: noop,
     forward: noop,
@@ -30,7 +31,14 @@ describe('command metadata', () => {
 
 describe('selectCommand', () => {
   test('routes the named commands', () => {
-    for (const name of ['status', 'stop', 'install', 'uninstall', 'forward'] as const) {
+    for (const name of [
+      'status',
+      'stop',
+      'forget',
+      'install',
+      'uninstall',
+      'forward',
+    ] as const) {
       expect(selectCommand([name])).toEqual({ name, rawArgs: [] });
     }
   });

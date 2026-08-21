@@ -29,6 +29,7 @@ export interface Handlers {
   }): Promise<void>;
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
+  forget(options: { id?: string; all: boolean }): Promise<void>;
   install(port: number): Promise<void>;
   uninstall(): Promise<void>;
   forward(options: { from: number; to: number }): Promise<void>;
@@ -56,7 +57,7 @@ export function buildCommands(handlers: Handlers) {
       version: handlers.version,
       description:
         'Review code changes from a local repository or a pull request.\n\n' +
-        'Commands: status, stop, install, uninstall',
+        'Commands: status, stop, forget, install, uninstall',
     },
     args: {
       target: {
@@ -121,6 +122,24 @@ export function buildCommands(handlers: Handlers) {
     run: ({ args }) => handlers.stop(port(args.port)),
   });
 
+  const forget = defineCommand({
+    meta: {
+      name: 'forget',
+      description:
+        'remove a repository from the list hunk status shows, or all of them',
+    },
+    args: {
+      id: {
+        type: 'positional',
+        required: false,
+        description: 'the id from hunk status',
+      },
+      all: { type: 'boolean', description: 'forget every repository' },
+    },
+    run: ({ args }) =>
+      handlers.forget({ id: args.id, all: args.all === true }),
+  });
+
   const install = defineCommand({
     meta: {
       name: 'install',
@@ -147,7 +166,7 @@ export function buildCommands(handlers: Handlers) {
       handlers.forward({ from: port(args.from), to: port(args.to) }),
   });
 
-  return { review, status, stop, install, uninstall, forward };
+  return { review, status, stop, forget, install, uninstall, forward };
 }
 
 // citty accepts flags it was never told about and ignores them, so `--stagedd`
@@ -190,6 +209,7 @@ export function assertKnownFlags(
 export type NamedCommand =
   | 'status'
   | 'stop'
+  | 'forget'
   | 'install'
   | 'uninstall'
   | 'forward';
@@ -197,6 +217,7 @@ export type NamedCommand =
 const NAMED: readonly NamedCommand[] = [
   'status',
   'stop',
+  'forget',
   'install',
   'uninstall',
   'forward',

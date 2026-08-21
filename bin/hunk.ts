@@ -15,8 +15,9 @@ import {
 } from '../lib/repos/daemonPid';
 import {
   ensureControlToken,
-  listRepos,
+  forgetRepos,
   registerRepo,
+  tidyRepos,
 } from '../lib/repos/registry';
 import { startServer } from '../server/index';
 import { CliError, resolveViewerPath, viewerUrl } from './cli-core';
@@ -157,19 +158,28 @@ async function startBackgroundServer(port: number): Promise<void> {
 
 async function runStatus(port: number): Promise<void> {
   const health = await describeServer(port);
-  if (health == null) {
-    process.stdout.write(`No hunk server on port ${port}.\n`);
+  process.stdout.write(
+    health == null
+      ? `hunk ${version}, no server on port ${port}\n`
+      : `hunk ${version} on http://127.0.0.1:${port}\n`
+  );
+
+  // The list lives on disk rather than in the server, so it is worth showing
+  // either way, and tidying it here is what drops a repository that is gone.
+  const repos = await tidyRepos();
+  if (repos.length === 0) {
+    process.stdout.write('\nNo repositories yet. Run hunk inside one.\n');
     return;
   }
-
-  const repos = await listRepos();
   process.stdout.write(
-    `hunk ${version} on http://127.0.0.1:${port}\n\n` +
-      `${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'}\n`
+    `\n${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'}\n`
   );
   for (const repo of repos) {
     process.stdout.write(`  ${repo.id.padEnd(28)} ${repo.root}\n`);
   }
+  process.stdout.write(
+    `\nhunk forget <id> removes one from this list, --all removes every one.\n`
+  );
 }
 
 async function runStop(port: number): Promise<void> {
@@ -312,6 +322,20 @@ async function main(): Promise<void> {
     review,
     status: runStatus,
     stop: runStop,
+    forget: async ({ id, all }) => {
+      if (id == null && !all) {
+        fail(
+          'name a repository id, or pass --all',
+          'Run `hunk status` for the ids.'
+        );
+      }
+      const removed = await forgetRepos(all ? undefined : id);
+      process.stdout.write(
+        removed === 0
+          ? 'Nothing to forget.\n'
+          : `Forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'}. The repositories themselves are untouched.\n`
+      );
+    },
     install: (port) => installService(port),
     uninstall: () => uninstallService(),
     forward: async ({ from, to }) => {

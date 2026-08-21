@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 
@@ -62,6 +63,18 @@ export async function ensureControlToken(): Promise<string> {
   return token;
 }
 
+// A recents list should not grow without bound, and nobody scrolls past the
+// twenty repositories they last reviewed.
+const KEEP = 20;
+
+// Entries whose directory is gone. They cannot be reviewed and only clutter
+// `hunk status`, which is where a temp directory from a test run lingers.
+export function pruneMissingRepos(
+  repos: readonly RegisteredRepo[]
+): RegisteredRepo[] {
+  return repos.filter((repo) => existsSync(repo.root));
+}
+
 export async function listRepos(): Promise<RegisteredRepo[]> {
   const file = await readFileJson(registryPath());
   const repos = Array.isArray(file.repos) ? file.repos : [];
@@ -82,8 +95,29 @@ async function write(repos: RegisteredRepo[], defaultId: string): Promise<void> 
   await mkdir(stateDir(), { recursive: true });
   await writeFile(
     registryPath(),
-    `${JSON.stringify({ repos, defaultId }, null, 2)}\n`
+    `${JSON.stringify({ repos: repos.slice(0, KEEP), defaultId }, null, 2)}\n`
   );
+}
+
+// Drops what is gone and writes the result, so `hunk status` reports what can
+// actually be reviewed. Returns what is left.
+export async function tidyRepos(): Promise<RegisteredRepo[]> {
+  const repos = await listRepos();
+  const kept = pruneMissingRepos(repos);
+  if (kept.length !== repos.length) {
+    await write(kept, kept[0]?.id ?? '');
+  }
+  return kept;
+}
+
+// Removes one repository from the list, or all of them. The repositories
+// themselves are untouched; this is a list of what you have opened.
+export async function forgetRepos(id?: string): Promise<number> {
+  const repos = await listRepos();
+  const kept = id == null ? [] : repos.filter((repo) => repo.id !== id);
+  if (kept.length === repos.length) return 0;
+  await write(kept, kept[0]?.id ?? '');
+  return repos.length - kept.length;
 }
 
 // Adds a repository, or refreshes the one already there. The path is normalised
@@ -100,7 +134,9 @@ export async function registerRepo(path: string): Promise<RegisteredRepo> {
     root,
     lastUsedAt: new Date().toISOString(),
   };
-  const others = (await listRepos()).filter((entry) => entry.id !== repo.id);
+  const others = pruneMissingRepos(await listRepos()).filter(
+    (entry) => entry.id !== repo.id
+  );
   // Most recently opened first, and the newest becomes the default, which is
   // what `hunk` in a fresh repository should mean.
   await write([repo, ...others], repo.id);

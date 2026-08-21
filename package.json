@@ -12,7 +12,8 @@
     "build:release": "bun run build:client && bun scripts/release.ts",
     "start": "bun run bin/hunk.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit --pretty"
+    "typecheck": "tsc --noEmit --pretty",
+    "smoke": "bun scripts/smoke.ts"
   },
   "dependencies": {
     "citty": "^0.2.2",

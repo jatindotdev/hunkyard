@@ -51,28 +51,8 @@ jobs:
           CHROME_PATH: /usr/bin/google-chrome
         run: bun test
 
-      # A binary that compiles but cannot serve is the failure worth catching
-      # here, and it is not something the unit tests can see.
+      # Walks the compiled binary's commands against real repositories. A
+      # script rather than inline steps, so the same thing runs locally: copying
+      # it by hand to reproduce a CI failure is how the two drift.
       - name: Smoke test the binary
-        run: |
-          set -euo pipefail
-          test "$(./dist/hunk --version)" = "$(bun -e 'console.log(require("./package.json").version)')"
-
-          repo="$(mktemp -d)"
-          git -C "$repo" init -q
-          git -C "$repo" config user.email ci@example.com
-          git -C "$repo" config user.name CI
-          printf 'export const a = 1;\n' > "$repo/a.ts"
-          git -C "$repo" add -A
-          git -C "$repo" commit -qm initial
-          printf 'export const a = 1;\nexport const b = 2;\n' > "$repo/a.ts"
-
-          ( cd "$repo" && "$GITHUB_WORKSPACE/dist/hunk" --no-open --port 4865 )
-
-          curl -fsS http://127.0.0.1:4865/api/health | tee /dev/stderr | grep -q '"app":"hunkyard"'
-          # The client is embedded, so serving it proves --asset worked.
-          curl -fsS http://127.0.0.1:4865/ | grep -qi '<title>'
-          repo_id="$(curl -fsS http://127.0.0.1:4865/api/repos | grep -oE '"id":"[^"]+"' | head -1 | cut -d'"' -f4)"
-          curl -fsS "http://127.0.0.1:4865/api/local-diff?repo=$repo_id" | grep -q '^+export const b'
-
-          "$GITHUB_WORKSPACE/dist/hunk" stop --port 4865
+        run: bun scripts/smoke.ts
