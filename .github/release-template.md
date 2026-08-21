@@ -1,8 +1,9 @@
 Code review that works on a pull request, a local branch, or whatever you have
 not committed yet.
 
-`hunk` is a single executable with the Bun runtime, the server and the whole
-client compiled into it. No Node, no Bun, no `node_modules`.
+![hunkyard reviewing a working tree](https://raw.githubusercontent.com/jatindotdev/hunkyard/{{COMMIT}}/docs/screenshot.png)
+
+{{NOTES}}
 
 ## Install
 
@@ -10,12 +11,17 @@ client compiled into it. No Node, no Bun, no `node_modules`.
 curl -fsSL https://raw.githubusercontent.com/jatindotdev/hunkyard/main/scripts/install.sh | sh
 ```
 
-You also get `git hunk`, with a man page. `HUNK_VERSION` pins a release and
-`HUNK_INSTALL_DIR` chooses where it lands.
+One executable with the Bun runtime, the server and the whole client compiled
+into it. No Node, no Bun, no `node_modules`. You also get `git hunk`, with a man
+page. `HUNK_VERSION` pins a release and `HUNK_INSTALL_DIR` chooses where it
+lands.
 
-An unrelated tool of the same name exists, so if you already have a `hunk` on
-your PATH, whichever directory comes first decides which one runs. The installer
-names the one that wins.
+<details>
+<summary>An unrelated tool is also called <code>hunk</code></summary>
+
+If you already have one on your PATH, whichever directory comes first decides
+which runs. The installer names the one that wins.
+</details>
 
 ## Use
 
@@ -34,9 +40,8 @@ It opens a browser and returns. The server runs in the background on
 `hunkyard.localhost:4865` and serves every repository, so running `hunk`
 elsewhere does not restart it.
 
-{{NOTES}}
-
-## Verifying a download
+<details>
+<summary>Verifying a download</summary>
 
 `SHA256SUMS` covers every asset.
 
@@ -46,11 +51,11 @@ shasum -a 256 -c SHA256SUMS
 
 `bun build --compile` is not reproducible, so these are the checksums of these
 artifacts rather than of a rebuild.
+</details>
 
 ---
 
-{{VERSION}} · built by [this workflow run]({{RUN_URL}}) from
-[`{{COMMIT_SHORT}}`](https://github.com/jatindotdev/hunkyard/commit/{{COMMIT}})
-
-Built on [DiffsHub](https://diffshub.com) by
-[The Pierre Computer Company](https://pierre.computer), Apache-2.0. See `NOTICE`.
+**{{VERSION}}** · built by [this run]({{RUN_URL}}) from
+[`{{COMMIT_SHORT}}`](https://github.com/jatindotdev/hunkyard/commit/{{COMMIT}}) ·
+built on [DiffsHub](https://diffshub.com) by
+[The Pierre Computer Company](https://pierre.computer), Apache-2.0

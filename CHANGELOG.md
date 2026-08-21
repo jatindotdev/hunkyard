@@ -1,14 +1,19 @@
 # Changelog
 
 Each release's notes are taken from its section here, so a section is required
-before a tag can be published. The surrounding boilerplate lives in
+before a tag can be published. The surrounding boilerplate, including the
+screenshot and the install instructions, lives in
 `.github/release-template.md`.
+
+Headings inside a release's section must be `###` or deeper. A `##` is how the
+next version is found, so using one for a subsection silently truncates the
+notes at that point, which is a thing that has already happened once.
 
 ## v0.1.0
 
 First release.
 
-### What is in it
+### What it does
 
 - **Local review as well as pull requests.** Working tree, staged, `--all`, any
   revspec, any commit. Three-dot ranges are diffed against the merge base, the
@@ -41,7 +46,7 @@ The `Host` header is checked so a page cannot point a name it controls at
 `127.0.0.1`, writes need a recognised `Origin`, and no route sends CORS headers,
 so a foreign page can start a request but cannot read the reply.
 
-### Not in it yet
+### Not yet
 
 - Image and binary files render a placeholder row; `@pierre/diffs` has no image
   support.

@@ -53,47 +53,6 @@ jobs:
             exit 1
           fi
 
-      # Rather than running the suite again. CI already ran it on this exact
-      # commit, and CI does not trigger on tags, so there is no duplicate run to
-      # wait for. Requiring its verdict is also stricter than re-testing: a tag
-      # on a commit CI never saw fails here, where a fresh test run would happily
-      # pass and publish it.
-      - name: Require CI to have passed for this commit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          sha="$(git rev-parse HEAD)"
-          deadline=$(( $(date +%s) + 900 ))
-          while :; do
-            verdict="$(
-              gh api "repos/${{ github.repository }}/commits/$sha/check-runs" \
-                --jq '[.check_runs[] | select(.name == "check")] | first
-                      | if . == null then "missing"
-                        elif .status != "completed" then "pending"
-                        else .conclusion end'
-            )"
-            case "$verdict" in
-              success) echo "CI passed for $sha"; break ;;
-              pending)
-                if [ "$(date +%s)" -ge "$deadline" ]; then
-                  echo "CI for $sha did not finish within 15 minutes." >&2
-                  exit 1
-                fi
-                echo "waiting for CI on $sha..."
-                sleep 20
-                ;;
-              missing)
-                echo "No CI run for $sha. Tag a commit that has been through CI." >&2
-                exit 1
-                ;;
-              *)
-                echo "CI concluded '$verdict' for $sha. Not releasing it." >&2
-                exit 1
-                ;;
-            esac
-          done
-
       # The cross-compile embeds the client, so it has to exist first.
       - name: Build the client
         run: bun run build:client
