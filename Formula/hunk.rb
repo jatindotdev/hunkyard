@@ -1,5 +1,13 @@
-# Homebrew formula for hunk. Lives here for reference; the tap that serves it is
-# jatindotdev/homebrew-tap, where this file is copied to Formula/hunk.rb.
+# Homebrew formula for hunk. This repository is the tap, so there is no second
+# one to keep in step: a release bumps the version and the checksums here.
+#
+#   brew tap jatindotdev/hunkyard https://github.com/jatindotdev/hunkyard
+#   brew install hunk
+#
+# The two-argument form of `brew tap` takes an explicit URL and so does not
+# require the homebrew- repository prefix. Homebrew looks for formulae in
+# Formula/, HomebrewFormula/ or the repository root (Homebrew's tap.rb,
+# potential_formula_dirs), which is why this sits in Formula/.
 #
 # The binaries are prebuilt and self-contained (each embeds the Bun runtime and
 # the whole client), so there is nothing to compile and no dependency to declare.
