@@ -48,8 +48,20 @@ starts it. `HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, `0` disables it.
 
 Consequences worth knowing. `hunk` no longer starts a server -- opening the URL
 does, so the two cannot race. `hunk stop` ends it now rather than when it goes
-idle, and `hunk restart` is only that, since the next request starts the new
-one. `hunk status` reporting nothing running is the healthy state.
+idle. `hunk status` reporting nothing running is the healthy state.
+
+`restart`, `forward` and `--foreground` are gone, each because activation made
+it a duplicate: restarting is only stopping, the forwarder is the socket the
+service manager holds, and `--foreground` is `hunk serve`. `hunk help` works as
+well as `hunk --help`.
+
+Two things that only surfaced once the CLI stopped starting servers. `hunk
+status` and `hunk stop` looked for the server on port 4865, which an activated
+server never uses -- they now find it by the pid it records, which also avoids
+a `status` that started a server in order to report that none was running. And
+on Windows, where nothing can be registered, `hunk` said to run `hunk install`
+and `hunk install` said there was nothing to install; it now hands over the
+ported URL, which is the only origin that platform has.
 
 ### The server can start at login
 

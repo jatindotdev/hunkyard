@@ -12,13 +12,11 @@ function stub() {
     review: noop,
     status: noop,
     stop: noop,
-    restart: noop,
     forget: noop,
     install: noop,
     uninstall: noop,
     update: noop,
     serve: noop,
-    forward: noop,
   });
 }
 
@@ -40,7 +38,7 @@ describe('selectCommand', () => {
       'forget',
       'install',
       'uninstall',
-      'forward',
+      'update',
     ] as const) {
       expect(selectCommand([name])).toEqual({ name, rawArgs: [] });
     }

@@ -63,10 +63,21 @@ export type ReviewOrigin =
 export function resolveReviewOrigin(options: {
   port: number;
   bareReachable: boolean;
+  // Whether this platform can register the bare URL at all. Windows has no
+  // privileged-port concept and no socket handoff, so there is nothing to
+  // install -- and telling someone to install it there is a loop with no exit.
+  canRegister?: boolean;
 }): ReviewOrigin {
-  if (options.port !== DEFAULT_PORT) {
-    return { kind: 'origin', origin: `${BARE_ORIGIN}:${options.port}` };
-  }
+  const ported = { kind: 'origin', origin: `${BARE_ORIGIN}:${options.port}` } as const;
+
+  // Asking for a particular port is asking not to be behind the registered one.
+  if (options.port !== DEFAULT_PORT) return ported;
+
+  // The one-origin rule exists because two origins split browser storage. Where
+  // only one is ever possible there is nothing to split, so the ported URL is
+  // the answer rather than a compromise.
+  if (options.canRegister === false) return ported;
+
   return options.bareReachable
     ? { kind: 'origin', origin: BARE_ORIGIN }
     : { kind: 'needs-install' };

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { topLevelHelp, wantsTopLevelHelp } from '../help';
+import { isHelpCommand, topLevelHelp, wantsTopLevelHelp } from '../help';
 
 // Test output is not a TTY, so style.ts leaves the text uncoloured and these
 // can match on it directly.
@@ -22,9 +22,9 @@ describe('topLevelHelp', () => {
   // this CLI cannot use those: a first argument is usually a revspec.
   test('lists the commands under a heading of their own', () => {
     expect(listedCommands(help)).toEqual([
+      'serve',
       'status',
       'stop',
-      'restart',
       'forget',
       'install',
       'uninstall',
@@ -32,11 +32,9 @@ describe('topLevelHelp', () => {
     ]);
   });
 
-  // `serve` and `forward` are run by the login agent and the forwarder, not by
-  // hand, so listing them would be offering something nobody should type.
-  test('leaves the internal commands out', () => {
-    expect(listedCommands(help)).not.toContain('serve');
-    expect(listedCommands(help)).not.toContain('forward');
+  // `--activated` is the service manager's business, not something to type.
+  test('does not offer the activated form', () => {
+    expect(help).not.toContain('--activated');
   });
 
   test('says what a target can be', () => {
@@ -63,5 +61,14 @@ describe('wantsTopLevelHelp', () => {
   // A branch really can be called --help, and after a bare `--` it is a value.
   test('stops at a bare double dash', () => {
     expect(wantsTopLevelHelp(['--', '--help'])).toBe(false);
+  });
+});
+
+describe('isHelpCommand', () => {
+  // Both spellings are things people type, and only one of them working is a
+  // small avoidable annoyance.
+  test('recognises the subcommand form', () => {
+    expect(isHelpCommand('help')).toBe(true);
+    expect(isHelpCommand('status')).toBe(false);
   });
 });

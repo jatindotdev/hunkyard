@@ -1,18 +1,15 @@
 #!/usr/bin/env bun
 import { spawn, spawnSync } from 'node:child_process';
 import { statSync } from 'node:fs';
-import { createServer } from 'node:net';
 
 import { runMain } from 'citty';
 
 import { version } from '../package.json';
-import { startForwarder } from '../lib/proxy/forward';
 import { forwardAdoptedSockets } from '../lib/proxy/adopted';
-import { BARE_PORT } from '../lib/proxy/service';
 import { inheritedSockets } from '../lib/service/activation';
 import { createIdleTimer, idleTimeoutFromEnv } from '../lib/service/idle';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
-import { topLevelHelp, wantsTopLevelHelp } from './help';
+import { isHelpCommand, topLevelHelp, wantsTopLevelHelp } from './help';
 import {
   installService,
   serviceIsRegistered,
@@ -20,6 +17,7 @@ import {
 } from './service';
 import { runUpdate } from './update';
 import { BARE_ORIGIN, ensureBareUrlProbe } from '../lib/proxy/canonical';
+import { BARE_PORT, servicePlatform } from '../lib/proxy/service';
 import {
   clearDaemonPid,
   readDaemonPid,
@@ -64,14 +62,6 @@ function resolveGitHubToken(): string | null {
   return token === '' ? null : token;
 }
 
-function isPortFree(port: number): Promise<boolean> {
-  return new Promise((settle) => {
-    const probe = createServer();
-    probe.once('error', () => settle(false));
-    probe.once('listening', () => probe.close(() => settle(true)));
-    probe.listen(port, '127.0.0.1');
-  });
-}
 
 interface HealthBody {
   app?: string;
@@ -85,10 +75,50 @@ interface HealthBody {
   github?: boolean;
 }
 
-// Whether the thing on this port is one of ours.
-async function describeServer(port: number): Promise<HealthBody | null> {
+interface RunningServer {
+  pid: number;
+  healthUrl: string;
+  // Where you would actually reach it. The registered URL for an activated
+  // server; the port it was given for one run by hand.
+  origin: string;
+}
+
+// The server that is running, if one is.
+//
+// By pid file rather than by connecting, and that is not an optimisation: the
+// service manager starts the server when something connects to the registered
+// port, so asking it whether anything is running would be what makes something
+// run. An activated server also picks an ephemeral port, so there is no port to
+// ask on -- only the pid it recorded under the registered one.
+async function findRunningServer(port: number): Promise<RunningServer | null> {
+  const activated = await readDaemonPid(BARE_PORT);
+  if (activated != null) {
+    // Safe to ask now: it is already up, so the request starts nothing.
+    return {
+      pid: activated,
+      healthUrl: `http://127.0.0.1:${BARE_PORT}/api/health`,
+      origin: BARE_ORIGIN,
+    };
+  }
+
+  const own = await readDaemonPid(port);
+  if (own != null) {
+    return {
+      pid: own,
+      healthUrl: `http://127.0.0.1:${port}/api/health`,
+      origin: `${BARE_ORIGIN}:${port}`,
+    };
+  }
+
+  return null;
+}
+
+async function describeServer(
+  running: RunningServer | null
+): Promise<HealthBody | null> {
+  if (running == null) return null;
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/api/health`, {
+    const response = await fetch(running.healthUrl, {
       signal: AbortSignal.timeout(2000),
     });
     if (!response.ok) return null;
@@ -125,7 +155,7 @@ async function serve(options: {
   if (options.activated && inherited.length === 0) {
     fail(
       'started with --activated but no socket was handed over',
-      'This is the form the service manager runs. Use `hunk --foreground` to serve\nin a terminal.'
+      'This is the form the service manager runs. Use `hunk serve` to run one in\na terminal.'
     );
   }
 
@@ -149,7 +179,14 @@ async function serve(options: {
   process.on('SIGTERM', stop);
 
   if (inherited.length === 0) {
-    await writeDaemonPid(port);
+    // Run by hand, so it says where it is and how to stop it. Nothing else
+    // prints this: the registered URL is normally what people use, and this is
+    // the path for someone who has not registered it or is debugging.
+    await writeDaemonPid(server.port);
+    process.stdout.write(
+      `\n${row('hunkyard', bold(cyan(`${BARE_ORIGIN}:${server.port}`)))}` +
+        `\n  ${dim('Ctrl-C to stop')}\n\n`
+    );
     return;
   }
 
@@ -179,13 +216,17 @@ async function serve(options: {
 // Nothing running is the normal state now, not a fault: the service manager
 // holds the socket, and a request is what starts a server.
 async function runStatus(port: number): Promise<void> {
-  const health = await describeServer(port);
+  const running = await findRunningServer(port);
+  const health = await describeServer(running);
   const registered = await serviceIsRegistered();
 
+  // The pid decides whether it is running; health only adds detail. A server
+  // that is up but slow to answer is still up, and reporting it idle would send
+  // you looking for a problem that is not there.
   process.stdout.write(
-    health == null
+    running == null
       ? `${dim(`hunk ${version}`)}  ${dim('●')} ${dim('idle')}\n`
-      : `${dim(`hunk ${version}`)}  ${green('●')} ${bold(cyan(BARE_ORIGIN))}\n`
+      : `${dim(`hunk ${version}`)}  ${green('●')} ${bold(cyan(running.origin))}\n`
   );
 
   process.stdout.write(
@@ -196,7 +237,7 @@ async function runStatus(port: number): Promise<void> {
 
   if (isStale(health)) {
     process.stdout.write(
-      row('version', `${yellow('stale')} ${dim('this binary is newer; hunk restart')}`)
+      row('version', `${yellow('stale')} ${dim('this binary is newer; hunk stop')}`)
     );
   }
 
@@ -238,72 +279,47 @@ function isStale(health: HealthBody | null): boolean {
 // Stops whatever of ours is serving. Returns whether there was anything to
 // stop, so a caller that is only clearing the way can say nothing.
 async function stopServer(port: number): Promise<boolean> {
-  const health = await describeServer(port);
-  if (health == null) {
-    // Nothing is serving, so any pid recorded is from a server that was killed
-    // rather than stopped. Left alone it accumulates one file per port used.
-    await clearDaemonPid(port);
-    await clearDaemonPid(BARE_PORT);
+  const running = await findRunningServer(port);
+  if (running == null) {
+    // readDaemonPid already drops a file whose process is gone, so there is
+    // nothing left to tidy here.
     return false;
   }
 
-  // The server records its own pid, so stopping it needs nothing from the
-  // system. lsof is the fallback: it is absent from minimal Linux images and
-  // does not exist on Windows.
-  const recorded =
-    (await readDaemonPid(BARE_PORT)) ?? (await readDaemonPid(port));
-  const pids =
-    recorded != null
-      ? [recorded]
-      : spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
-          encoding: 'utf8',
-        })
-          .stdout?.split('\n')
-          .map((line) => Number(line.trim()))
-          .filter((pid) => Number.isInteger(pid) && pid > 0) ?? [];
-
-  if (pids.length === 0) return false;
-  for (const pid of pids) {
-    try {
-      process.kill(pid, 'SIGTERM');
-    } catch {
-      // Already gone between the health check and here.
-    }
+  try {
+    process.kill(running.pid, 'SIGTERM');
+  } catch {
+    // Gone between reading the pid file and here.
+    return false;
   }
   await clearDaemonPid(port);
   await clearDaemonPid(BARE_PORT);
   return true;
 }
 
-// Restarting is only stopping. The service manager holds the socket either way,
-// so the next request starts a fresh one -- which is the same thing a restart
-// was ever for, and it now costs nothing when nobody asks.
-async function runRestart(port: number): Promise<void> {
-  const stopped = await stopServer(port);
-  process.stdout.write(
-    stopped
-      ? `${green('✓')} ${dim('stopped; the next request starts the new one')}\n`
-      : `${dim('Nothing was running. The next request starts the new one.')}\n`
-  );
-}
-
 async function runStop(port: number): Promise<void> {
+  if (!(await stopServer(port))) {
+    process.stdout.write(`${dim('Nothing is running.')}\n`);
+    return;
+  }
+  // Only a registered URL brings it back; a server run by hand stays stopped.
   process.stdout.write(
-    (await stopServer(port))
-      ? `${green('✓')} ${dim('stopped; it starts again on the next request')}\n`
-      : `${dim('Nothing is running.')}\n`
+    (await serviceIsRegistered())
+      ? `${green('✓')} ${dim('stopped; the next request starts a new one')}\n`
+      : `${green('✓')} ${dim('stopped')}\n`
   );
 }
 
 async function requireCanonicalOrigin(port: number): Promise<string> {
   const resolved = resolveReviewOrigin({
     port,
-    bareReachable: await ensureBareUrlProbe(port),
+    bareReachable: await ensureBareUrlProbe(),
+    canRegister: servicePlatform() !== 'unsupported',
   });
   if (resolved.kind === 'origin') return resolved.origin;
   fail(
     `${BARE_ORIGIN} is not being served yet`,
-    'Run `hunk install` once. It starts the server at login and forwards port 80,\nwhich needs sudo the one time. `hunk --foreground` serves on the port instead.'
+    'Run `hunk install` once. It registers the URL and needs sudo the one time.\n`hunk serve` runs one in this terminal on a port instead.'
   );
 }
 
@@ -311,7 +327,6 @@ async function review(options: {
   target?: string;
   port: number;
   open: boolean;
-  foreground: boolean;
 }): Promise<void> {
   let viewer;
   try {
@@ -339,18 +354,6 @@ async function review(options: {
   const token = resolveGitHubToken();
   if (token != null) process.env.HUNKYARD_GITHUB_TOKEN = token;
 
-  // Only --foreground binds a port here; everything else goes through the
-  // socket the service manager holds.
-  if (
-    options.foreground &&
-    (await describeServer(options.port)) == null &&
-    !(await isPortFree(options.port))
-  ) {
-    fail(
-      `port ${options.port} is in use by something else`,
-      'Use --port to pick another.'
-    );
-  }
 
   // Registered before the browser opens, so the page can address it as soon as
   // it loads. A running server reads the registry per request, so it picks this
@@ -361,23 +364,6 @@ async function review(options: {
     : viewer.kind === 'local' && repo != null
       ? `${viewer.path}?repo=${encodeURIComponent(repo.id)}`
       : viewer.path;
-
-  if (options.foreground) {
-    // The escape hatch, and the thing `hunk` tells you to run when the
-    // background server will not start. It has to work with nothing installed,
-    // so it names the port and says what would remove it.
-    const bare = await ensureBareUrlProbe(options.port);
-    const url = `${bare ? BARE_ORIGIN : `${BARE_ORIGIN}:${options.port}`}${path}`;
-    process.stdout.write(`\n${row('hunkyard', bold(cyan(url)))}`);
-    if (repo != null) process.stdout.write(row('reviewing', dim(repo.root)));
-    if (!bare) {
-      process.stdout.write(row('', dim('hunk install drops the port')));
-    }
-    process.stdout.write(`\n  ${dim('Ctrl-C to stop')}\n\n`);
-    if (options.open) openBrowser(url);
-    await serve({ port: options.port, activated: false });
-    return;
-  }
 
   // Nothing is started here. The service manager holds the socket, so opening
   // the URL is what starts a server, and a `hunk` that spawned one as well
@@ -400,7 +386,7 @@ async function main(): Promise<void> {
 
   // citty's own help for a command that named itself; ours for the top level,
   // which has to list the commands somewhere a reader will look.
-  if (name === 'review' && wantsTopLevelHelp(rawArgs)) {
+  if (isHelpCommand(name) || (name === 'review' && wantsTopLevelHelp(rawArgs))) {
     process.stdout.write(topLevelHelp(version));
     return;
   }
@@ -411,7 +397,6 @@ async function main(): Promise<void> {
     review,
     status: runStatus,
     stop: runStop,
-    restart: runRestart,
     forget: async ({ id, all }) => {
       if (id == null && !all) {
         fail(
@@ -433,16 +418,11 @@ async function main(): Promise<void> {
         check,
         version,
         // Replacing the binary leaves the running server on the old one, so an
-        // update that does not restart is an update you are not running.
-        restart: () => runRestart(port),
+        // update that does not stop it is an update you are not running. There
+        // is nothing to start: the next request does that.
+        stopServer: () => void stopServer(port),
       }),
     serve: ({ port, activated }) => serve({ port, activated }),
-    forward: async ({ from, to }) => {
-      startForwarder({ from, to });
-      process.stdout.write(`${dim(`forwarding ${from} to ${to}`)}\n`);
-      // Held open by the listener; the service manager stops it.
-      await new Promise(() => {});
-    },
   });
 
   const command = commands[name] as Parameters<typeof runMain>[0];

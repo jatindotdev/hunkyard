@@ -180,16 +180,20 @@ async function portIsHeld(): Promise<boolean> {
   });
 }
 
-// Whether hunkyard.localhost is registered: the files are there and the port is
-// actually held. `hunk status` reports it, since with nothing running it is the
-// only thing that says the URL will answer.
+// Whether hunkyard.localhost is registered, asked by looking rather than by
+// connecting.
+//
+// Connecting would answer more precisely and cost more than it is worth: the
+// service manager starts the server when something connects, so a `hunk status`
+// that probed the port would start a server in order to report that none was
+// running.
 export async function serviceIsRegistered(): Promise<boolean> {
   if (servicePlatform() === 'unsupported') return false;
   const { files } = registration('hunk', userInfo().username);
   const present = await Promise.all(
     files.map((file) => exists(file.destination))
   );
-  return present.every(Boolean) && (await portIsHeld());
+  return present.every(Boolean);
 }
 
 // Running this twice must be the same as running it once, and the second run

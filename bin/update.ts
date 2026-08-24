@@ -88,9 +88,9 @@ async function download(url: string, to: string): Promise<Uint8Array> {
 
 export interface UpdateOptions {
   version: string;
-  // Restarts the server afterwards, so the new binary is the one answering.
-  // Supplied by the CLI, which knows whether an agent owns the process.
-  restart(): Promise<void>;
+  // Stops the running server, so the next request starts one on the new binary.
+  // Supplied by the CLI, which owns the pid file.
+  stopServer(): void | Promise<void>;
   check: boolean;
 }
 
@@ -190,6 +190,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   );
 
   // A server that is already running keeps serving the binary it started with,
-  // so without this the update is on disk and not in use.
-  await options.restart();
+  // so without this the update is on disk and not in use. Nothing is started in
+  // its place: the next request does that, on the new binary.
+  await options.stopServer();
 }

@@ -16,26 +16,22 @@ interface Entry {
 }
 
 const COMMANDS: readonly Entry[] = [
+  { name: 'serve', description: 'run a server in this terminal, on a port' },
   { name: 'status', description: 'what is running, and what it serves' },
-  { name: 'stop', description: 'stop the running server' },
-  { name: 'restart', description: 'stop it, so the next request starts a new one' },
+  { name: 'stop', description: 'stop it now, rather than when it goes idle' },
   { name: 'forget', description: 'drop a repository from that list' },
   {
     name: 'install',
     description: 'register http://hunkyard.localhost, once, with sudo',
   },
   { name: 'uninstall', description: 'undo install' },
-  { name: 'update', description: 'download the latest release, and restart' },
+  { name: 'update', description: 'download the latest release and swap it in' },
 ];
 
 const OPTIONS: readonly Entry[] = [
   { name: '--staged, --cached', description: 'staged changes only' },
   { name: '--all', description: 'staged and unstaged together' },
   { name: '--worktree', description: 'unstaged changes, which is the default' },
-  {
-    name: '--foreground',
-    description: 'hold the terminal instead of running in the background',
-  },
   { name: '--no-open', description: 'print the URL instead of opening a browser' },
   { name: '-p, --port <port>', description: 'port to serve on (default 4865)' },
   { name: '-v, --version', description: 'print the version' },
@@ -90,4 +86,10 @@ export function wantsTopLevelHelp(rawArgs: readonly string[]): boolean {
     if (raw === '--help' || raw === '-h') return true;
   }
   return false;
+}
+
+// `hunk help` as well as `hunk --help`, because both are things people type and
+// only one of them being right is a small, avoidable annoyance.
+export function isHelpCommand(name: string): name is 'help' {
+  return name === 'help';
 }

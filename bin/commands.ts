@@ -21,20 +21,13 @@ export interface Handlers {
   // and a plain Error reaches `console.error(error)`, which prints the object
   // and a source excerpt instead of a message.
   fail(message: string, hint?: string): never;
-  review(options: {
-    target?: string;
-    port: number;
-    open: boolean;
-    foreground: boolean;
-  }): Promise<void>;
+  review(options: { target?: string; port: number; open: boolean }): Promise<void>;
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
-  restart(port: number): Promise<void>;
   forget(options: { id?: string; all: boolean }): Promise<void>;
   install(): Promise<void>;
   uninstall(): Promise<void>;
   update(options: { check: boolean; port: number }): Promise<void>;
-  forward(options: { from: number; to: number }): Promise<void>;
   serve(options: { port: number; activated: boolean }): Promise<void>;
 }
 
@@ -81,10 +74,6 @@ export function buildCommands(handlers: Handlers) {
         default: true,
         description: 'open a browser (--no-open to print the URL instead)',
       },
-      foreground: {
-        type: 'boolean',
-        description: 'hold the terminal instead of running in the background',
-      },
       ...portArg,
     },
     async run({ args }) {
@@ -105,7 +94,6 @@ export function buildCommands(handlers: Handlers) {
         target: flagTarget ?? args.target,
         port: port(args.port),
         open: args.open,
-        foreground: args.foreground === true,
       });
     },
   });
@@ -123,15 +111,6 @@ export function buildCommands(handlers: Handlers) {
     meta: { name: 'stop', description: 'stop the running server' },
     args: { ...portArg },
     run: ({ args }) => handlers.stop(port(args.port)),
-  });
-
-  const restart = defineCommand({
-    meta: {
-      name: 'restart',
-      description: 'stop the server, so the next request starts a new one',
-    },
-    args: { ...portArg },
-    run: ({ args }) => handlers.restart(port(args.port)),
   });
 
   const forget = defineCommand({
@@ -201,28 +180,15 @@ export function buildCommands(handlers: Handlers) {
       }),
   });
 
-  // Run by the installed service, not by hand.
-  const forward = defineCommand({
-    meta: { name: 'forward', description: 'forward one local port to another' },
-    args: {
-      from: { type: 'string', required: true, description: 'port to listen on' },
-      to: { type: 'string', required: true, description: 'port to forward to' },
-    },
-    run: ({ args }) =>
-      handlers.forward({ from: port(args.from), to: port(args.to) }),
-  });
-
   return {
     review,
     status,
     stop,
-    restart,
     forget,
     install,
     uninstall,
     update,
     serve,
-    forward,
   };
 }
 
@@ -264,26 +230,24 @@ export function assertKnownFlags(
 // `subCommands`. See citty's runCommand: with subCommands set, an explicit name
 // must resolve or it is an error.
 export type NamedCommand =
+  | 'help'
   | 'status'
   | 'stop'
-  | 'restart'
   | 'forget'
   | 'install'
   | 'uninstall'
   | 'update'
-  | 'serve'
-  | 'forward';
+  | 'serve';
 
 const NAMED: readonly NamedCommand[] = [
+  'help',
   'status',
   'stop',
-  'restart',
   'forget',
   'install',
   'uninstall',
   'update',
   'serve',
-  'forward',
 ];
 
 // Returns which command to run and the arguments left for it. The name rather

@@ -122,3 +122,32 @@ describe('resolveReviewOrigin', () => {
     });
   });
 });
+
+describe('resolveReviewOrigin where nothing can be registered', () => {
+  // Windows has no privileged-port concept and no socket handoff, so `hunk
+  // install` has nothing to do there. Asking for one anyway was a loop: hunk
+  // said to install, install said there was nothing to install.
+  test('hands over the ported URL rather than asking for an install', () => {
+    expect(
+      resolveReviewOrigin({
+        port: DEFAULT_PORT,
+        bareReachable: false,
+        canRegister: false,
+      })
+    ).toEqual({ kind: 'origin', origin: 'http://hunkyard.localhost:4865' });
+  });
+
+  // The one-origin rule is about two origins splitting browser storage; where
+  // only one is possible there is nothing to split.
+  test('is still one origin, just a different one', () => {
+    const withPort = resolveReviewOrigin({
+      port: DEFAULT_PORT,
+      bareReachable: true,
+      canRegister: false,
+    });
+    expect(withPort).toEqual({
+      kind: 'origin',
+      origin: 'http://hunkyard.localhost:4865',
+    });
+  });
+});

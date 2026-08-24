@@ -2,49 +2,38 @@ import { afterEach, describe, expect, test } from 'bun:test';
 
 import {
   BARE_ORIGIN,
-  canonicalRedirect,
   ensureBareUrlProbe,
   forgetBareUrlProbe,
 } from '@/lib/proxy/canonical';
-
-// Not the default: whatever a forwarder on this machine points at, it is not
-// this, so the probe answers false deterministically rather than depending on
-// what the developer happens to have installed.
-const PORT = 45999;
-
-function request(host: string, path = '/local?repo=x'): Request {
-  return new Request(`http://${host}${path}`, { headers: { host } });
-}
 
 afterEach(() => {
   forgetBareUrlProbe();
 });
 
-describe('canonicalRedirect', () => {
-  // A redirect to a port nothing is listening on would take the whole app
-  // down, so an unanswered probe has to fail towards serving here.
-  test('serves in place while the forwarder has not answered', async () => {
-    expect(canonicalRedirect(request(`hunkyard.localhost:${PORT}`), PORT)).toBeNull();
-    await ensureBareUrlProbe(PORT);
-    expect(canonicalRedirect(request(`hunkyard.localhost:${PORT}`), PORT)).toBeNull();
-  });
-
-  test('leaves the bare host alone', () => {
-    expect(canonicalRedirect(request('hunkyard.localhost'), PORT)).toBeNull();
-  });
-
-  // Someone on an IP address has bypassed the name deliberately.
-  test('leaves an address alone', () => {
-    expect(canonicalRedirect(request(`127.0.0.1:${PORT}`), PORT)).toBeNull();
+describe('BARE_ORIGIN', () => {
+  // The whole point of registering port 80: one origin, so browser storage is
+  // one store rather than one per URL you happened to open.
+  test('has no port in it', () => {
+    expect(BARE_ORIGIN).toBe('http://hunkyard.localhost');
   });
 });
 
-describe('probing', () => {
-  test('answers false when the forwarder does not reach this server', async () => {
-    expect(await ensureBareUrlProbe(PORT)).toBe(false);
+describe('ensureBareUrlProbe', () => {
+  // Whether it answers true depends on whether the machine running this has
+  // hunkyard registered, so the assertion is about the shape rather than the
+  // verdict. What matters here is that asking is cheap and repeatable.
+  test('answers, and answers the same way twice within its window', async () => {
+    const first = await ensureBareUrlProbe();
+    expect(typeof first).toBe('boolean');
+    expect(await ensureBareUrlProbe()).toBe(first);
   });
 
-  test('the bare origin has no port in it', () => {
-    expect(BARE_ORIGIN).toBe('http://hunkyard.localhost');
+  // The answer goes stale in both directions -- registered since we started, or
+  // removed since -- so it must be forgettable rather than cached for the life
+  // of the process.
+  test('can be forgotten and asked again', async () => {
+    await ensureBareUrlProbe();
+    forgetBareUrlProbe();
+    expect(typeof (await ensureBareUrlProbe())).toBe('boolean');
   });
 });

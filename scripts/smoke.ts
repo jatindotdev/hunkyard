@@ -22,7 +22,6 @@ if (!(await Bun.file(binary).exists())) {
   process.exit(1);
 }
 const PORT = 4877;
-const FORWARD_PORT = 4878;
 
 const version = (await Bun.file('package.json').json()).version as string;
 const base = await mkdtemp(join(tmpdir(), 'hunk-smoke-'));
@@ -99,7 +98,7 @@ try {
   const help = hunk(['--help']).out;
   check(
     '--help lists the commands',
-    ['status', 'stop', 'restart', 'install', 'uninstall'].every((c) => help.includes(c)),
+    ['status', 'stop', 'serve', 'install', 'uninstall'].every((c) => help.includes(c)),
     help.slice(0, 120)
   );
 
@@ -194,27 +193,13 @@ try {
     opener.out
   );
 
-  console.log('\nserve, which is what the login agent runs');
-  const serveHelp = hunk(['serve', '--help']);
-  check('serve is a command', serveHelp.status === 0 && serveHelp.out.includes('--port'), serveHelp.out);
-
-  console.log('\nthe port forwarder');
-  const forward = Bun.spawn(
-    [binary, 'forward', '--from', String(FORWARD_PORT), '--to', String(PORT)],
-    { env: { ...process.env, XDG_STATE_HOME: state }, stdout: 'ignore', stderr: 'ignore' }
-  );
-  await Bun.sleep(1500);
-  const throughForwarder = await fetch(
-    `http://127.0.0.1:${FORWARD_PORT}/api/health`
-  )
-    .then((r) => r.text())
-    .catch((error: unknown) => String(error));
+  console.log('\nhelp, both spellings');
+  const helpCommand = hunk(['help']);
   check(
-    'a request reaches the server through it',
-    throughForwarder.includes('"app":"hunkyard"'),
-    throughForwarder.slice(0, 120)
+    'hunk help prints the same help as --help',
+    helpCommand.status === 0 && helpCommand.out.includes('COMMANDS'),
+    helpCommand.out.slice(0, 120)
   );
-  forward.kill();
 
   console.log('\nstopping');
   const stopped = hunk(['stop', '--port', String(PORT)]);
