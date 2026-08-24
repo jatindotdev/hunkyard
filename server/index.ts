@@ -19,7 +19,10 @@ export function startServer(options: { port?: number } = {}): RunningServer {
   const port = options.port ?? Number(process.env.PORT ?? DEFAULT_PORT);
   const assets = loadClientAssets();
   const document = indexDocument(assets);
-  const app = createApiApp({ port });
+  // Read back rather than passed in: an activated server asks for port 0 and
+  // only learns which one it got once it is listening.
+  let bound = port;
+  const app = createApiApp({ port: () => bound });
 
   const server = Bun.serve({
     hostname: HOST,
@@ -47,8 +50,10 @@ export function startServer(options: { port?: number } = {}): RunningServer {
   // answering or not must never delay startup.
   void ensureBareUrlProbe(port);
 
+  bound = server.port ?? port;
+
   return {
-    port: server.port ?? port,
+    port: bound,
     clientSource: assets.describe(),
     stop: () => void server.stop(true),
   };

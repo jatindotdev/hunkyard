@@ -1,26 +1,21 @@
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, unlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir, userInfo } from 'node:os';
+import { join } from 'node:path';
 
 import {
   BARE_PORT,
   PROXY_LABEL,
   launchdPlist,
   launchdPlistPath,
+  logPath,
   servicePlatform,
+  systemdSocketPath,
+  systemdSocketUnit,
   systemdUnit,
   systemdUnitPath,
 } from '../lib/proxy/service';
-import {
-  AGENT_LABEL,
-  agentPlatform,
-  launchAgentPath,
-  launchAgentPlist,
-  systemdUserUnit,
-  systemdUserUnitPath,
-} from '../lib/service/agent';
-import { BARE_ORIGIN, probeBareUrl } from '../lib/proxy/canonical';
+import { BARE_ORIGIN } from '../lib/proxy/canonical';
 import { stateDir } from '../lib/repos/stateDir';
 import { isCompiledBinary } from './cli-core';
 import { bold, cyan, dim, errorPrefix, green } from './style';
@@ -31,13 +26,13 @@ function fail(message: string, hint?: string): never {
   process.exit(1);
 }
 
-// The executable to run as the service. A compiled binary is its own path; run
-// from a checkout there is no stable path to install, and installing a service
-// that points at a temp file would break on the next build.
+// The executable to register. A compiled binary is its own path; run from a
+// checkout there is no stable path to register, and pointing the service at a
+// temp file would break on the next build.
 function serviceExecutable(): string {
   if (!isCompiledBinary()) {
     fail(
-      'installing needs the compiled binary',
+      'registering needs the compiled binary',
       'Run `bun run build` and use dist/hunk, or install a release.'
     );
   }
@@ -53,42 +48,9 @@ interface Step {
   tolerated?: boolean;
 }
 
-// Writes a root-owned file by staging it somewhere writable and moving it with
-// sudo, so the password prompt happens once and nothing else runs privileged.
-async function installPrivileged(
-  contents: string,
-  destination: string,
-  after: Step[]
-): Promise<void> {
-  const staged = join(await mkdtemp(join(tmpdir(), 'hunk-service-')), 'unit');
-  await writeFile(staged, contents);
-
-  // The staging move goes first, and it is never tolerated, so it is the step
-  // that prompts for the password. Anything silenced below therefore runs
-  // against a fresh sudo timestamp -- silencing a step that still needed to
-  // prompt would be a hang with nothing on screen.
-  const steps: Step[] = [
-    { argv: ['install', '-m', '0644', '-o', 'root', staged, destination] },
-    ...after,
-  ];
-  for (const step of steps) {
-    const result = spawnSync('sudo', step.argv, {
-      // A tolerated step's failure is expected, and launchd narrates it
-      // (`Boot-out failed: 5: Input/output error`) in a way that reads like
-      // something went wrong. Its output is swallowed rather than explained.
-      stdio: step.tolerated === true ? 'ignore' : 'inherit',
-    });
-    if (result.status !== 0 && step.tolerated !== true) {
-      await unlink(staged).catch(() => undefined);
-      fail(`\`sudo ${step.argv.join(' ')}\` failed`);
-    }
-  }
-  await unlink(staged).catch(() => undefined);
-}
-
-// One shape for every outcome line, so install and uninstall read alike.
+// One shape for every outcome line.
 function done(label: string, detail: string): string {
-  return `  ${green('✓')} ${label.padEnd(17)} ${detail}\n`;
+  return `  ${green('✓')} ${label.padEnd(12)} ${detail}\n`;
 }
 
 async function exists(path: string): Promise<boolean> {
@@ -100,18 +62,10 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-async function writeUserFile(path: string, contents: string): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, contents);
-}
-
 // Whether the file already says exactly what we would write. Comparing the
-// contents rather than merely the path is what catches an install whose port
-// changed, or whose binary has since moved.
-async function alreadyWritten(
-  path: string,
-  contents: string
-): Promise<boolean> {
+// contents rather than merely the path is what catches a registration whose
+// binary has since moved, or whose user has changed.
+async function alreadyWritten(path: string, contents: string): Promise<boolean> {
   try {
     return (await readFile(path, 'utf8')) === contents;
   } catch {
@@ -119,282 +73,190 @@ async function alreadyWritten(
   }
 }
 
-// Whether launchd or systemd is running the agent right now, as opposed to
-// merely having a file for it. Both answer without sudo, since it is the user's
-// own domain.
-export function agentLoaded(): boolean {
-  const platform = agentPlatform();
-  if (platform === 'darwin') {
-    return (
-      spawnSync(
-        'launchctl',
-        ['print', `gui/${process.getuid?.() ?? ''}/${AGENT_LABEL}`],
-        { stdio: 'ignore' }
-      ).status === 0
-    );
-  }
-  if (platform === 'linux') {
-    return (
-      spawnSync('systemctl', ['--user', 'is-active', '--quiet', `${AGENT_LABEL}.service`], {
-        stdio: 'ignore',
-      }).status === 0
-    );
-  }
-  return false;
-}
+// Writes root-owned files by staging them somewhere writable and moving them
+// with sudo, so the password prompt happens once and nothing else runs
+// privileged.
+async function installPrivileged(
+  files: readonly { contents: string; destination: string }[],
+  after: readonly Step[]
+): Promise<void> {
+  const staging = await mkdtemp(join(tmpdir(), 'hunk-service-'));
 
-// The forwarder answers only when something is serving behind it, so this waits
-// for the server the agent just started rather than asking immediately.
-async function serverAnswers(port: number, timeoutMs = 10_000): Promise<boolean> {
-  const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/api/health`, {
-        signal: AbortSignal.timeout(1500),
-      });
-      if (response.ok) {
-        const body = (await response.json()) as { app?: string };
-        if (body.app === 'hunkyard') return true;
-      }
-    } catch {
-      // Not up yet, or not up at all.
+  // The staging moves go first, and are never tolerated, so one of them is the
+  // step that prompts for the password. Anything silenced below therefore runs
+  // against a fresh sudo timestamp -- silencing a step that still needed to
+  // prompt would be a hang with nothing on screen.
+  const steps: Step[] = [];
+  for (const [index, file] of files.entries()) {
+    const staged = join(staging, `unit-${index}`);
+    await writeFile(staged, file.contents);
+    steps.push({
+      argv: ['install', '-m', '0644', '-o', 'root', staged, file.destination],
+    });
+  }
+  steps.push(...after);
+
+  for (const step of steps) {
+    const result = spawnSync('sudo', step.argv, {
+      stdio: step.tolerated === true ? 'ignore' : 'inherit',
+    });
+    if (result.status !== 0 && step.tolerated !== true) {
+      fail(`\`sudo ${step.argv.join(' ')}\` failed`);
     }
-    if (Date.now() >= deadline) return false;
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 
-// Unprivileged, so no sudo, but the same rule about which failures count: a
-// bootout with nothing loaded is fine, a bootstrap that fails means the agent
-// is not there and saying so beats reporting success.
-function run(
-  command: string,
-  args: string[],
-  options: { tolerated?: boolean } = {}
-): void {
-  const result = spawnSync(command, args, {
-    stdio: options.tolerated === true ? 'ignore' : 'inherit',
+interface Registration {
+  files: { contents: string; destination: string }[];
+  load: Step[];
+  unload: Step[];
+}
+
+function registration(executable: string, user: string): Registration {
+  if (servicePlatform() === 'darwin') {
+    const path = launchdPlistPath();
+    return {
+      files: [{ contents: launchdPlist(executable, user), destination: path }],
+      load: [
+        // Unloading first is what makes reinstalling pick up a new plist, and
+        // on a first install there is nothing to unload.
+        { argv: ['launchctl', 'bootout', 'system', path], tolerated: true },
+        { argv: ['launchctl', 'bootstrap', 'system', path] },
+      ],
+      unload: [
+        { argv: ['launchctl', 'bootout', 'system', path], tolerated: true },
+        { argv: ['rm', '-f', path] },
+      ],
+    };
+  }
+
+  // systemd splits it in two: a socket unit that binds and holds the port, and
+  // the service it starts when that socket sees a connection.
+  return {
+    files: [
+      { contents: systemdSocketUnit(), destination: systemdSocketPath() },
+      { contents: systemdUnit(executable, user), destination: systemdUnitPath() },
+    ],
+    load: [
+      { argv: ['systemctl', 'daemon-reload'] },
+      { argv: ['systemctl', 'enable', '--now', `${PROXY_LABEL}.socket`] },
+    ],
+    unload: [
+      {
+        argv: ['systemctl', 'disable', '--now', `${PROXY_LABEL}.socket`],
+        tolerated: true,
+      },
+      { argv: ['rm', '-f', systemdSocketPath(), systemdUnitPath()] },
+    ],
+  };
+}
+
+// Whether the service manager is holding the port right now, as opposed to
+// merely having a file for it. Nothing needs to be running for this to be true:
+// the socket is bound by the manager, which is the whole point.
+async function portIsHeld(): Promise<boolean> {
+  return await new Promise<boolean>((resolve) => {
+    const settle = (answer: boolean) => resolve(answer);
+    const timer = setTimeout(() => settle(false), 1500);
+    void Bun.connect({
+      hostname: '127.0.0.1',
+      port: BARE_PORT,
+      socket: {
+        open: (connection) => {
+          clearTimeout(timer);
+          connection.end();
+          settle(true);
+        },
+        data: () => {},
+        error: () => {
+          clearTimeout(timer);
+          settle(false);
+        },
+      },
+    }).catch(() => {
+      clearTimeout(timer);
+      settle(false);
+    });
   });
-  if (result.status !== 0 && options.tolerated !== true) {
-    fail(
-      `\`${command} ${args.join(' ')}\` failed`,
-      'The server can still be started with `hunk`; it just will not start on its own.'
-    );
-  }
 }
 
-// The login agent: unprivileged, in your own home, so it needs no sudo.
-// Returns whether anything was actually changed.
-async function installAgent(
-  port: number,
-  stopServer: () => Promise<void>
-): Promise<boolean> {
-  const platform = agentPlatform();
-  const executable = serviceExecutable();
-  const darwin = platform === 'darwin';
-  const path = darwin ? launchAgentPath() : systemdUserUnitPath();
-  const contents = darwin
-    ? launchAgentPlist(executable, port)
-    : systemdUserUnit(executable, port);
-
-  if ((await alreadyWritten(path, contents)) && agentLoaded()) return false;
-
-  await mkdir(stateDir(), { recursive: true });
-  await writeUserFile(path, contents);
-
-  // The agent binds this port the moment it is bootstrapped, and a server
-  // started by hand is holding it. Without clearing the way, launchd starts the
-  // agent, watches it fail to bind, and restarts it forever.
-  await stopServer();
-
-  if (darwin) {
-    const domain = `gui/${process.getuid?.() ?? ''}`;
-    // bootout first, so reinstalling picks up the new plist rather than
-    // leaving the old one loaded. Nothing is loaded on a first install.
-    run('launchctl', ['bootout', domain, path], { tolerated: true });
-    run('launchctl', ['bootstrap', domain, path]);
-    return true;
-  }
-
-  run('systemctl', ['--user', 'daemon-reload']);
-  run('systemctl', ['--user', 'enable', '--now', `${AGENT_LABEL}.service`]);
-  return true;
-}
-
-async function uninstallAgent(): Promise<void> {
-  const platform = agentPlatform();
-  // Every step here is tolerated: the point is to end up with it gone, and
-  // uninstalling what was never installed is a success, not an error.
-  if (platform === 'darwin') {
-    const path = launchAgentPath();
-    run('launchctl', ['bootout', `gui/${process.getuid?.() ?? ''}`, path], {
-      tolerated: true,
-    });
-    await unlink(path).catch(() => undefined);
-    return;
-  }
-  if (platform === 'linux') {
-    run('systemctl', ['--user', 'disable', '--now', `${AGENT_LABEL}.service`], {
-      tolerated: true,
-    });
-    await unlink(systemdUserUnitPath()).catch(() => undefined);
-  }
-}
-
-// Restarts the agent in place, so it picks up a binary that has changed on disk
-// since it started. Returns false when there is no agent to restart, leaving
-// the caller to fall back to its own background server.
-export function restartAgent(): boolean {
-  if (!agentLoaded()) return false;
-  const platform = agentPlatform();
-  if (platform === 'darwin') {
-    // -k kills the running instance first; without it launchd considers an
-    // already-running service to need nothing doing.
-    run('launchctl', [
-      'kickstart',
-      '-k',
-      `gui/${process.getuid?.() ?? ''}/${AGENT_LABEL}`,
-    ]);
-    return true;
-  }
-  if (platform === 'linux') {
-    run('systemctl', ['--user', 'restart', `${AGENT_LABEL}.service`]);
-    return true;
-  }
-  return false;
-}
-
-export interface InstallOptions {
-  port: number;
-  // Stops a server started by hand, so the agent can bind the port. Supplied by
-  // the CLI, which owns the pid file and the health check.
-  stopServer(): Promise<void>;
+// Whether hunkyard.localhost is registered: the files are there and the port is
+// actually held. `hunk status` reports it, since with nothing running it is the
+// only thing that says the URL will answer.
+export async function serviceIsRegistered(): Promise<boolean> {
+  if (servicePlatform() === 'unsupported') return false;
+  const { files } = registration('hunk', userInfo().username);
+  const present = await Promise.all(
+    files.map((file) => exists(file.destination))
+  );
+  return present.every(Boolean) && (await portIsHeld());
 }
 
 // Running this twice must be the same as running it once, and the second run
-// must not ask for a password to do nothing. So each half is compared against
-// what is already there -- the file's contents, not merely its path, and
-// whether the thing is actually loaded -- and skipped when it matches.
-export async function installService(options: InstallOptions): Promise<void> {
-  const { port } = options;
-  const platform = servicePlatform();
-
-  if (platform === 'unsupported') {
+// must not ask for a password to do nothing.
+export async function installService(): Promise<void> {
+  if (servicePlatform() === 'unsupported') {
     process.stdout.write(
-      `${dim('Windows has no privileged-port concept, so there is nothing to install.')}\n` +
-        `hunk still serves on ${cyan(`http://hunkyard.localhost:${port}`)}.\n`
+      `${dim('Windows has no privileged-port concept, so there is nothing to register.')}\n` +
+        'Run `hunk --foreground` and use the port it prints.\n'
     );
     return;
   }
 
   const executable = serviceExecutable();
-  const forwarder = platform === 'darwin'
-    ? { path: launchdPlistPath(), contents: launchdPlist(executable, port) }
-    : { path: systemdUnitPath(), contents: systemdUnit(executable, port) };
+  const user = userInfo().username;
+  const { files, load } = registration(executable, user);
 
-  // Asked before anything is changed, so a run that has nothing to do says so
-  // without a sudo prompt. The forwarder only answers when a server is behind
-  // it, hence the wait rather than an immediate probe.
-  const agentWasCurrent =
-    (await alreadyWritten(
-      platform === 'darwin' ? launchAgentPath() : systemdUserUnitPath(),
-      platform === 'darwin'
-        ? launchAgentPlist(executable, port)
-        : systemdUserUnit(executable, port)
-    )) && agentLoaded();
-  const forwarderWasCurrent =
-    agentWasCurrent &&
-    (await alreadyWritten(forwarder.path, forwarder.contents)) &&
-    (await serverAnswers(port)) &&
-    (await probeBareUrl(port));
-
-  if (agentWasCurrent && forwarderWasCurrent) {
-    process.stdout.write(
-      done('already installed', bold(cyan(BARE_ORIGIN)))
-    );
+  const written = await Promise.all(
+    files.map((file) => alreadyWritten(file.destination, file.contents))
+  );
+  if (written.every(Boolean) && (await portIsHeld())) {
+    process.stdout.write(done('registered', `${bold(cyan(BARE_ORIGIN))} ${dim('already')}`));
     return;
   }
 
-  // Only the forwarder needs root. A password prompt that arrives unannounced
-  // is the thing worth a line of its own; when there is no prompt coming, there
-  // is nothing to announce.
-  if (!forwarderWasCurrent) {
-    process.stdout.write(
-      `Installing. The port ${BARE_PORT} forwarder needs ${bold('sudo')}, once.\n\n`
-    );
-  }
+  process.stdout.write(
+    `Registering ${bold(cyan(BARE_ORIGIN))}. ` +
+      `${dim(`Binding port ${BARE_PORT} needs sudo, once.`)}\n\n`
+  );
 
-  await installAgent(port, options.stopServer);
+  // The log has to exist and be yours before a service running as you writes to
+  // it, or the job fails to start with nothing to say why.
+  await mkdir(stateDir(), { recursive: true });
+  await writeFile(logPath(user), '', { flag: 'a' });
 
-  if (!forwarderWasCurrent) {
-    await installPrivileged(
-      forwarder.contents,
-      forwarder.path,
-      platform === 'darwin'
-        ? [
-            // Unloading first is what makes reinstalling pick up a new plist,
-            // and on a first install there is nothing to unload.
-            { argv: ['launchctl', 'bootout', 'system', forwarder.path], tolerated: true },
-            { argv: ['launchctl', 'bootstrap', 'system', forwarder.path] },
-          ]
-        : [
-            { argv: ['systemctl', 'daemon-reload'] },
-            { argv: ['systemctl', 'enable', '--now', `${PROXY_LABEL}.service`] },
-          ]
-    );
-  }
+  await installPrivileged(files, load);
 
   process.stdout.write(
-    done('login agent', dim(`port ${port}, at login`)) +
-      done('port 80 forwarder', bold(cyan(BARE_ORIGIN)))
+    done('registered', bold(cyan(BARE_ORIGIN))) +
+      done('starts', dim('on the first request, as you rather than as root')) +
+      done('stops', dim('once nothing has been connected for a few minutes'))
   );
 }
 
 export async function uninstallService(): Promise<void> {
-  const platform = servicePlatform();
-  const agentPath =
-    agentPlatform() === 'darwin' ? launchAgentPath() : systemdUserUnitPath();
-  const forwarderPath =
-    platform === 'darwin' ? launchdPlistPath() : systemdUnitPath();
+  if (servicePlatform() === 'unsupported') {
+    process.stdout.write(`${dim('Nothing was registered on this platform.')}\n`);
+    return;
+  }
 
-  // Removing what was never installed is the outcome we want, so it succeeds --
-  // but it should not ask for a password to achieve nothing.
-  const hasAgent = await exists(agentPath);
-  const hasForwarder = platform !== 'unsupported' && (await exists(forwarderPath));
-  if (!hasAgent && !hasForwarder) {
+  // The executable only shapes the file contents, which are about to be deleted.
+  const { files, unload } = registration('hunk', userInfo().username);
+
+  const present = await Promise.all(files.map((file) => exists(file.destination)));
+  if (!present.some(Boolean)) {
     process.stdout.write(`${dim('Nothing to remove.')}\n`);
     return;
   }
 
-  if (hasAgent) await uninstallAgent();
-
-  if (platform === 'unsupported' || !hasForwarder) {
-    process.stdout.write(done('removed', dim('nothing starts at login')));
-    return;
+  process.stdout.write(
+    `Removing. ${dim(`Releasing port ${BARE_PORT} needs sudo, once.`)}\n\n`
+  );
+  for (const step of unload) {
+    // Output is inherited rather than swallowed because the first of these is
+    // what prompts for the password, and a prompt nobody can see is a hang.
+    spawnSync('sudo', step.argv, { stdio: 'inherit' });
   }
 
-  const steps: string[][] =
-    platform === 'darwin'
-      ? [
-          ['launchctl', 'bootout', 'system', launchdPlistPath()],
-          ['rm', '-f', launchdPlistPath()],
-        ]
-      : [
-          ['systemctl', 'disable', '--now', `${PROXY_LABEL}.service`],
-          ['rm', '-f', systemdUnitPath()],
-        ];
-
-  process.stdout.write(
-    `Removing. The port ${BARE_PORT} forwarder needs ${bold('sudo')}, once.\n\n`
-  );
-  for (const step of steps) {
-    // bootout fails when it was not loaded, which is not an error here: the
-    // point is to end up with it gone. Output is inherited rather than
-    // swallowed because the first of these is what prompts for the password,
-    // and a prompt nobody can see is a hang.
-    spawnSync('sudo', step, { stdio: 'inherit' });
-  }
-  process.stdout.write(
-    done('removed', dim(`nothing starts at login, port ${BARE_PORT} is free`))
-  );
+  process.stdout.write(done('removed', dim(`${BARE_ORIGIN} no longer answers`)));
 }

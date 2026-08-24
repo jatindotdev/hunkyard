@@ -28,6 +28,29 @@ revspec into the URL bar.
   focus return.
 - `hunk` outside a repository opens the picker rather than failing.
 
+### Nothing runs until you ask for something
+
+There is no login agent and no background server. `hunk install` registers one
+launchd job (a systemd socket unit on Linux) that binds port 80 and holds it,
+with `RunAtLoad` off: the first request is what starts hunkyard, and between
+reviews there is no process at all.
+
+It runs as you rather than as root. launchd binds the privileged socket before
+anything of ours exists and hands over only the descriptor, fetched by name
+through `launch_activate_socket` -- the one place hunkyard uses FFI. systemd
+passes descriptors starting at 3 and needs none.
+
+It stops once nothing has been connected for a few minutes, and the next request
+starts it again, so stopping is not going away. A tab drops its event stream
+when you switch away and reopens it when you come back, which is both what makes
+idle mean idle and what wakes the server: the reconnect is the request that
+starts it. `HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, `0` disables it.
+
+Consequences worth knowing. `hunk` no longer starts a server -- opening the URL
+does, so the two cannot race. `hunk stop` ends it now rather than when it goes
+idle, and `hunk restart` is only that, since the next request starts the new
+one. `hunk status` reporting nothing running is the healthy state.
+
 ### The server can start at login
 
 `hunk install` now installs a user login agent as well as the port-80

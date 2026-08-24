@@ -31,11 +31,11 @@ export interface Handlers {
   stop(port: number): Promise<void>;
   restart(port: number): Promise<void>;
   forget(options: { id?: string; all: boolean }): Promise<void>;
-  install(port: number): Promise<void>;
+  install(): Promise<void>;
   uninstall(): Promise<void>;
   update(options: { check: boolean; port: number }): Promise<void>;
   forward(options: { from: number; to: number }): Promise<void>;
-  serve(port: number): Promise<void>;
+  serve(options: { port: number; activated: boolean }): Promise<void>;
 }
 
 function makePort(handlers: Handlers) {
@@ -128,7 +128,7 @@ export function buildCommands(handlers: Handlers) {
   const restart = defineCommand({
     meta: {
       name: 'restart',
-      description: 'restart the server, so it picks up a new hunk',
+      description: 'stop the server, so the next request starts a new one',
     },
     args: { ...portArg },
     run: ({ args }) => handlers.restart(port(args.port)),
@@ -156,10 +156,9 @@ export function buildCommands(handlers: Handlers) {
     meta: {
       name: 'install',
       description:
-        'start the server at login, and serve on http://hunkyard.localhost with no port',
+        'register http://hunkyard.localhost, so it answers with no port and no server running',
     },
-    args: { ...portArg },
-    run: ({ args }) => handlers.install(port(args.port)),
+    run: () => handlers.install(),
   });
 
   const update = defineCommand({
@@ -188,8 +187,18 @@ export function buildCommands(handlers: Handlers) {
   // to tell the binary what to do hides the intent from anyone reading it.
   const serve = defineCommand({
     meta: { name: 'serve', description: 'run the server in this process' },
-    args: { ...portArg },
-    run: ({ args }) => handlers.serve(port(args.port)),
+    args: {
+      ...portArg,
+      activated: {
+        type: 'boolean',
+        description: 'adopt a socket handed over by the service manager',
+      },
+    },
+    run: ({ args }) =>
+      handlers.serve({
+        port: port(args.port),
+        activated: args.activated === true,
+      }),
   });
 
   // Run by the installed service, not by hand.

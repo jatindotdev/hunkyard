@@ -7,20 +7,19 @@ import { runMain } from 'citty';
 
 import { version } from '../package.json';
 import { startForwarder } from '../lib/proxy/forward';
+import { forwardAdoptedSockets } from '../lib/proxy/adopted';
+import { BARE_PORT } from '../lib/proxy/service';
+import { inheritedSockets } from '../lib/service/activation';
+import { createIdleTimer, idleTimeoutFromEnv } from '../lib/service/idle';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
 import { topLevelHelp, wantsTopLevelHelp } from './help';
-import { installService, restartAgent, uninstallService } from './service';
+import {
+  installService,
+  serviceIsRegistered,
+  uninstallService,
+} from './service';
 import { runUpdate } from './update';
-import {
-  AGENT_LABEL,
-  agentInstallState,
-  agentLogPath,
-} from '../lib/service/agent';
-import {
-  BARE_ORIGIN,
-  canonicalOrigin,
-  ensureBareUrlProbe,
-} from '../lib/proxy/canonical';
+import { BARE_ORIGIN, ensureBareUrlProbe } from '../lib/proxy/canonical';
 import {
   clearDaemonPid,
   readDaemonPid,
@@ -32,14 +31,8 @@ import {
   CliError,
   resolveReviewOrigin,
   resolveViewerPath,
-  selfCommand,
 } from './cli-core';
-import { bold, cyan, dim, errorPrefix, green, red, row, yellow } from './style';
-
-// Set on the detached child so it can tell that it is one. It says nothing
-// about what to do -- that is `serve` on the argv -- it only stops a child that
-// failed to reach `serve` from spawning a child of its own, forever.
-const CHILD_ENV = 'HUNKYARD_CHILD';
+import { bold, cyan, dim, errorPrefix, green, row, yellow } from './style';
 
 function fail(message: string, hint?: string): never {
   process.stderr.write(`${errorPrefix()} ${message}\n`);
@@ -106,15 +99,6 @@ async function describeServer(port: number): Promise<HealthBody | null> {
   }
 }
 
-async function waitForServer(port: number): Promise<boolean> {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    if ((await describeServer(port)) != null) return true;
-    await Bun.sleep(50);
-  }
-  return false;
-}
-
 function openBrowser(url: string): void {
   const [command, args] =
     process.platform === 'darwin'
@@ -131,90 +115,88 @@ function openBrowser(url: string): void {
   child.unref();
 }
 
-// Runs the server in this process until stopped. This is what the detached
-// child does, and what --foreground does in the terminal.
-async function serve(port: number): Promise<void> {
+// Runs the server in this process until stopped. This is what --foreground does
+// in the terminal, and what the service manager starts on a connection.
+async function serve(options: {
+  port: number;
+  activated: boolean;
+}): Promise<void> {
+  const inherited = options.activated ? inheritedSockets() : [];
+  if (options.activated && inherited.length === 0) {
+    fail(
+      'started with --activated but no socket was handed over',
+      'This is the form the service manager runs. Use `hunk --foreground` to serve\nin a terminal.'
+    );
+  }
+
+  // Behind an inherited socket the port is nobody's business but ours, so it is
+  // ephemeral: a fixed one could collide with something, and no client ever
+  // names it.
+  const port = inherited.length > 0 ? 0 : options.port;
+
   let server;
   try {
     server = startServer({ port });
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   }
-  await writeDaemonPid(port);
+
   const stop = () => {
     server.stop();
-    void clearDaemonPid(port).finally(() => process.exit(0));
+    void clearDaemonPid(server.port).finally(() => process.exit(0));
   };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
-}
 
-// Re-launches this executable detached, so the terminal is free and the server
-// outlives the shell that started it. The same `serve` the login agent runs.
-async function startBackgroundServer(port: number): Promise<void> {
-  if (process.env[CHILD_ENV] != null) {
-    // A child that reached this line did not land on `serve`, so re-running
-    // itself is exactly what it just did. Without this the mistake is a fork
-    // bomb rather than an error, which is how it presented the once it
-    // happened: selfCommand named an entry the child read as a review target.
-    fail(
-      'the background server could not start itself',
-      'Run `hunk --foreground` to serve in this terminal and see why.'
-    );
+  if (inherited.length === 0) {
+    await writeDaemonPid(port);
+    return;
   }
 
-  const [command, ...args] = selfCommand(import.meta.path);
-  const child = spawn(command as string, [...args, 'serve', '--port', String(port)], {
-    env: { ...process.env, [CHILD_ENV]: '1' },
-    stdio: 'ignore',
-    detached: true,
+  // Exiting is not going away: the service manager still holds the socket, so
+  // the next connection starts this again. Running only while something is
+  // connected is what keeps hunkyard out of your login items doing nothing.
+  const idle = createIdleTimer({
+    afterMs: idleTimeoutFromEnv(),
+    onExpired: stop,
   });
-  child.unref();
-
-  if (!(await waitForServer(port))) {
-    fail(
-      'the server did not come up',
-      'Run `hunk --foreground` to see what it says.'
-    );
-  }
+  const forwarder = forwardAdoptedSockets({
+    fds: inherited,
+    to: server.port,
+    onBusy: idle.busy,
+    onIdle: idle.idle,
+  });
+  void forwarder;
+  await writeDaemonPid(BARE_PORT);
+  // Nothing has connected yet on a cold start, and the connection that started
+  // us is about to arrive; without arming this a server nobody then uses would
+  // stay up forever.
+  idle.idle();
 }
 
+// What is registered, what is running, and whether it is current.
+//
+// Nothing running is the normal state now, not a fault: the service manager
+// holds the socket, and a request is what starts a server.
 async function runStatus(port: number): Promise<void> {
-  // An installed agent decides the port, and it need not be the default, so it
-  // is read back rather than assumed.
-  const agent = await agentInstallState();
-  const servingPort = agent.port ?? port;
-  const health = await describeServer(servingPort);
-  const canonical = await canonicalOrigin(servingPort);
+  const health = await describeServer(port);
+  const registered = await serviceIsRegistered();
 
   process.stdout.write(
     health == null
-      ? `${dim(`hunk ${version}`)}  ${red('●')} nothing on port ${servingPort}\n`
-      : `${dim(`hunk ${version}`)}  ${green('●')} ${bold(cyan(canonical))}\n`
+      ? `${dim(`hunk ${version}`)}  ${dim('●')} ${dim('idle')}\n`
+      : `${dim(`hunk ${version}`)}  ${green('●')} ${bold(cyan(BARE_ORIGIN))}\n`
   );
 
   process.stdout.write(
-    agent.installed
-      ? row('at login', `${green('yes')} ${dim(`port ${agent.port ?? port}`)}`)
-      : row('at login', `${yellow('no')} ${dim('hunk install')}`)
+    registered
+      ? row('url', `${green(BARE_ORIGIN)} ${dim('registered')}`)
+      : row('url', `${yellow('not registered')} ${dim('hunk install')}`)
   );
 
   if (isStale(health)) {
     process.stdout.write(
       row('version', `${yellow('stale')} ${dim('this binary is newer; hunk restart')}`)
-    );
-  }
-  // Only when the file is there and nothing answers: otherwise this is a
-  // subprocess on every status for no reason.
-  if (agent.installed && health == null && process.platform === 'darwin') {
-    const printed = spawnSync(
-      'launchctl',
-      ['print', `gui/${process.getuid?.() ?? ''}/${AGENT_LABEL}`],
-      { encoding: 'utf8' }
-    );
-    const state = /state = (\S+)/.exec(printed.stdout ?? '')?.[1];
-    process.stdout.write(
-      row('launchd', `${yellow(state ?? 'not loaded')} ${dim(agentLogPath())}`)
     );
   }
 
@@ -238,43 +220,6 @@ async function runStatus(port: number): Promise<void> {
   );
 }
 
-// Stops whatever of ours is serving this port. Returns whether there was
-// anything to stop, so a caller that is only clearing the way can say nothing.
-async function stopServer(port: number): Promise<boolean> {
-  const health = await describeServer(port);
-  if (health == null) {
-    // Nothing is serving, so any pid recorded for this port is from a server
-    // that was killed rather than stopped. Left alone it accumulates one file
-    // per port ever used.
-    await clearDaemonPid(port);
-    return false;
-  }
-
-  // The server records its own pid, so stopping it needs nothing from the
-  // system. lsof is the fallback, for a daemon started by an older build: it is
-  // absent from minimal Linux images and does not exist on Windows.
-  const recorded = await readDaemonPid(port);
-  const pids =
-    recorded != null
-      ? [recorded]
-      : spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
-          encoding: 'utf8',
-        })
-          .stdout?.split('\n')
-          .map((line) => Number(line.trim()))
-          .filter((pid) => Number.isInteger(pid) && pid > 0) ?? [];
-
-  if (pids.length === 0) {
-    fail(
-      `could not find the process serving port ${port}`,
-      'It answered a health check, so something is there. Stop it by hand.'
-    );
-  }
-  for (const pid of pids) process.kill(pid, 'SIGTERM');
-  await clearDaemonPid(port);
-  return true;
-}
-
 // Whether the answering server predates the binary being run right now. A
 // long-lived server keeps serving the code it started with, so rebuilding or
 // upgrading changes nothing until it is restarted -- and nothing about the
@@ -290,31 +235,63 @@ function isStale(health: HealthBody | null): boolean {
   }
 }
 
-async function runRestart(port: number): Promise<void> {
-  // The agent owns the process when it is installed, so restarting it there is
-  // what picks up a new binary; stopping it by hand would leave nothing running
-  // until the next login.
-  if (restartAgent()) {
-    if (!(await waitForServer(port))) {
-      fail(
-        'the agent restarted but the server did not come back',
-        `Run \`hunk status\` for where it logs, or \`hunk --foreground\` to see it fail.`
-      );
-    }
-    process.stdout.write(`${green('✓')} restarted the login agent\n`);
-    return;
+// Stops whatever of ours is serving. Returns whether there was anything to
+// stop, so a caller that is only clearing the way can say nothing.
+async function stopServer(port: number): Promise<boolean> {
+  const health = await describeServer(port);
+  if (health == null) {
+    // Nothing is serving, so any pid recorded is from a server that was killed
+    // rather than stopped. Left alone it accumulates one file per port used.
+    await clearDaemonPid(port);
+    await clearDaemonPid(BARE_PORT);
+    return false;
   }
 
-  await stopServer(port);
-  await startBackgroundServer(port);
-  process.stdout.write(`${green('✓')} restarted the server on port ${port}\n`);
+  // The server records its own pid, so stopping it needs nothing from the
+  // system. lsof is the fallback: it is absent from minimal Linux images and
+  // does not exist on Windows.
+  const recorded =
+    (await readDaemonPid(BARE_PORT)) ?? (await readDaemonPid(port));
+  const pids =
+    recorded != null
+      ? [recorded]
+      : spawnSync('lsof', ['-ti', `tcp:${port}`, '-sTCP:LISTEN'], {
+          encoding: 'utf8',
+        })
+          .stdout?.split('\n')
+          .map((line) => Number(line.trim()))
+          .filter((pid) => Number.isInteger(pid) && pid > 0) ?? [];
+
+  if (pids.length === 0) return false;
+  for (const pid of pids) {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {
+      // Already gone between the health check and here.
+    }
+  }
+  await clearDaemonPid(port);
+  await clearDaemonPid(BARE_PORT);
+  return true;
+}
+
+// Restarting is only stopping. The service manager holds the socket either way,
+// so the next request starts a fresh one -- which is the same thing a restart
+// was ever for, and it now costs nothing when nobody asks.
+async function runRestart(port: number): Promise<void> {
+  const stopped = await stopServer(port);
+  process.stdout.write(
+    stopped
+      ? `${green('✓')} ${dim('stopped; the next request starts the new one')}\n`
+      : `${dim('Nothing was running. The next request starts the new one.')}\n`
+  );
 }
 
 async function runStop(port: number): Promise<void> {
   process.stdout.write(
     (await stopServer(port))
-      ? `${green('✓')} stopped the server on port ${port}\n`
-      : `${dim(`No hunk server on port ${port}.`)}\n`
+      ? `${green('✓')} ${dim('stopped; it starts again on the next request')}\n`
+      : `${dim('Nothing is running.')}\n`
   );
 }
 
@@ -362,11 +339,16 @@ async function review(options: {
   const token = resolveGitHubToken();
   if (token != null) process.env.HUNKYARD_GITHUB_TOKEN = token;
 
-  const running = await describeServer(options.port);
-  if (running == null && !(await isPortFree(options.port))) {
+  // Only --foreground binds a port here; everything else goes through the
+  // socket the service manager holds.
+  if (
+    options.foreground &&
+    (await describeServer(options.port)) == null &&
+    !(await isPortFree(options.port))
+  ) {
     fail(
       `port ${options.port} is in use by something else`,
-      'Use --port to pick another. The port is fixed by default so the browser origin stays stable and your viewed state and preferences survive a restart.'
+      'Use --port to pick another.'
     );
   }
 
@@ -393,16 +375,13 @@ async function review(options: {
     }
     process.stdout.write(`\n  ${dim('Ctrl-C to stop')}\n\n`);
     if (options.open) openBrowser(url);
-    await serve(options.port);
+    await serve({ port: options.port, activated: false });
     return;
   }
 
-  if (running == null) {
-    await startBackgroundServer(options.port);
-  }
-
-  // Only now is the probe meaningful: the forwarder points at this port, so
-  // with nothing serving it, an installed forwarder still answers nothing.
+  // Nothing is started here. The service manager holds the socket, so opening
+  // the URL is what starts a server, and a `hunk` that spawned one as well
+  // would be a second server racing the one the request is about to create.
   const url = `${await requireCanonicalOrigin(options.port)}${path}`;
 
   process.stdout.write(`${bold(cyan(url))}\n`);
@@ -447,14 +426,7 @@ async function main(): Promise<void> {
           : `${green('✓')} forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'} ${dim('(the repositories themselves are untouched)')}\n`
       );
     },
-    install: (port) =>
-      // Stopping is passed in rather than done here, so it happens only on a
-      // run that actually reinstalls the agent: a second `hunk install` should
-      // not take your server down to change nothing.
-      installService({
-        port,
-        stopServer: async () => void (await stopServer(port)),
-      }),
+    install: () => installService(),
     uninstall: () => uninstallService(),
     update: ({ check, port }) =>
       runUpdate({
@@ -464,7 +436,7 @@ async function main(): Promise<void> {
         // update that does not restart is an update you are not running.
         restart: () => runRestart(port),
       }),
-    serve: (port) => serve(port),
+    serve: ({ port, activated }) => serve({ port, activated }),
     forward: async ({ from, to }) => {
       startForwarder({ from, to });
       process.stdout.write(`${dim(`forwarding ${from} to ${to}`)}\n`);

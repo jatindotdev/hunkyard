@@ -65,27 +65,28 @@ Run it outside a repository and it opens the picker rather than failing, so
 there is somewhere to go from a browser bookmark with no terminal involved.
 
 <details>
-<summary>Starting it at login, so it is simply there</summary>
+<summary>Nothing runs until you ask for something</summary>
 
 ```bash
-hunk install     # login agent, and the port-80 forwarder (one sudo)
-hunk uninstall   # removes both
+hunk install     # register hunkyard.localhost (one sudo)
+hunk uninstall   # undo it
 ```
 
-Run this once per machine. It is what makes `http://hunkyard.localhost` a URL,
-and what makes it work cold from a bookmark with no terminal involved.
+Run this once per machine. There is no background server and no login item that
+starts one: launchd binds port 80 and holds it, and the first request is what
+starts hunkyard. It runs as you, never as root -- the socket is bound before
+anything of ours exists, and only the descriptor is handed over.
 
-Without this the server starts on demand, which means running `hunk` at least
-once per boot. With it, `http://hunkyard.localhost` is a bookmark that works
-cold.
+It stops again once nothing has been connected for a few minutes, and the next
+request starts it back up. A tab you leave open stops holding it alive when you
+switch away and reconnects when you come back, so returning to a tab wakes the
+server rather than finding a dead one. `HUNKYARD_IDLE_TIMEOUT` sets the wait in
+seconds; `0` means never.
 
-`hunk stop` still stops it; the agent starts it again at your next login rather
-than immediately. `hunk status` says whether the agent is installed, and where
-its output goes when it fails to start.
-
-A running server keeps serving the binary it started with, so upgrading hunk
-changes nothing until it restarts. `hunk status` says `stale` when the binary on
-disk is newer than the server answering, and `hunk restart` picks it up.
+`hunk stop` ends it now instead of when it goes idle, which is also all `hunk
+restart` does -- there is nothing to start, because the next request does that.
+Upgrading is the reason to bother: a running server keeps serving the binary it
+started with, and `hunk status` says `stale` when the one on disk is newer.
 </details>
 
 <details>

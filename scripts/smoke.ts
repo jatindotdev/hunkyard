@@ -103,10 +103,28 @@ try {
     help.slice(0, 120)
   );
 
-  console.log('\nstarting, and serving');
+  console.log('\nthe CLI hands over a URL without starting anything');
   const started = hunk(['--no-open', '--port', String(PORT)]);
-  check('bare hunk starts and returns', started.status === 0, started.out);
+  check('bare hunk returns', started.status === 0, started.out);
   check('it prints the URL', started.out.includes(`:${PORT}/local?repo=`), started.out);
+  check(
+    'and starts no server of its own',
+    (await get('/api/health')).status === 0,
+    'something answered before serve was started'
+  );
+
+  console.log('\nserving');
+  // The service manager starts the server on a connection; here there is no
+  // service manager, so the smoke test plays its part.
+  const server = Bun.spawn([binary, 'serve', '--port', String(PORT)], {
+    env: { ...process.env, XDG_STATE_HOME: state },
+    stdout: 'ignore',
+    stderr: 'ignore',
+  });
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if ((await get('/api/health')).status === 200) break;
+    await Bun.sleep(50);
+  }
 
   const health = await get('/api/health');
   check('/api/health identifies us', health.body.includes('"app":"hunkyard"'), health.body);
@@ -137,13 +155,13 @@ try {
   check('hunk --cached is the same target', cached.out.includes('/local/--staged'), cached.out);
   await git(['reset', '-q'], repoA);
 
-  console.log('\na second repository, on the same daemon');
+  console.log('\na second repository, on the same server');
   const second = hunk(['--no-open', '--port', String(PORT)], repoB);
-  check('it reuses the running server', second.status === 0, second.out);
+  check('a second repository registers', second.status === 0, second.out);
   const status = hunk(['status', '--port', String(PORT)]);
   check('status names both repositories', /a-[a-f0-9]+/.test(status.out) && /b-[a-f0-9]+/.test(status.out), status.out);
   check('status reports the version', status.out.includes(version), status.out);
-  check('status reports the login agent', status.out.includes('at login'), status.out);
+  check('status reports whether the url is registered', status.out.includes('url'), status.out);
 
   console.log('\nrefusing what it should refuse');
   const typo = hunk(['--stagedd', '--no-open', '--port', String(PORT)]);
@@ -167,12 +185,6 @@ try {
     return response?.status ?? 0;
   })();
   check('a rebound Host is refused', rebound === 403, String(rebound));
-
-  console.log('\nrestarting');
-  const restarted = hunk(['restart', '--port', String(PORT)]);
-  check('restart reports it restarted', restarted.status === 0 && restarted.out.includes('restarted'), restarted.out);
-  const afterRestart = await get('/api/health');
-  check('it is serving again afterwards', afterRestart.body.includes('"app":"hunkyard"'), afterRestart.body);
 
   console.log('\noutside a repository');
   const opener = hunk(['--no-open', '--port', String(PORT)], base);
@@ -206,11 +218,12 @@ try {
 
   console.log('\nstopping');
   const stopped = hunk(['stop', '--port', String(PORT)]);
-  check('stop reports it stopped', stopped.status === 0 && stopped.out.includes('stopped the server'), stopped.out);
+  check('stop reports it stopped', stopped.status === 0 && stopped.out.includes('stopped'), stopped.out);
   await Bun.sleep(500);
   check('nothing answers afterwards', (await get('/api/health')).status === 0);
   const stopAgain = hunk(['stop', '--port', String(PORT)]);
-  check('stopping again says so plainly', stopAgain.out.includes('No hunk server'), stopAgain.out);
+  check('stopping again says so plainly', stopAgain.out.includes('Nothing is running'), stopAgain.out);
+  server.kill();
 } finally {
   hunk(['stop', '--port', String(PORT)]);
   await rm(base, { recursive: true, force: true });

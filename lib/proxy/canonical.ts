@@ -36,12 +36,12 @@ export async function probeBareUrl(
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) return false;
-    const body = (await response.json()) as { app?: string; port?: number };
-    // Something else on port 80 is not our forwarder, and redirecting to it
-    // would hand the app to whatever that is. The port has to match too: the
-    // forwarder points at one server, and a second one on another port is not
-    // the one the bare URL reaches.
-    return body.app === 'hunkyard' && body.port === port;
+    const body = (await response.json()) as { app?: string };
+    // Something else on port 80 is not us, and treating it as ours would hand
+    // the app to whatever that is. There is no port to compare any more: the
+    // service manager holds port 80 and what answers behind it is this server,
+    // on a port nothing else ever names.
+    return body.app === 'hunkyard';
   } catch {
     return false;
   }

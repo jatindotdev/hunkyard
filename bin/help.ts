@@ -18,11 +18,11 @@ interface Entry {
 const COMMANDS: readonly Entry[] = [
   { name: 'status', description: 'what is running, and what it serves' },
   { name: 'stop', description: 'stop the running server' },
-  { name: 'restart', description: 'restart it, so it picks up a new hunk' },
+  { name: 'restart', description: 'stop it, so the next request starts a new one' },
   { name: 'forget', description: 'drop a repository from that list' },
   {
     name: 'install',
-    description: 'start the server at login, on http://hunkyard.localhost',
+    description: 'register http://hunkyard.localhost, once, with sudo',
   },
   { name: 'uninstall', description: 'undo install' },
   { name: 'update', description: 'download the latest release, and restart' },
