@@ -12,6 +12,7 @@ function stub() {
     review: noop,
     status: noop,
     stop: noop,
+    restart: noop,
     forget: noop,
     install: noop,
     uninstall: noop,

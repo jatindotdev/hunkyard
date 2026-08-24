@@ -24,6 +24,7 @@ describe('topLevelHelp', () => {
     expect(listedCommands(help)).toEqual([
       'status',
       'stop',
+      'restart',
       'forget',
       'install',
       'uninstall',

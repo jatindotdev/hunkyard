@@ -122,7 +122,7 @@ async function alreadyWritten(
 // Whether launchd or systemd is running the agent right now, as opposed to
 // merely having a file for it. Both answer without sudo, since it is the user's
 // own domain.
-function agentLoaded(): boolean {
+export function agentLoaded(): boolean {
   const platform = agentPlatform();
   if (platform === 'darwin') {
     return (
@@ -239,6 +239,29 @@ async function uninstallAgent(): Promise<void> {
     });
     await unlink(systemdUserUnitPath()).catch(() => undefined);
   }
+}
+
+// Restarts the agent in place, so it picks up a binary that has changed on disk
+// since it started. Returns false when there is no agent to restart, leaving
+// the caller to fall back to its own background server.
+export function restartAgent(): boolean {
+  if (!agentLoaded()) return false;
+  const platform = agentPlatform();
+  if (platform === 'darwin') {
+    // -k kills the running instance first; without it launchd considers an
+    // already-running service to need nothing doing.
+    run('launchctl', [
+      'kickstart',
+      '-k',
+      `gui/${process.getuid?.() ?? ''}/${AGENT_LABEL}`,
+    ]);
+    return true;
+  }
+  if (platform === 'linux') {
+    run('systemctl', ['--user', 'restart', `${AGENT_LABEL}.service`]);
+    return true;
+  }
+  return false;
 }
 
 export interface InstallOptions {

@@ -64,6 +64,18 @@ When it does reinstall the agent, it stops a server you started by hand first:
 the agent binds that port at bootstrap, so launchd would otherwise start it,
 watch it fail to bind, and restart it forever.
 
+### `hunk restart`
+
+A server that is already running keeps serving the binary it was launched with,
+so upgrading hunk -- or rebuilding it -- changed nothing until the next login,
+and nothing in the output said so. `hunk install` did not help either: it
+compares what it would write against what is there, and a rebuilt binary at the
+same path writes the same plist.
+
+`hunk restart` restarts the login agent in place, or the background server when
+there is no agent. `/api/health` now reports when the answering process started,
+and `hunk status` says `stale` when the binary on disk is newer than that.
+
 ### Smaller things
 
 - **The GitHub token form is gone from the opener when the server already has a

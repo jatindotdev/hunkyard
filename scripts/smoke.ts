@@ -99,7 +99,7 @@ try {
   const help = hunk(['--help']).out;
   check(
     '--help lists the commands',
-    ['status', 'stop', 'install', 'uninstall'].every((c) => help.includes(c)),
+    ['status', 'stop', 'restart', 'install', 'uninstall'].every((c) => help.includes(c)),
     help.slice(0, 120)
   );
 
@@ -167,6 +167,12 @@ try {
     return response?.status ?? 0;
   })();
   check('a rebound Host is refused', rebound === 403, String(rebound));
+
+  console.log('\nrestarting');
+  const restarted = hunk(['restart', '--port', String(PORT)]);
+  check('restart reports it restarted', restarted.status === 0 && restarted.out.includes('restarted'), restarted.out);
+  const afterRestart = await get('/api/health');
+  check('it is serving again afterwards', afterRestart.body.includes('"app":"hunkyard"'), afterRestart.body);
 
   console.log('\noutside a repository');
   const opener = hunk(['--no-open', '--port', String(PORT)], base);

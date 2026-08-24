@@ -18,6 +18,7 @@ interface Entry {
 const COMMANDS: readonly Entry[] = [
   { name: 'status', description: 'what is running, and what it serves' },
   { name: 'stop', description: 'stop the running server' },
+  { name: 'restart', description: 'restart it, so it picks up a new hunk' },
   { name: 'forget', description: 'drop a repository from that list' },
   {
     name: 'install',

@@ -44,6 +44,7 @@ hunk owner/repo#123     # review a pull request
 
 hunk status             # what is running, and which repositories it serves
 hunk stop               # stop it
+hunk restart            # restart it, after upgrading
 hunk forget <id>        # drop a repository from that list (--all for every one)
 ```
 
@@ -80,6 +81,10 @@ cold.
 `hunk stop` still stops it; the agent starts it again at your next login rather
 than immediately. `hunk status` says whether the agent is installed, and where
 its output goes when it fails to start.
+
+A running server keeps serving the binary it started with, so upgrading hunk
+changes nothing until it restarts. `hunk status` says `stale` when the binary on
+disk is newer than the server answering, and `hunk restart` picks it up.
 </details>
 
 <details>

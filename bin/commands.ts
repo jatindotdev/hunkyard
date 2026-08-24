@@ -29,6 +29,7 @@ export interface Handlers {
   }): Promise<void>;
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
+  restart(port: number): Promise<void>;
   forget(options: { id?: string; all: boolean }): Promise<void>;
   install(port: number): Promise<void>;
   uninstall(): Promise<void>;
@@ -123,6 +124,15 @@ export function buildCommands(handlers: Handlers) {
     run: ({ args }) => handlers.stop(port(args.port)),
   });
 
+  const restart = defineCommand({
+    meta: {
+      name: 'restart',
+      description: 'restart the server, so it picks up a new hunk',
+    },
+    args: { ...portArg },
+    run: ({ args }) => handlers.restart(port(args.port)),
+  });
+
   const forget = defineCommand({
     meta: {
       name: 'forget',
@@ -176,7 +186,17 @@ export function buildCommands(handlers: Handlers) {
       handlers.forward({ from: port(args.from), to: port(args.to) }),
   });
 
-  return { review, status, stop, forget, install, uninstall, serve, forward };
+  return {
+    review,
+    status,
+    stop,
+    restart,
+    forget,
+    install,
+    uninstall,
+    serve,
+    forward,
+  };
 }
 
 // citty accepts flags it was never told about and ignores them, so `--stagedd`
@@ -219,6 +239,7 @@ export function assertKnownFlags(
 export type NamedCommand =
   | 'status'
   | 'stop'
+  | 'restart'
   | 'forget'
   | 'install'
   | 'uninstall'
@@ -228,6 +249,7 @@ export type NamedCommand =
 const NAMED: readonly NamedCommand[] = [
   'status',
   'stop',
+  'restart',
   'forget',
   'install',
   'uninstall',

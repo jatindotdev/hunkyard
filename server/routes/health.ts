@@ -1,6 +1,11 @@
 import { listRepos } from '../../lib/repos/registry';
 import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
 
+// When this process began serving. A long-lived server keeps running whatever
+// binary it started with, so a rebuilt or upgraded hunk on disk is not the hunk
+// answering: this is what lets `hunk status` notice.
+const STARTED_AT = new Date().toISOString();
+
 // Lets a `hunk` invocation tell whether the port is occupied by us, so it can
 // reuse a running daemon instead of starting a second one. It no longer reports
 // a single repository: the daemon serves every registered repository at once, so
@@ -16,6 +21,7 @@ export async function handleHealth(
       // Which port this answered on. The forwarder points at one port, so
       // anything asking whether the bare URL reaches *it* has to compare.
       port: options.port ?? null,
+      startedAt: STARTED_AT,
       repos: repos.length,
       // A later invocation cannot hand a token to an already-running server, so
       // it needs to be able to see whether this one has one.

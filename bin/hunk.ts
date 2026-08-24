@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { spawn, spawnSync } from 'node:child_process';
+import { statSync } from 'node:fs';
 import { createServer } from 'node:net';
 
 import { runMain } from 'citty';
@@ -8,7 +9,7 @@ import { version } from '../package.json';
 import { startForwarder } from '../lib/proxy/forward';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
 import { topLevelHelp, wantsTopLevelHelp } from './help';
-import { installService, uninstallService } from './service';
+import { installService, restartAgent, uninstallService } from './service';
 import {
   AGENT_LABEL,
   agentInstallState,
@@ -80,6 +81,10 @@ function isPortFree(port: number): Promise<boolean> {
 
 interface HealthBody {
   app?: string;
+  // When the answering process started serving. A server keeps running the
+  // binary it was launched with, so this is how a rebuilt hunk on disk is told
+  // apart from the hunk actually answering.
+  startedAt?: string;
   repos?: number;
   // Whether the running server has a GitHub token. It took its environment from
   // whichever invocation started it, so a token found now may not be one it has.
@@ -192,6 +197,12 @@ async function runStatus(port: number): Promise<void> {
       ? row('at login', `${green('yes')} ${dim(`port ${agent.port ?? port}`)}`)
       : row('at login', `${yellow('no')} ${dim('hunk install')}`)
   );
+
+  if (isStale(health)) {
+    process.stdout.write(
+      row('version', `${yellow('stale')} ${dim('this binary is newer; hunk restart')}`)
+    );
+  }
   // Only when the file is there and nothing answers: otherwise this is a
   // subprocess on every status for no reason.
   if (agent.installed && health == null && process.platform === 'darwin') {
@@ -261,6 +272,41 @@ async function stopServer(port: number): Promise<boolean> {
   for (const pid of pids) process.kill(pid, 'SIGTERM');
   await clearDaemonPid(port);
   return true;
+}
+
+// Whether the answering server predates the binary being run right now. A
+// long-lived server keeps serving the code it started with, so rebuilding or
+// upgrading changes nothing until it is restarted -- and nothing about the
+// output says so, which is how you end up debugging a fix that is not running.
+function isStale(health: HealthBody | null): boolean {
+  if (health?.startedAt == null) return false;
+  const started = Date.parse(health.startedAt);
+  if (Number.isNaN(started)) return false;
+  try {
+    return statSync(process.execPath).mtimeMs > started;
+  } catch {
+    return false;
+  }
+}
+
+async function runRestart(port: number): Promise<void> {
+  // The agent owns the process when it is installed, so restarting it there is
+  // what picks up a new binary; stopping it by hand would leave nothing running
+  // until the next login.
+  if (restartAgent()) {
+    if (!(await waitForServer(port))) {
+      fail(
+        'the agent restarted but the server did not come back',
+        `Run \`hunk status\` for where it logs, or \`hunk --foreground\` to see it fail.`
+      );
+    }
+    process.stdout.write(`${green('✓')} restarted the login agent\n`);
+    return;
+  }
+
+  await stopServer(port);
+  await startBackgroundServer(port);
+  process.stdout.write(`${green('✓')} restarted the server on port ${port}\n`);
 }
 
 async function runStop(port: number): Promise<void> {
@@ -385,6 +431,7 @@ async function main(): Promise<void> {
     review,
     status: runStatus,
     stop: runStop,
+    restart: runRestart,
     forget: async ({ id, all }) => {
       if (id == null && !all) {
         fail(
