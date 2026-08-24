@@ -10,7 +10,7 @@ const help = topLevelHelp('9.9.9');
 // "what it serves" would match a search for `serve`.
 function listedCommands(text: string): string[] {
   return text
-    .slice(text.indexOf('COMMANDS'), text.indexOf('OPTIONS'))
+    .slice(text.indexOf('COMMANDS'), text.indexOf('SERVICE'))
     .split('\n')
     .map((line) => line.trim().split(/\s{2,}/)[0] ?? '')
     .filter((name) => name !== '' && name !== 'COMMANDS');
@@ -21,15 +21,16 @@ describe('topLevelHelp', () => {
   // because citty can only render a COMMANDS section from `subCommands` and
   // this CLI cannot use those: a first argument is usually a revspec.
   test('lists the commands under a heading of their own', () => {
-    expect(listedCommands(help)).toEqual([
-      'serve',
-      'status',
-      'stop',
-      'forget',
-      'install',
-      'uninstall',
-      'update',
-    ]);
+    expect(listedCommands(help)).toEqual(['service', 'update', 'help']);
+  });
+
+  // The service subcommands get their own section rather than being flattened
+  // into the top level, where they outnumbered the thing you actually run.
+  test('gives the service commands a section', () => {
+    const section = help.slice(help.indexOf('SERVICE'), help.indexOf('OPTIONS'));
+    for (const sub of ['install', 'uninstall', 'status', 'stop', 'run']) {
+      expect(section).toContain(`service ${sub}`);
+    }
   });
 
   // `--activated` is the service manager's business, not something to type.

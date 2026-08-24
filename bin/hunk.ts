@@ -9,7 +9,12 @@ import { forwardAdoptedSockets } from '../lib/proxy/adopted';
 import { inheritedSockets } from '../lib/service/activation';
 import { createIdleTimer, idleTimeoutFromEnv } from '../lib/service/idle';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
-import { isHelpCommand, topLevelHelp, wantsTopLevelHelp } from './help';
+import {
+  isHelpCommand,
+  serviceHelp,
+  topLevelHelp,
+  wantsTopLevelHelp,
+} from './help';
 import {
   installService,
   serviceIsRegistered,
@@ -20,13 +25,15 @@ import { BARE_ORIGIN, ensureBareUrlProbe } from '../lib/proxy/canonical';
 import { BARE_PORT, isSupportedPlatform } from '../lib/proxy/service';
 import {
   clearDaemonPid,
+  listDaemonPorts,
   readDaemonPid,
   writeDaemonPid,
 } from '../lib/repos/daemonPid';
-import { forgetRepos, registerRepo, tidyRepos } from '../lib/repos/registry';
+import { registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
 import {
   CliError,
+  DEFAULT_PORT,
   resolveReviewOrigin,
   resolveViewerPath,
 } from './cli-core';
@@ -101,16 +108,20 @@ async function findRunningServer(port: number): Promise<RunningServer | null> {
     };
   }
 
-  const own = await readDaemonPid(port);
-  if (own != null) {
-    return {
-      pid: own,
-      healthUrl: `http://127.0.0.1:${port}/api/health`,
-      origin: `${BARE_ORIGIN}:${port}`,
-    };
-  }
+  // Whatever port it was given, rather than the one this invocation happens to
+  // have been told about. A server run by hand chooses its own.
+  const ports = await listDaemonPorts();
+  const found = ports.includes(port) ? port : ports[0];
+  if (found == null) return null;
 
-  return null;
+  const pid = await readDaemonPid(found);
+  if (pid == null) return null;
+
+  return {
+    pid,
+    healthUrl: `http://127.0.0.1:${found}/api/health`,
+    origin: `${BARE_ORIGIN}:${found}`,
+  };
 }
 
 async function describeServer(
@@ -253,7 +264,7 @@ async function runStatus(port: number): Promise<void> {
     process.stdout.write(`  ${cyan(repo.id.padEnd(28))} ${dim(repo.root)}\n`);
   }
   process.stdout.write(
-    `\n${dim('hunk forget <id> removes one from this list, --all removes every one.')}\n`
+    `\n${dim('The opener has a button per repository for dropping one from this list.')}\n`
   );
 }
 
@@ -307,6 +318,12 @@ async function runStop(port: number): Promise<void> {
 }
 
 async function requireCanonicalOrigin(port: number): Promise<string> {
+  // A server someone started by hand is a perfectly good place to send them,
+  // and telling them to register a URL while their own server is answering
+  // would be advice they do not need.
+  const running = await findRunningServer(port);
+  if (running != null) return running.origin;
+
   const resolved = resolveReviewOrigin({
     port,
     bareReachable: await ensureBareUrlProbe(),
@@ -318,9 +335,11 @@ async function requireCanonicalOrigin(port: number): Promise<string> {
   );
 }
 
+// The port is the registered one, always. Reviewing does not start a server, so
+// naming a different port here would only change the URL printed -- pointing it
+// at nothing, or at whatever else happens to be listening there.
 async function review(options: {
   target?: string;
-  port: number;
   open: boolean;
 }): Promise<void> {
   let viewer;
@@ -363,7 +382,7 @@ async function review(options: {
   // Nothing is started here. The service manager holds the socket, so opening
   // the URL is what starts a server, and a `hunk` that spawned one as well
   // would be a second server racing the one the request is about to create.
-  const url = `${await requireCanonicalOrigin(options.port)}${path}`;
+  const url = `${await requireCanonicalOrigin(DEFAULT_PORT)}${path}`;
 
   process.stdout.write(`${bold(cyan(url))}\n`);
   if (token == null && viewer.kind === 'github') {
@@ -393,26 +412,21 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (name === 'service') {
+    const unknown = rawArgs[0];
+    if (unknown != null && !unknown.startsWith('-')) {
+      fail(`unknown service command ${unknown}`, serviceHelp());
+    }
+    process.stdout.write(serviceHelp());
+    return;
+  }
+
   const commands = buildCommands({
     fail,
     version,
     review,
     status: runStatus,
     stop: runStop,
-    forget: async ({ id, all }) => {
-      if (id == null && !all) {
-        fail(
-          'name a repository id, or pass --all',
-          'Run `hunk status` for the ids.'
-        );
-      }
-      const removed = await forgetRepos(all ? undefined : id);
-      process.stdout.write(
-        removed === 0
-          ? `${dim('Nothing to forget.')}\n`
-          : `${green('✓')} forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'} ${dim('(the repositories themselves are untouched)')}\n`
-      );
-    },
     install: () => installService(),
     uninstall: () => uninstallService(),
     update: ({ check, port }) =>

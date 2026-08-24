@@ -60,6 +60,32 @@ status` and `hunk stop` looked for the server on port 4865, which an activated
 server never uses. They now find it by the pid it records, which also avoids a
 `status` that started a server in order to report that none was running.
 
+### The commands are grouped
+
+Everything that is not reviewing is about the service, so it lives under one:
+`hunk service install`, `uninstall`, `status`, `stop`, `run`. `hunk update` and
+`hunk help` stay at the top level, next to the thing you actually run, which is
+`hunk` with no command at all.
+
+`hunk forget` is gone: the opener has a button per repository that calls the
+same endpoint, and the list is where you are already looking.
+
+`--port` is gone from reviewing. It stopped starting anything two changes ago,
+so all it did was change the URL printed -- at a port with nothing on it, or
+with something else entirely. It still means what it says on `service run`,
+`service status` and `service stop`.
+
+Reviewing now hands over a server that is already running, whatever port it was
+given, rather than insisting the URL be registered first. Someone who ran
+`hunk service run` has a server; telling them to register one would be advice
+they do not need.
+
+**This changes the installed job.** The service runs `hunk service run
+--activated` where it used to run `hunk serve --activated`, so an existing
+registration points at a command that no longer exists. Run
+`hunk service install` again; it rewrites the job, because it compares contents
+rather than merely checking the file is there.
+
 ### macOS and Linux only
 
 Windows is no longer built or supported. The design rests on a service manager

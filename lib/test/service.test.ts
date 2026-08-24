@@ -30,7 +30,8 @@ describe('the launchd job', () => {
 
   test('runs the binary in activated mode', () => {
     expect(plist).toContain('<string>/usr/local/bin/hunk</string>');
-    expect(plist).toContain('<string>serve</string>');
+    expect(plist).toContain('<string>service</string>');
+    expect(plist).toContain('<string>run</string>');
     expect(plist).toContain('<string>--activated</string>');
     expect(plist).toContain(PROXY_LABEL);
   });
@@ -72,7 +73,7 @@ describe('the systemd units', () => {
 
   test('the service runs as the user, in activated mode', () => {
     const unit = systemdUnit('/x/hunk', 'someone');
-    expect(unit).toContain('ExecStart=/x/hunk serve --activated');
+    expect(unit).toContain('ExecStart=/x/hunk service run --activated');
     expect(unit).toContain('User=someone');
     expect(unit).toContain(`Requires=${PROXY_LABEL}.socket`);
   });

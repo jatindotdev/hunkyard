@@ -98,24 +98,29 @@ try {
   const help = hunk(['--help']).out;
   check(
     '--help lists the commands',
-    ['status', 'stop', 'serve', 'install', 'uninstall'].every((c) => help.includes(c)),
+    ['service install', 'service status', 'service stop', 'update'].every((c) =>
+      help.includes(c)
+    ),
     help.slice(0, 120)
   );
 
-  console.log('\nthe CLI hands over a URL without starting anything');
-  const started = hunk(['--no-open', '--port', String(PORT)]);
-  check('bare hunk returns', started.status === 0, started.out);
-  check('it prints the URL', started.out.includes(`:${PORT}/local?repo=`), started.out);
+  console.log('\nwith nothing registered and nothing running');
+  const cold = hunk(['--no-open']);
+  check(
+    'hunk says to register the URL rather than inventing one',
+    cold.status !== 0 && cold.out.includes('hunk install'),
+    cold.out
+  );
   check(
     'and starts no server of its own',
     (await get('/api/health')).status === 0,
-    'something answered before serve was started'
+    'something answered before the server was started'
   );
 
   console.log('\nserving');
   // The service manager starts the server on a connection; here there is no
   // service manager, so the smoke test plays its part.
-  const server = Bun.spawn([binary, 'serve', '--port', String(PORT)], {
+  const server = Bun.spawn([binary, 'service', 'run', '--port', String(PORT)], {
     env: { ...process.env, XDG_STATE_HOME: state },
     stdout: 'ignore',
     stderr: 'ignore',
@@ -127,6 +132,16 @@ try {
 
   const health = await get('/api/health');
   check('/api/health identifies us', health.body.includes('"app":"hunkyard"'), health.body);
+
+  // With one running, hunk hands over its URL rather than asking for an install
+  // that would not change anything.
+  const started = hunk(['--no-open']);
+  check('hunk returns', started.status === 0, started.out);
+  check(
+    'it prints the running server URL',
+    started.out.includes(`:${PORT}/local?repo=`),
+    started.out
+  );
   const index = await get('/');
   check('the embedded client serves', index.status === 200 && /<title>/i.test(index.body));
 
@@ -144,32 +159,32 @@ try {
     [['main...main'], '/local/main...main'],
     [['facebook/react#28000'], '/facebook/react/pull/28000'],
   ] as const) {
-    const ran = hunk([...args, '--no-open', '--port', String(PORT)]);
+    const ran = hunk([...args, '--no-open']);
     check(`hunk ${args.join(' ')}`, ran.out.includes(expected), ran.out);
   }
   await git(['add', '-A'], repoA);
-  const staged = hunk(['--staged', '--no-open', '--port', String(PORT)]);
+  const staged = hunk(['--staged', '--no-open']);
   check('hunk --staged', staged.out.includes('/local/--staged'), staged.out);
-  const cached = hunk(['--cached', '--no-open', '--port', String(PORT)]);
+  const cached = hunk(['--cached', '--no-open']);
   check('hunk --cached is the same target', cached.out.includes('/local/--staged'), cached.out);
   await git(['reset', '-q'], repoA);
 
   console.log('\na second repository, on the same server');
-  const second = hunk(['--no-open', '--port', String(PORT)], repoB);
+  const second = hunk(['--no-open'], repoB);
   check('a second repository registers', second.status === 0, second.out);
-  const status = hunk(['status', '--port', String(PORT)]);
+  const status = hunk(['service', 'status', '--port', String(PORT)]);
   check('status names both repositories', /a-[a-f0-9]+/.test(status.out) && /b-[a-f0-9]+/.test(status.out), status.out);
   check('status reports the version', status.out.includes(version), status.out);
   check('status reports whether the url is registered', status.out.includes('url'), status.out);
 
   console.log('\nrefusing what it should refuse');
-  const typo = hunk(['--stagedd', '--no-open', '--port', String(PORT)]);
+  const typo = hunk(['--stagedd', '--no-open']);
   check('an unknown option fails', typo.status !== 0 && typo.out.includes('unknown option'), typo.out);
-  const badPort = hunk(['--no-open', '--port', '99999']);
+  const badPort = hunk(['service', 'run', '--port', '99999']);
   check('a port out of range fails', badPort.status !== 0, badPort.out);
-  const twoTargets = hunk(['--staged', 'HEAD', '--no-open', '--port', String(PORT)]);
+  const twoTargets = hunk(['--staged', 'HEAD', '--no-open']);
   check('two targets fail', twoTargets.status !== 0 && twoTargets.out.includes('one target'), twoTargets.out);
-  const targetOutsideRepo = hunk(['HEAD~1', '--no-open', '--port', String(PORT)], base);
+  const targetOutsideRepo = hunk(['HEAD~1', '--no-open'], base);
   check(
     'a revspec outside a repository fails',
     targetOutsideRepo.status !== 0 && targetOutsideRepo.out.includes('not inside a git repository'),
@@ -186,10 +201,10 @@ try {
   check('a rebound Host is refused', rebound === 403, String(rebound));
 
   console.log('\noutside a repository');
-  const opener = hunk(['--no-open', '--port', String(PORT)], base);
+  const opener = hunk(['--no-open'], base);
   check(
     'bare hunk opens the picker instead of failing',
-    opener.status === 0 && opener.out.trim().endsWith(`:${PORT}/`),
+    opener.status === 0 && opener.out.trim().endsWith('/'),
     opener.out
   );
 
@@ -202,15 +217,15 @@ try {
   );
 
   console.log('\nstopping');
-  const stopped = hunk(['stop', '--port', String(PORT)]);
+  const stopped = hunk(['service', 'stop', '--port', String(PORT)]);
   check('stop reports it stopped', stopped.status === 0 && stopped.out.includes('stopped'), stopped.out);
   await Bun.sleep(500);
   check('nothing answers afterwards', (await get('/api/health')).status === 0);
-  const stopAgain = hunk(['stop', '--port', String(PORT)]);
+  const stopAgain = hunk(['service', 'stop', '--port', String(PORT)]);
   check('stopping again says so plainly', stopAgain.out.includes('Nothing is running'), stopAgain.out);
   server.kill();
 } finally {
-  hunk(['stop', '--port', String(PORT)]);
+  hunk(['service', 'stop', '--port', String(PORT)]);
   await rm(base, { recursive: true, force: true });
 }
 

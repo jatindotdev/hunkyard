@@ -16,16 +16,29 @@ interface Entry {
 }
 
 const COMMANDS: readonly Entry[] = [
-  { name: 'serve', description: 'run a server in this terminal, on a port' },
-  { name: 'status', description: 'what is running, and what it serves' },
-  { name: 'stop', description: 'stop it now, rather than when it goes idle' },
-  { name: 'forget', description: 'drop a repository from that list' },
+  { name: 'service', description: 'the URL, and the server behind it' },
+  { name: 'update', description: 'download the latest release and swap it in' },
+  { name: 'help', description: 'this list' },
+];
+
+// Grouped rather than flat: everything here is about the service, and putting
+// them at the top level made six commands where the one you actually run is
+// `hunk` with no command at all.
+export const SERVICE: readonly Entry[] = [
   {
-    name: 'install',
+    name: 'service install',
     description: 'register http://hunkyard.localhost, once, with sudo',
   },
-  { name: 'uninstall', description: 'undo install' },
-  { name: 'update', description: 'download the latest release and swap it in' },
+  { name: 'service uninstall', description: 'unregister it' },
+  {
+    name: 'service status',
+    description: 'what is registered, and what is running',
+  },
+  {
+    name: 'service stop',
+    description: 'stop the server, rather than waiting for it to go idle',
+  },
+  { name: 'service run', description: 'run one in this terminal instead' },
 ];
 
 const OPTIONS: readonly Entry[] = [
@@ -33,7 +46,6 @@ const OPTIONS: readonly Entry[] = [
   { name: '--all', description: 'staged and unstaged together' },
   { name: '--worktree', description: 'unstaged changes, which is the default' },
   { name: '--no-open', description: 'print the URL instead of opening a browser' },
-  { name: '-p, --port <port>', description: 'port to serve on (default 4865)' },
   { name: '-v, --version', description: 'print the version' },
 ];
 
@@ -70,6 +82,7 @@ export function topLevelHelp(version: string): string {
     `  ${dim('Omit it for your working tree, or to open the picker outside a repository.')}`,
     '',
     section('COMMANDS', COMMANDS),
+    section('SERVICE', SERVICE),
     section('OPTIONS', OPTIONS),
     section('EXAMPLES', EXAMPLES),
     dim(`  hunk <command> --help for a command's own options.`),
@@ -92,4 +105,12 @@ export function wantsTopLevelHelp(rawArgs: readonly string[]): boolean {
 // only one of them being right is a small, avoidable annoyance.
 export function isHelpCommand(name: string): name is 'help' {
   return name === 'help';
+}
+
+// `hunk service` on its own, or naming something that is not a subcommand. It
+// has nothing to do by itself, so it says what it does have.
+export function serviceHelp(): string {
+  return `${section('SERVICE', SERVICE)}${dim(
+    `  hunk service <command> --help for one command's own options.`
+  )}\n`;
 }

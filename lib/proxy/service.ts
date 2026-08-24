@@ -65,7 +65,8 @@ export function launchdPlist(
   <key>ProgramArguments</key>
   <array>
     <string>${executable}</string>
-    <string>serve</string>
+    <string>service</string>
+    <string>run</string>
     <string>--activated</string>
   </array>
   <!-- launchd binds the socket as root, then runs this as you. Nothing of ours
@@ -132,7 +133,7 @@ Description=hunkyard review server
 Requires=${PROXY_LABEL}.socket
 
 [Service]
-ExecStart=${executable} serve --activated
+ExecStart=${executable} service run --activated
 User=${user}
 Environment=PATH=${SERVICE_PATH}
 # The socket unit restarts it on the next connection, so exiting when idle is

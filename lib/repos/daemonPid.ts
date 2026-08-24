@@ -1,4 +1,4 @@
-import { readFile, unlink, writeFile, mkdir } from 'node:fs/promises';
+import { readdir, readFile, unlink, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { stateDir } from './stateDir';
@@ -43,4 +43,27 @@ export async function readDaemonPid(port: number): Promise<number | null> {
     await clearDaemonPid(port);
     return null;
   }
+}
+
+// Every port a live server is recorded on. A server run by hand takes whichever
+// port it was given, so finding one means looking at what is there rather than
+// guessing where it would be.
+export async function listDaemonPorts(): Promise<number[]> {
+  let names: string[];
+  try {
+    names = await readdir(stateDir());
+  } catch {
+    return [];
+  }
+
+  const ports: number[] = [];
+  for (const name of names) {
+    const match = /^daemon-(\d+)\.pid$/.exec(name);
+    if (match?.[1] == null) continue;
+    const port = Number(match[1]);
+    // readDaemonPid drops the file when the process is gone, so this both
+    // filters and tidies.
+    if ((await readDaemonPid(port)) != null) ports.push(port);
+  }
+  return ports;
 }

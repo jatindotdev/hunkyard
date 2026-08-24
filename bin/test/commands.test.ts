@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { assertKnownFlags, buildCommands, selectCommand } from '../commands';
+import {
+  assertKnownFlags,
+  buildCommands,
+  selectCommand,
+  SERVICE_SUBCOMMANDS,
+} from '../commands';
 
 function stub() {
   const noop = async () => {};
@@ -12,7 +17,6 @@ function stub() {
     review: noop,
     status: noop,
     stop: noop,
-    forget: noop,
     install: noop,
     uninstall: noop,
     update: noop,
@@ -31,23 +35,39 @@ describe('command metadata', () => {
 });
 
 describe('selectCommand', () => {
-  test('routes the named commands', () => {
-    for (const name of [
-      'status',
-      'stop',
-      'forget',
-      'install',
-      'uninstall',
-      'update',
-    ] as const) {
-      expect(selectCommand([name])).toEqual({ name, rawArgs: [] });
+  test('routes the top-level commands', () => {
+    expect(selectCommand(['update'])).toEqual({ name: 'update', rawArgs: [] });
+    expect(selectCommand(['help'])).toEqual({ name: 'help', rawArgs: [] });
+  });
+
+  // Resolved all the way to the leaf, so the unknown-flag check sees the
+  // arguments the command actually declares rather than the group's, which are
+  // none.
+  test('resolves a service subcommand to its leaf', () => {
+    for (const sub of SERVICE_SUBCOMMANDS) {
+      expect(selectCommand(['service', sub])).toEqual({
+        name: `service:${sub}`,
+        rawArgs: [],
+      });
     }
   });
 
   test('passes the rest of the arguments on', () => {
-    expect(selectCommand(['status', '--port', '4900'])).toEqual({
-      name: 'status',
+    expect(selectCommand(['service', 'stop', '--port', '4900'])).toEqual({
+      name: 'service:stop',
       rawArgs: ['--port', '4900'],
+    });
+  });
+
+  // Nothing to run, so it is a request to be told what the subcommands are.
+  test('a bare service, or an unknown one, is the group itself', () => {
+    expect(selectCommand(['service'])).toEqual({
+      name: 'service',
+      rawArgs: [],
+    });
+    expect(selectCommand(['service', 'nonsense'])).toEqual({
+      name: 'service',
+      rawArgs: ['nonsense'],
     });
   });
 

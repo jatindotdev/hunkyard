@@ -21,10 +21,9 @@ export interface Handlers {
   // and a plain Error reaches `console.error(error)`, which prints the object
   // and a source excerpt instead of a message.
   fail(message: string, hint?: string): never;
-  review(options: { target?: string; port: number; open: boolean }): Promise<void>;
+  review(options: { target?: string; open: boolean }): Promise<void>;
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
-  forget(options: { id?: string; all: boolean }): Promise<void>;
   install(): Promise<void>;
   uninstall(): Promise<void>;
   update(options: { check: boolean; port: number }): Promise<void>;
@@ -74,7 +73,6 @@ export function buildCommands(handlers: Handlers) {
         default: true,
         description: 'open a browser (--no-open to print the URL instead)',
       },
-      ...portArg,
     },
     async run({ args }) {
       const flagTarget = args.all
@@ -92,7 +90,6 @@ export function buildCommands(handlers: Handlers) {
       }
       await handlers.review({
         target: flagTarget ?? args.target,
-        port: port(args.port),
         open: args.open,
       });
     },
@@ -100,7 +97,7 @@ export function buildCommands(handlers: Handlers) {
 
   const status = defineCommand({
     meta: {
-      name: 'status',
+      name: 'service status',
       description: 'show the running server and the repositories it serves',
     },
     args: { ...portArg },
@@ -108,32 +105,17 @@ export function buildCommands(handlers: Handlers) {
   });
 
   const stop = defineCommand({
-    meta: { name: 'stop', description: 'stop the running server' },
+    meta: {
+      name: 'service stop',
+      description: 'stop the running server, rather than waiting for it to go idle',
+    },
     args: { ...portArg },
     run: ({ args }) => handlers.stop(port(args.port)),
   });
 
-  const forget = defineCommand({
-    meta: {
-      name: 'forget',
-      description:
-        'remove a repository from the list hunk status shows, or all of them',
-    },
-    args: {
-      id: {
-        type: 'positional',
-        required: false,
-        description: 'the id from hunk status',
-      },
-      all: { type: 'boolean', description: 'forget every repository' },
-    },
-    run: ({ args }) =>
-      handlers.forget({ id: args.id, all: args.all === true }),
-  });
-
   const install = defineCommand({
     meta: {
-      name: 'install',
+      name: 'service install',
       description:
         'register http://hunkyard.localhost, so it answers with no port and no server running',
     },
@@ -157,7 +139,10 @@ export function buildCommands(handlers: Handlers) {
   });
 
   const uninstall = defineCommand({
-    meta: { name: 'uninstall', description: 'undo install' },
+    meta: {
+      name: 'service uninstall',
+      description: 'unregister the URL',
+    },
     run: () => handlers.uninstall(),
   });
 
@@ -182,13 +167,12 @@ export function buildCommands(handlers: Handlers) {
 
   return {
     review,
-    status,
-    stop,
-    forget,
-    install,
-    uninstall,
     update,
-    serve,
+    'service:install': install,
+    'service:uninstall': uninstall,
+    'service:status': status,
+    'service:stop': stop,
+    'service:run': serve,
   };
 }
 
@@ -229,38 +213,41 @@ export function assertKnownFlags(
 // usually a revspec, so the choice is made here rather than through
 // `subCommands`. See citty's runCommand: with subCommands set, an explicit name
 // must resolve or it is an error.
-export type NamedCommand =
-  | 'help'
-  | 'status'
-  | 'stop'
-  | 'forget'
-  | 'install'
-  | 'uninstall'
-  | 'update'
-  | 'serve';
-
-const NAMED: readonly NamedCommand[] = [
-  'help',
-  'status',
-  'stop',
-  'forget',
+// Everything that is not reviewing is about the service: registering the URL,
+// and the server behind it. Grouping them says which is which, and keeps the
+// top level to the thing you actually run.
+export const SERVICE_SUBCOMMANDS = [
   'install',
   'uninstall',
-  'update',
-  'serve',
-];
+  'status',
+  'stop',
+  'run',
+] as const;
 
-// Returns which command to run and the arguments left for it. The name rather
-// than the command itself, because citty's CommandDef is generic over its own
-// arguments and a collection of differently-shaped commands has no common type
-// to hand back.
+export type ServiceSubcommand = (typeof SERVICE_SUBCOMMANDS)[number];
+
+export type NamedCommand = 'help' | 'update' | `service:${ServiceSubcommand}`;
+
+// Resolved to the leaf rather than left as a group, so the flag check below
+// sees the arguments the command actually declares. A group whose own args are
+// empty would reject every flag meant for what it contains.
 export function selectCommand(argv: readonly string[]): {
-  name: NamedCommand | 'review';
+  name: NamedCommand | 'review' | 'service';
   rawArgs: string[];
 } {
   const first = argv[0];
-  const named = NAMED.find((name) => name === first);
-  return named == null
-    ? { name: 'review', rawArgs: [...argv] }
-    : { name: named, rawArgs: argv.slice(1) };
+
+  if (first === 'help') return { name: 'help', rawArgs: argv.slice(1) };
+  if (first === 'update') return { name: 'update', rawArgs: argv.slice(1) };
+
+  if (first === 'service') {
+    const second = argv[1];
+    const sub = SERVICE_SUBCOMMANDS.find((name) => name === second);
+    // A bare `hunk service`, or one naming something that is not a subcommand,
+    // is a request to be told what the subcommands are.
+    if (sub == null) return { name: 'service', rawArgs: argv.slice(1) };
+    return { name: `service:${sub}`, rawArgs: argv.slice(2) };
+  }
+
+  return { name: 'review', rawArgs: [...argv] };
 }

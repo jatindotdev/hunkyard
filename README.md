@@ -68,8 +68,8 @@ there is somewhere to go from a browser bookmark with no terminal involved.
 <summary>Nothing runs until you ask for something</summary>
 
 ```bash
-hunk install     # register hunkyard.localhost (one sudo)
-hunk uninstall   # undo it
+hunk service install     # register hunkyard.localhost (one sudo)
+hunk service uninstall   # undo it
 ```
 
 Run this once per machine. There is no background server and no login item that
@@ -83,16 +83,15 @@ switch away and reconnects when you come back, so returning to a tab wakes the
 server rather than finding a dead one. `HUNKYARD_IDLE_TIMEOUT` sets the wait in
 seconds; `0` means never.
 
-`hunk stop` ends it now instead of when it goes idle, which is also all `hunk
-restart` does -- there is nothing to start, because the next request does that.
-Upgrading is the reason to bother: a running server keeps serving the binary it
-started with, and `hunk status` says `stale` when the one on disk is newer.
+`hunk service stop` ends it now instead of when it goes idle. Upgrading is the
+reason to bother: a running server keeps serving the binary it started with, and
+`hunk service status` says `stale` when the one on disk is newer.
 </details>
 
 <details>
 <summary>How <code>hunkyard.localhost</code> works with no port and no daemon</summary>
 
-Binding port 80 needs root; serving from it does not. `hunk install` registers a
+Binding port 80 needs root; serving from it does not. `hunk service install` registers a
 launchd job (a systemd socket unit on Linux) that binds `127.0.0.1:80` and holds
 it. `RunAtLoad` is off and `UserName` is you, so the service manager starts
 hunkyard on the first connection, as you, and hands over the socket it already
