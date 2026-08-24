@@ -42,25 +42,34 @@ function serviceExecutable(): string {
   return process.execPath;
 }
 
+// A step that is allowed to fail, because there is a state in which failing is
+// the correct outcome. Unloading something that was never loaded is the whole
+// of that category: launchd answers `Boot-out failed: 5: Input/output error`,
+// and on a first install that is simply what "not loaded" sounds like.
+interface Step {
+  argv: string[];
+  tolerated?: boolean;
+}
+
 // Writes a root-owned file by staging it somewhere writable and moving it with
 // sudo, so the password prompt happens once and nothing else runs privileged.
 async function installPrivileged(
   contents: string,
   destination: string,
-  after: string[][]
+  after: Step[]
 ): Promise<void> {
   const staged = join(await mkdtemp(join(tmpdir(), 'hunk-service-')), 'unit');
   await writeFile(staged, contents);
 
-  const steps: string[][] = [
-    ['install', '-m', '0644', '-o', 'root', staged, destination],
+  const steps: Step[] = [
+    { argv: ['install', '-m', '0644', '-o', 'root', staged, destination] },
     ...after,
   ];
   for (const step of steps) {
-    const result = spawnSync('sudo', step, { stdio: 'inherit' });
-    if (result.status !== 0) {
+    const result = spawnSync('sudo', step.argv, { stdio: 'inherit' });
+    if (result.status !== 0 && step.tolerated !== true) {
       await unlink(staged).catch(() => undefined);
-      fail(`\`sudo ${step.join(' ')}\` failed`);
+      fail(`\`sudo ${step.argv.join(' ')}\` failed`);
     }
   }
   await unlink(staged).catch(() => undefined);
@@ -71,8 +80,21 @@ async function writeUserFile(path: string, contents: string): Promise<void> {
   await writeFile(path, contents);
 }
 
-function run(command: string, args: string[]): void {
-  spawnSync(command, args, { stdio: 'inherit' });
+// Unprivileged, so no sudo, but the same rule about which failures count: a
+// bootout with nothing loaded is fine, a bootstrap that fails means the agent
+// is not there and saying so beats reporting success.
+function run(
+  command: string,
+  args: string[],
+  options: { tolerated?: boolean } = {}
+): void {
+  const result = spawnSync(command, args, { stdio: 'inherit' });
+  if (result.status !== 0 && options.tolerated !== true) {
+    fail(
+      `\`${command} ${args.join(' ')}\` failed`,
+      'The server can still be started with `hunk`; it just will not start on its own.'
+    );
+  }
 }
 
 // The login agent: unprivileged, in your own home, so it needs no sudo.
@@ -86,8 +108,8 @@ async function installAgent(port: number): Promise<void> {
     await writeUserFile(path, launchAgentPlist(executable, port));
     const domain = `gui/${process.getuid?.() ?? ''}`;
     // bootout first, so reinstalling picks up the new plist rather than
-    // leaving the old one loaded.
-    run('launchctl', ['bootout', domain, path]);
+    // leaving the old one loaded. Nothing is loaded on a first install.
+    run('launchctl', ['bootout', domain, path], { tolerated: true });
     run('launchctl', ['bootstrap', domain, path]);
     return;
   }
@@ -100,14 +122,20 @@ async function installAgent(port: number): Promise<void> {
 
 async function uninstallAgent(): Promise<void> {
   const platform = agentPlatform();
+  // Every step here is tolerated: the point is to end up with it gone, and
+  // uninstalling what was never installed is a success, not an error.
   if (platform === 'darwin') {
     const path = launchAgentPath();
-    run('launchctl', ['bootout', `gui/${process.getuid?.() ?? ''}`, path]);
+    run('launchctl', ['bootout', `gui/${process.getuid?.() ?? ''}`, path], {
+      tolerated: true,
+    });
     await unlink(path).catch(() => undefined);
     return;
   }
   if (platform === 'linux') {
-    run('systemctl', ['--user', 'disable', '--now', `${AGENT_LABEL}.service`]);
+    run('systemctl', ['--user', 'disable', '--now', `${AGENT_LABEL}.service`], {
+      tolerated: true,
+    });
     await unlink(systemdUserUnitPath()).catch(() => undefined);
   }
 }
@@ -159,8 +187,10 @@ export async function installService(options: InstallOptions): Promise<void> {
       launchdPlist(executable, options.port),
       launchdPlistPath(),
       [
-        ['launchctl', 'bootout', 'system', launchdPlistPath()],
-        ['launchctl', 'bootstrap', 'system', launchdPlistPath()],
+        // Unloading first is what makes reinstalling pick up a new plist, and
+        // on a first install there is nothing to unload.
+        { argv: ['launchctl', 'bootout', 'system', launchdPlistPath()], tolerated: true },
+        { argv: ['launchctl', 'bootstrap', 'system', launchdPlistPath()] },
       ]
     );
   } else {
@@ -168,8 +198,8 @@ export async function installService(options: InstallOptions): Promise<void> {
       systemdUnit(executable, options.port),
       systemdUnitPath(),
       [
-        ['systemctl', 'daemon-reload'],
-        ['systemctl', 'enable', '--now', `${PROXY_LABEL}.service`],
+        { argv: ['systemctl', 'daemon-reload'] },
+        { argv: ['systemctl', 'enable', '--now', `${PROXY_LABEL}.service`] },
       ]
     );
   }
