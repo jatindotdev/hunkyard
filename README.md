@@ -18,6 +18,10 @@ GitHub's review UI is slow on large diffs and can only review something that is
 already a pull request. Hunkyard reviews any of them, runs entirely on your
 machine, and renders diffs of a size the GitHub UI gives up on.
 
+Open it and pick what to review: browse for a repository, choose a branch or a
+range inside it, or paste a pull request URL. The `hunk` CLI is a shortcut for
+when you are already in a terminal, not the only way in.
+
 ## Install
 
 ```bash
@@ -32,6 +36,7 @@ into it. Nothing to install alongside it: no Node, no Bun, no `node_modules`.
 
 ```bash
 hunk                    # review what you have not committed
+                        # (or open the picker, outside a repository)
 hunk --staged           # review what you are about to commit
 hunk main...my-branch   # review a branch as a PR would show it
 hunk HEAD~3             # review the last three commits
@@ -47,6 +52,26 @@ hunk forget <id>        # drop a repository from that list (--all for every one)
 stop it, so the second review of the day costs 44ms rather than a restart. It
 serves every repository you have opened, so running `hunk` in another one just
 works. Use `--foreground` to hold the terminal instead.
+
+Run it outside a repository and it opens the picker rather than failing, so
+there is somewhere to go from a browser bookmark with no terminal involved.
+
+<details>
+<summary>Starting it at login, so it is simply there</summary>
+
+```bash
+hunk install     # login agent, and the port-80 forwarder (one sudo)
+hunk uninstall   # removes both
+```
+
+Without this the server starts on demand, which means running `hunk` at least
+once per boot. With it, `http://hunkyard.localhost` is a bookmark that works
+cold.
+
+`hunk stop` still stops it; the agent starts it again at your next login rather
+than immediately. `hunk status` says whether the agent is installed, and where
+its output goes when it fails to start.
+</details>
 
 <details>
 <summary><b>git hunk</b> works too</summary>
@@ -68,18 +93,24 @@ compress release assets in transit either, so that is the size on the wire.
 <details>
 <summary>Serving <code>hunkyard.localhost</code> with no port</summary>
 
-Port 80 needs root and the server does not, so the bare URL is opt-in:
+Port 80 needs root and the server does not, so only the listener runs
+privileged: `hunk install` adds a forwarder from `127.0.0.1:80` to the server's
+port, as a LaunchDaemon on macOS or a systemd unit on Linux. The server does not
+know it exists, and connections fail when no server is running exactly as they
+would without it.
 
-```bash
-hunk install     # one sudo, once
-hunk uninstall   # undoes it
-```
+`hunk install --no-bare-url` installs the login agent alone, if you would rather
+not have a root listener. That is also the only half that needs sudo, so
+skipping it skips the prompt.
 
-That installs a forwarder from `127.0.0.1:80` to the server's port, as a
-LaunchDaemon on macOS or a systemd unit on Linux. Only the listener runs
-privileged; the server does not know it exists, and connections simply fail when
-no server is running, exactly as they would without it. Windows has no
-privileged-port concept, so there is nothing to install.
+Once the forwarder answers, the bare host is the canonical origin and a page
+opened on `:4865` redirects to it. Browser storage is per-origin, so without
+that your viewed state would depend on which of the two URLs you happened to
+open. The redirect is gated on the forwarder actually answering, so removing it
+leaves the app serving on its own port rather than pointing at a dead one.
+
+Windows has no privileged-port concept, so the forwarder is a no-op there and
+the bare host is not available yet.
 </details>
 
 <details>
@@ -91,6 +122,13 @@ find out.
 </details>
 
 ## What it does
+
+**Open anything from the browser.** A filesystem browser for finding a
+repository, a list of the ones you have opened before, and a picker inside each
+for the working tree, the index, this branch against its base, any two refs, a
+recent commit, or a revspec you type. `⌘K` moves between them without leaving
+the review you are in. Pull requests stay paste-a-URL: no inbox, nothing
+fetched about you.
 
 **Reviews local work, not just pull requests.** A three-dot range is diffed
 against the merge base, the same anchor GitHub uses, so a local review and the
@@ -125,7 +163,9 @@ discard the rest of your progress. Display preferences persist too.
 
 - Image and binary files render a placeholder row rather than a real diff, since
   `@pierre/diffs` has no binary handling of its own.
-- No command palette.
+- No command palette. `⌘K` opens the source switcher instead.
+- Only github.com and tangled.org can be pasted in. A URL from anywhere else is
+  refused rather than quietly resolved to a github.com path.
 - No way to share a review. It is yours, on your machine.
 
 ## Everything stays on your machine
@@ -138,18 +178,22 @@ A GitHub token is only needed for pull requests, and only private ones at that.
 It is read from `gh auth token` or `GH_TOKEN`, stays in the server process, and
 is proxied rather than handed to the browser.
 
-Binding a port your browser can reach has two consequences, and each gets its own
-answer. A page can point a hostname it controls at `127.0.0.1` and have your
+Binding a port your browser can reach has three consequences, and each gets its
+own answer. A page can point a hostname it controls at `127.0.0.1` and have your
 browser treat its origin as ours, so the `Host` header is checked against the
-names we actually answer on. A page can also fire a write at the real address
-without being able to read the reply, so anything that is not a GET needs a
-recognised `Origin`.
+names we actually answer on. A page can fire a write at the real address without
+being able to read the reply, so anything that is not a GET needs an `Origin`
+that is present and ours. And a page can *cause* a read even without seeing the
+result, which matters for an endpoint that lists directories, so `Sec-Fetch-Site`
+is refused when it is present and not ours: browsers set it, page script cannot
+forge it, and `curl` and the CLI do not send it at all.
 
-A request names a repository either by the id `hunk` puts in the URL or by path,
-and any repository on the machine is reachable. What stops that being a way to
-read your disk from a web page is the pair of checks above plus the absence of
-CORS headers: a foreign page can start a request but cannot read the response,
-and the repositories you have opened are a recents list rather than a gate.
+A request names a repository either by the id in the URL or by path, and any
+repository on the machine is reachable. The list of repositories you have opened
+is a recents list rather than a gate, so what actually stops a foreign page
+reading your disk is the three checks above plus the absence of CORS headers.
+`HUNKYARD_BROWSE_ROOT` confines the filesystem browser to one subtree if you
+want that narrowed deliberately.
 
 ## Why `hunkyard.localhost`
 

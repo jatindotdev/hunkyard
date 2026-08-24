@@ -8,6 +8,68 @@ Headings inside a release's section must be `###` or deeper. A `##` is how the
 next version is found, so using one for a subsection silently truncates the
 notes at that point, which is a thing that has already happened once.
 
+## Unreleased
+
+### Open anything from the browser
+
+The CLI used to decide what you review: you `cd` into a repository, run `hunk`,
+and the UI renders whatever that invocation chose. It could not browse for a
+repository, list what you had opened, or pick a target without you hand-typing a
+revspec into the URL bar.
+
+- **A filesystem browser** at `/`, with a recents list, git badges, a filter and
+  keyboard navigation. It says whether the folder you are standing in is a
+  repository or sits inside one, so either opens in a click.
+- **A target picker** per repository: the working tree, the index, all
+  uncommitted changes with counts, this branch against its likely base, any two
+  refs, a recent commit, or a revspec you type.
+- **`⌘K` in the header** switches target or repository without leaving the
+  review. Not a command palette: Radix already gives arrow keys, typeahead and
+  focus return.
+- `hunk` outside a repository opens the picker rather than failing.
+
+### The server can start at login
+
+`hunk install` now installs a user login agent as well as the port-80
+forwarder, so `http://hunkyard.localhost` works cold with no terminal involved.
+`hunk install --no-bare-url` installs the agent alone, which is also the half
+that needs no sudo. `hunk stop` still stops the server; the agent starts it
+again at your next login rather than immediately.
+
+With the bare host in play there were two origins for one app, and browser
+storage is per-origin, so viewed state would have depended on which URL you
+opened. The bare host is canonical and the ported one redirects to it, gated on
+the forwarder actually answering so it fails towards serving rather than
+pointing at a dead port.
+
+### Fixed
+
+- **A pasted GitLab URL rendered a github.com repository.** A host with no way
+  to fetch a patch from it resolved to a bare path, which the viewer then read
+  as github.com. Unsupported hosts are now refused, and `tangled.org` -- which
+  the server has always supported and the client could not reach -- works.
+- **The header could not say which repository you were viewing**, which is
+  invisible with one repository and wrong with two tabs.
+- **`hunk install` refused to install from a release binary.** `--bytecode`
+  makes `import.meta.path` the original source path, so the compiled-binary
+  check never fired on the binary that actually ships.
+- **Private pull requests would have broken after `hunk install`**: a login
+  agent has neither `GH_TOKEN` nor a terminal that ran `gh`. The server now
+  falls back to asking `gh` itself, which also means signing in to `gh` after
+  the server started no longer needs a restart.
+
+### Security
+
+`Sec-Fetch-Site` is now checked on `/api/*`. `Origin` is absent on same-origin
+GETs so its absence cannot be refused, and missing CORS headers stop a foreign
+page *reading* a reply rather than stop the work behind it -- which is not
+enough for an endpoint that enumerates directories.
+
+The control token is gone. Registering a repository granted nothing that
+`?repo=<path>` did not already, so writes are gated on an `Origin` that is
+present and ours instead. That makes the guard the whole boundary for writes:
+widening the `Host` allowlist would widen them too.
+
 ## v0.1.0
 
 First release.
