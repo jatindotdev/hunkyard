@@ -1,5 +1,6 @@
 import { getGitHubPathFromURL } from './getGitHubPathFromURL';
 import { normalizeGitHubPath } from './normalizeGitHubPath';
+import { isSupportedPatchDomain } from './patchDomains';
 
 // Matches GitHub shorthand "owner/repo#123" -> /owner/repo/pull/123.
 const GITHUB_SHORTHAND_PATTERN = /^([^/\s]+)\/([^/\s#]+)#(\d+)$/;
@@ -7,6 +8,15 @@ const GITHUB_SHORTHAND_PATTERN = /^([^/\s]+)\/([^/\s#]+)#(\d+)$/;
 // Matches bare paths like "owner/repo/pull/123" where neither of the first two
 // segments contains a dot; a dot would indicate a domain like "github.com".
 const BARE_GITHUB_PATH_PATTERN = /^([^/\s.]+)\/([^/\s.]+)(\/[^\s]*)?$/;
+
+// A host other than github.com resolves only when the diff route knows how to
+// fetch a patch from it. Falling through to a bare path instead would render
+// someone's GitLab URL as though it named a github.com repository.
+function hostedPatchHref(parsedURL: URL): string | undefined {
+  if (parsedURL.pathname === '/') return undefined;
+  if (!isSupportedPatchDomain(parsedURL.hostname)) return undefined;
+  return `${parsedURL.pathname}?domain=${encodeURIComponent(parsedURL.hostname)}`;
+}
 
 // Resolves a user-supplied string into a viewer href, or undefined if the
 // input can't be mapped to a supported diff URL. Accepts full URLs, URLs
@@ -27,10 +37,7 @@ export function getPatchViewerHref(input: string): string | undefined {
     const parsedURL = new URL(trimmed);
     const githubPath = getGitHubPathFromURL(parsedURL);
     if (githubPath != null) return githubPath;
-    if (parsedURL.pathname !== '/') {
-      return `${parsedURL.pathname}?domain=${encodeURIComponent(parsedURL.hostname)}`;
-    }
-    return undefined;
+    return hostedPatchHref(parsedURL);
   } catch {
     // Not a fully-qualified URL; try other interpretations.
   }
@@ -45,9 +52,8 @@ export function getPatchViewerHref(input: string): string | undefined {
       const parsedURL = new URL(`https://${trimmed}`);
       const githubPath = getGitHubPathFromURL(parsedURL);
       if (githubPath != null) return githubPath;
-      if (parsedURL.pathname !== '/') {
-        return `${parsedURL.pathname}?domain=${encodeURIComponent(parsedURL.hostname)}`;
-      }
+      const hosted = hostedPatchHref(parsedURL);
+      if (hosted != null) return hosted;
     } catch {
       // Not parseable even with https:// prefix.
     }

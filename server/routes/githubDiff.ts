@@ -16,6 +16,7 @@ const GITHUB_HOST = 'github.com';
 const GITHUB_RAW_DIFF_HOST = 'patch-diff.githubusercontent.com';
 const NON_DIFF_RESPONSE_MESSAGE = 'GitHub did not return a diff for this URL.';
 const NON_WHITESPACE_PATTERN = /\S/;
+import { HIDDEN_PATCH_DOMAINS } from '../../lib/patchDomains';
 import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
 
 const RAW_GITHUB_DIFF_PATH_PATTERN =
@@ -25,9 +26,6 @@ const GITHUB_PULL_TAB_PATH_PATTERN =
 
 const CACHED_BLOBS = new Map<string, string>();
 
-const HIDDEN_PATCH_DOMAIN_RULES = [
-  { domainRoot: 'tangled.org', defaultExtension: '.patch' },
-] as const;
 
 interface DirectPatchFetchTarget {
   kind?: 'direct';
@@ -296,7 +294,7 @@ function getHiddenPatchDomainRule(
     return undefined;
   }
 
-  for (const domainRule of HIDDEN_PATCH_DOMAIN_RULES) {
+  for (const domainRule of HIDDEN_PATCH_DOMAINS) {
     if (
       hostname === domainRule.domainRoot ||
       hostname.endsWith(`.${domainRule.domainRoot}`)
