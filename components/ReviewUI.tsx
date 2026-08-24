@@ -490,6 +490,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         initialUrl={initialUrl}
         localTarget={isLocal ? describeLocalTarget(source.target) : undefined}
         localRepoRoot={source.kind === 'local' ? source.repoRoot : undefined}
+        localRepoId={source.kind === 'local' ? source.repoId : undefined}
         lightThemeName={lightThemeName}
         lineNumbers={lineNumbers}
         overflow={overflow}

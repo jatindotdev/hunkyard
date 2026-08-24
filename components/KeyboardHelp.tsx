@@ -31,6 +31,7 @@ const SHORTCUTS: readonly { group: string; shortcuts: readonly Shortcut[] }[] = 
   {
     group: 'Panels',
     shortcuts: [
+      { keys: ['⌘', 'K'], description: 'Switch what you are reviewing' },
       { keys: ['F2'], description: 'Diff stats' },
       { keys: ['F3'], description: 'System monitor' },
       { keys: ['?'], description: 'This list' },

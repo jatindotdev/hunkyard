@@ -29,7 +29,7 @@ import {
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
 import { DiffsHubLogo } from './DiffsHubLogo';
-import { DiffUrlForm } from './DiffUrlForm';
+import { SourceSwitcher } from './SourceSwitcher';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
@@ -40,7 +40,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/DropdownMenu';
 import { GitHubTokenControl } from '@/components/GitHubTokenControl';
-import { LocalTargetLabel } from '@/components/LocalTargetLabel';
 import { Switch } from '@/components/Switch';
 import { docsThemeCatalog } from '@/components/themeCatalog';
 import { cn } from '@/lib/cn';
@@ -68,6 +67,8 @@ interface HeaderProps {
   // shows the repository and target instead of a URL box.
   localTarget?: string;
   localRepoRoot?: string;
+  // Which repository the switcher should offer targets from.
+  localRepoId?: string;
   lightThemeName: LightThemeName;
   lineNumbers: boolean;
   overflow: 'wrap' | 'scroll';
@@ -99,6 +100,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   initialUrl,
   localTarget,
   localRepoRoot,
+  localRepoId,
   lightThemeName,
   lineNumbers,
   overflow,
@@ -150,21 +152,15 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
       >
         <DiffsHubLogo />
       </Link>
-      {localTarget == null ? (
-        <DiffUrlForm
-          className="order-last md:order-none md:mr-auto"
-          initialUrl={initialUrl}
-          onUrlChange={setCurrentUrl}
-          placeholder="https://github.com/org/repo/123"
-          inputClassName="w-full md:w-auto"
-        />
-      ) : (
-        <LocalTargetLabel
-          className="order-last md:order-none md:mr-auto"
-          repoRoot={localRepoRoot}
-          target={localTarget}
-        />
-      )}
+      <SourceSwitcher
+        className="order-last md:order-none md:mr-auto"
+        dropdownStyle={dropdownThemeStyle}
+        initialUrl={initialUrl}
+        localRepoId={localRepoId}
+        localRepoRoot={localRepoRoot}
+        localTarget={localTarget}
+        onUrlChange={setCurrentUrl}
+      />
       <div className="flex w-full items-center justify-between gap-2 md:w-auto md:justify-end">
         <Button
           type="button"
