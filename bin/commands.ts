@@ -30,7 +30,7 @@ export interface Handlers {
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
   forget(options: { id?: string; all: boolean }): Promise<void>;
-  install(options: { port: number; bareUrl: boolean }): Promise<void>;
+  install(port: number): Promise<void>;
   uninstall(): Promise<void>;
   forward(options: { from: number; to: number }): Promise<void>;
   serve(port: number): Promise<void>;
@@ -56,9 +56,9 @@ export function buildCommands(handlers: Handlers) {
     meta: {
       name: 'hunk',
       version: handlers.version,
-      description:
-        'Review code changes from a local repository or a pull request.\n\n' +
-        'Commands: status, stop, forget, install, uninstall',
+      // Only reached through citty's own error paths now; the top-level help
+      // is rendered by help.ts, which is where the commands are listed.
+      description: 'Review code changes from a local repository or a pull request.',
     },
     args: {
       target: {
@@ -147,20 +147,8 @@ export function buildCommands(handlers: Handlers) {
       description:
         'start the server at login, and serve on http://hunkyard.localhost with no port',
     },
-    args: {
-      ...portArg,
-      'bare-url': {
-        type: 'boolean',
-        default: true,
-        description:
-          'also forward port 80, which needs one sudo (--no-bare-url to skip)',
-      },
-    },
-    run: ({ args }) =>
-      handlers.install({
-        port: port(args.port),
-        bareUrl: args['bare-url'] !== false,
-      }),
+    args: { ...portArg },
+    run: ({ args }) => handlers.install(port(args.port)),
   });
 
   const uninstall = defineCommand({

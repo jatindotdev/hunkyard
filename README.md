@@ -64,6 +64,9 @@ hunk install     # login agent, and the port-80 forwarder (one sudo)
 hunk uninstall   # removes both
 ```
 
+The forwarder is half of it because the bare host is the point: two URLs for one
+app would split browser storage. See below.
+
 Without this the server starts on demand, which means running `hunk` at least
 once per boot. With it, `http://hunkyard.localhost` is a bookmark that works
 cold.
@@ -98,10 +101,6 @@ privileged: `hunk install` adds a forwarder from `127.0.0.1:80` to the server's
 port, as a LaunchDaemon on macOS or a systemd unit on Linux. The server does not
 know it exists, and connections fail when no server is running exactly as they
 would without it.
-
-`hunk install --no-bare-url` installs the login agent alone, if you would rather
-not have a root listener. That is also the only half that needs sudo, so
-skipping it skips the prompt.
 
 Once the forwarder answers, the bare host is the canonical origin and a page
 opened on `:4865` redirects to it. Browser storage is per-origin, so without

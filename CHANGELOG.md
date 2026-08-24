@@ -32,15 +32,28 @@ revspec into the URL bar.
 
 `hunk install` now installs a user login agent as well as the port-80
 forwarder, so `http://hunkyard.localhost` works cold with no terminal involved.
-`hunk install --no-bare-url` installs the agent alone, which is also the half
-that needs no sudo. `hunk stop` still stops the server; the agent starts it
-again at your next login rather than immediately.
+`hunk stop` still stops the server; the agent starts it again at your next login
+rather than immediately.
 
 With the bare host in play there were two origins for one app, and browser
 storage is per-origin, so viewed state would have depended on which URL you
 opened. The bare host is canonical and the ported one redirects to it, gated on
 the forwarder actually answering so it fails towards serving rather than
 pointing at a dead port.
+
+### The CLI reads better
+
+- **`hunk --help` lists the commands under a `COMMANDS` heading.** They used to
+  be a comma-separated run-on inside the description line, because citty can
+  only render that section from `subCommands` and this CLI cannot use those: a
+  first argument is usually a revspec, which citty would reject as an unknown
+  subcommand. The top-level help is now ours; each command's own is still
+  citty's.
+- **Colour**, where it marks out the thing you came to read: the URL, an id, a
+  path, a status. Off when stdout is not a terminal, and `NO_COLOR` is honoured.
+- **`hunk install` says two lines** rather than explaining itself in six, and
+  the `Boot-out failed: 5` that launchd prints on a step we expect to fail is no
+  longer shown.
 
 ### Fixed
 

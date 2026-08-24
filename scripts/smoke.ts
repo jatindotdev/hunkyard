@@ -143,7 +143,7 @@ try {
   const status = hunk(['status', '--port', String(PORT)]);
   check('status names both repositories', /a-[a-f0-9]+/.test(status.out) && /b-[a-f0-9]+/.test(status.out), status.out);
   check('status reports the version', status.out.includes(version), status.out);
-  check('status reports the login agent', status.out.includes('login agent'), status.out);
+  check('status reports the login agent', status.out.includes('at login'), status.out);
 
   console.log('\nrefusing what it should refuse');
   const typo = hunk(['--stagedd', '--no-open', '--port', String(PORT)]);
@@ -200,7 +200,7 @@ try {
 
   console.log('\nstopping');
   const stopped = hunk(['stop', '--port', String(PORT)]);
-  check('stop reports it stopped', stopped.status === 0 && stopped.out.includes('Stopped'), stopped.out);
+  check('stop reports it stopped', stopped.status === 0 && stopped.out.includes('stopped the server'), stopped.out);
   await Bun.sleep(500);
   check('nothing answers afterwards', (await get('/api/health')).status === 0);
   const stopAgain = hunk(['stop', '--port', String(PORT)]);

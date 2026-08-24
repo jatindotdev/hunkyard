@@ -7,6 +7,7 @@ import { runMain } from 'citty';
 import { version } from '../package.json';
 import { startForwarder } from '../lib/proxy/forward';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
+import { topLevelHelp, wantsTopLevelHelp } from './help';
 import { installService, uninstallService } from './service';
 import {
   AGENT_LABEL,
@@ -22,6 +23,7 @@ import {
 import { forgetRepos, registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
 import { CliError, resolveViewerPath, selfCommand } from './cli-core';
+import { bold, cyan, dim, errorPrefix, green, red, row, yellow } from './style';
 
 // Set on the detached child so it can tell that it is one. It says nothing
 // about what to do -- that is `serve` on the argv -- it only stops a child that
@@ -29,8 +31,8 @@ import { CliError, resolveViewerPath, selfCommand } from './cli-core';
 const CHILD_ENV = 'HUNKYARD_CHILD';
 
 function fail(message: string, hint?: string): never {
-  process.stderr.write(`hunk: ${message}\n`);
-  if (hint != null) process.stderr.write(`\n${hint}\n`);
+  process.stderr.write(`${errorPrefix()} ${message}\n`);
+  if (hint != null) process.stderr.write(`\n${dim(hint)}\n`);
   process.exit(1);
 }
 
@@ -172,14 +174,14 @@ async function runStatus(port: number): Promise<void> {
 
   process.stdout.write(
     health == null
-      ? `hunk ${version}, no server on port ${servingPort}\n`
-      : `hunk ${version} on ${canonical}\n`
+      ? `${dim(`hunk ${version}`)}  ${red('●')} nothing on port ${servingPort}\n`
+      : `${dim(`hunk ${version}`)}  ${green('●')} ${bold(cyan(canonical))}\n`
   );
 
   process.stdout.write(
     agent.installed
-      ? `  login agent  installed, port ${agent.port ?? port}\n`
-      : '  login agent  not installed (hunk install)\n'
+      ? row('at login', `${green('yes')} ${dim(`port ${agent.port ?? port}`)}`)
+      : row('at login', `${yellow('no')} ${dim('hunk install')}`)
   );
   // Only when the file is there and nothing answers: otherwise this is a
   // subprocess on every status for no reason.
@@ -191,7 +193,7 @@ async function runStatus(port: number): Promise<void> {
     );
     const state = /state = (\S+)/.exec(printed.stdout ?? '')?.[1];
     process.stdout.write(
-      `  launchd      ${state ?? 'not loaded'}; see ${agentLogPath()}\n`
+      row('launchd', `${yellow(state ?? 'not loaded')} ${dim(agentLogPath())}`)
     );
   }
 
@@ -199,17 +201,19 @@ async function runStatus(port: number): Promise<void> {
   // either way, and tidying it here is what drops a repository that is gone.
   const repos = await tidyRepos();
   if (repos.length === 0) {
-    process.stdout.write('\nNo repositories yet. Run hunk inside one.\n');
+    process.stdout.write(
+      `\n${dim('No repositories yet. Run hunk inside one, or open one from the browser.')}\n`
+    );
     return;
   }
   process.stdout.write(
-    `\n${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'}\n`
+    `\n${dim(`${repos.length} ${repos.length === 1 ? 'repository' : 'repositories'}`)}\n`
   );
   for (const repo of repos) {
-    process.stdout.write(`  ${repo.id.padEnd(28)} ${repo.root}\n`);
+    process.stdout.write(`  ${cyan(repo.id.padEnd(28))} ${dim(repo.root)}\n`);
   }
   process.stdout.write(
-    `\nhunk forget <id> removes one from this list, --all removes every one.\n`
+    `\n${dim('hunk forget <id> removes one from this list, --all removes every one.')}\n`
   );
 }
 
@@ -220,7 +224,7 @@ async function runStop(port: number): Promise<void> {
     // that was killed rather than stopped. Left alone it accumulates one file
     // per port ever used.
     await clearDaemonPid(port);
-    process.stdout.write(`No hunk server on port ${port}.\n`);
+    process.stdout.write(`${dim(`No hunk server on port ${port}.`)}\n`);
     return;
   }
 
@@ -246,7 +250,7 @@ async function runStop(port: number): Promise<void> {
   }
   for (const pid of pids) process.kill(pid, 'SIGTERM');
   await clearDaemonPid(port);
-  process.stdout.write(`Stopped the hunk server on port ${port}.\n`);
+  process.stdout.write(`${green('✓')} stopped the server on port ${port}\n`);
 }
 
 async function review(options: {
@@ -303,9 +307,9 @@ async function review(options: {
   const url = `${await canonicalOrigin(options.port)}${path}`;
 
   if (options.foreground) {
-    process.stdout.write(`\n  hunkyard   ${url}\n`);
-    if (repo != null) process.stdout.write(`  reviewing  ${repo.root}\n`);
-    process.stdout.write(`\n  Ctrl-C to stop\n\n`);
+    process.stdout.write(`\n${row('hunkyard', bold(cyan(url)))}`);
+    if (repo != null) process.stdout.write(row('reviewing', dim(repo.root)));
+    process.stdout.write(`\n  ${dim('Ctrl-C to stop')}\n\n`);
     if (options.open) openBrowser(url);
     await serve(options.port);
     return;
@@ -315,10 +319,10 @@ async function review(options: {
     await startBackgroundServer(options.port);
   }
 
-  process.stdout.write(`${url}\n`);
+  process.stdout.write(`${bold(cyan(url))}\n`);
   if (token == null && viewer.kind === 'github') {
     process.stdout.write(
-      `\nNo GitHub token found. Public pull requests will work; private ones need\n\`gh auth login\`, or GH_TOKEN in your environment.\n`
+      `\n${dim('No GitHub token found. Public pull requests will work; private ones need')}\n${dim('`gh auth login`, or GH_TOKEN in your environment.')}\n`
     );
   }
   if (options.open) openBrowser(url);
@@ -328,6 +332,13 @@ async function review(options: {
 // has no top-level await.
 async function main(): Promise<void> {
   const { name, rawArgs } = selectCommand(process.argv.slice(2));
+
+  // citty's own help for a command that named itself; ours for the top level,
+  // which has to list the commands somewhere a reader will look.
+  if (name === 'review' && wantsTopLevelHelp(rawArgs)) {
+    process.stdout.write(topLevelHelp(version));
+    return;
+  }
 
   const commands = buildCommands({
     fail,
@@ -345,16 +356,16 @@ async function main(): Promise<void> {
       const removed = await forgetRepos(all ? undefined : id);
       process.stdout.write(
         removed === 0
-          ? 'Nothing to forget.\n'
-          : `Forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'}. The repositories themselves are untouched.\n`
+          ? `${dim('Nothing to forget.')}\n`
+          : `${green('✓')} forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'} ${dim('(the repositories themselves are untouched)')}\n`
       );
     },
-    install: (options) => installService(options),
+    install: (port) => installService(port),
     uninstall: () => uninstallService(),
     serve: (port) => serve(port),
     forward: async ({ from, to }) => {
       startForwarder({ from, to });
-      process.stdout.write(`forwarding ${from} to ${to}\n`);
+      process.stdout.write(`${dim(`forwarding ${from} to ${to}`)}\n`);
       // Held open by the listener; the service manager stops it.
       await new Promise(() => {});
     },

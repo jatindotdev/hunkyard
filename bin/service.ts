@@ -22,10 +22,11 @@ import {
 } from '../lib/service/agent';
 import { stateDir } from '../lib/repos/stateDir';
 import { isCompiledBinary } from './cli-core';
+import { bold, cyan, dim, errorPrefix, green } from './style';
 
 function fail(message: string, hint?: string): never {
-  process.stderr.write(`hunk: ${message}\n`);
-  if (hint != null) process.stderr.write(`\n${hint}\n`);
+  process.stderr.write(`${errorPrefix()} ${message}\n`);
+  if (hint != null) process.stderr.write(`\n${dim(hint)}\n`);
   process.exit(1);
 }
 
@@ -66,7 +67,12 @@ async function installPrivileged(
     ...after,
   ];
   for (const step of steps) {
-    const result = spawnSync('sudo', step.argv, { stdio: 'inherit' });
+    const result = spawnSync('sudo', step.argv, {
+      // A tolerated step's failure is expected, and launchd narrates it
+      // (`Boot-out failed: 5: Input/output error`) in a way that reads like
+      // something went wrong. Its output is swallowed rather than explained.
+      stdio: step.tolerated === true ? 'ignore' : 'inherit',
+    });
     if (result.status !== 0 && step.tolerated !== true) {
       await unlink(staged).catch(() => undefined);
       fail(`\`sudo ${step.argv.join(' ')}\` failed`);
@@ -88,7 +94,9 @@ function run(
   args: string[],
   options: { tolerated?: boolean } = {}
 ): void {
-  const result = spawnSync(command, args, { stdio: 'inherit' });
+  const result = spawnSync(command, args, {
+    stdio: options.tolerated === true ? 'ignore' : 'inherit',
+  });
   if (result.status !== 0 && options.tolerated !== true) {
     fail(
       `\`${command} ${args.join(' ')}\` failed`,
@@ -140,51 +148,29 @@ async function uninstallAgent(): Promise<void> {
   }
 }
 
-export interface InstallOptions {
-  port: number;
-  // The bare URL needs a listener on port 80, which needs root. Opting out
-  // leaves the login agent, and hunkyard on its own port.
-  bareUrl: boolean;
-}
-
-export async function installService(options: InstallOptions): Promise<void> {
+export async function installService(port: number): Promise<void> {
   const platform = servicePlatform();
 
   if (platform === 'unsupported') {
     process.stdout.write(
-      'Windows has no privileged-port concept, so nothing is installed here.\n' +
-        `The bare URL would need the server itself on port ${BARE_PORT}, which is\n` +
-        'not supported yet. hunk still serves on its own port.\n'
+      `${dim('Windows has no privileged-port concept, so there is nothing to install.')}\n` +
+        `hunk still serves on ${cyan(`http://hunkyard.localhost:${port}`)}.\n`
     );
     return;
   }
 
-  if (options.bareUrl) {
-    process.stdout.write(
-      `Installing two things:\n` +
-        `  a login agent, so the server is there without starting it (no sudo)\n` +
-        `  a forwarder from port ${BARE_PORT}, so the URL needs no port (one sudo)\n\n` +
-        `Run \`hunk install --no-bare-url\` to skip the second and the sudo.\n\n`
-    );
-  }
-
-  await installAgent(options.port);
+  // A login agent and a port-80 forwarder. Only the second needs root, and
+  // saying so before the prompt is the one thing worth a line of its own.
   process.stdout.write(
-    `The server now starts at login and serves on port ${options.port}.\n`
+    `Installing the login agent and the port ${BARE_PORT} forwarder. ${dim('Needs sudo once.')}\n\n`
   );
 
-  if (!options.bareUrl) {
-    process.stdout.write(
-      `\nhttp://hunkyard.localhost:${options.port} is the URL. Run \`hunk install\`\n` +
-        'without --no-bare-url to drop the port.\n'
-    );
-    return;
-  }
+  await installAgent(port);
 
   const executable = serviceExecutable();
   if (platform === 'darwin') {
     await installPrivileged(
-      launchdPlist(executable, options.port),
+      launchdPlist(executable, port),
       launchdPlistPath(),
       [
         // Unloading first is what makes reinstalling pick up a new plist, and
@@ -195,7 +181,7 @@ export async function installService(options: InstallOptions): Promise<void> {
     );
   } else {
     await installPrivileged(
-      systemdUnit(executable, options.port),
+      systemdUnit(executable, port),
       systemdUnitPath(),
       [
         { argv: ['systemctl', 'daemon-reload'] },
@@ -204,16 +190,20 @@ export async function installService(options: InstallOptions): Promise<void> {
     );
   }
 
-  process.stdout.write(`\nhttp://hunkyard.localhost is now the URL.\n`);
+  process.stdout.write(
+    `\n  ${green('✓')} ${bold(cyan('http://hunkyard.localhost'))}  ${dim(`port ${port}, from login`)}\n`
+  );
 }
 
 export async function uninstallService(): Promise<void> {
   const platform = servicePlatform();
 
   await uninstallAgent();
-  process.stdout.write('Removed the login agent.\n');
 
-  if (platform === 'unsupported') return;
+  if (platform === 'unsupported') {
+    process.stdout.write(`  ${green('✓')} nothing starts at login any more\n`);
+    return;
+  }
 
   const steps: string[][] =
     platform === 'darwin'
@@ -226,13 +216,13 @@ export async function uninstallService(): Promise<void> {
           ['rm', '-f', systemdUnitPath()],
         ];
 
-  process.stdout.write('Removing the forwarder. This needs sudo, once.\n');
+  process.stdout.write(`Removing the forwarder. ${dim('Needs sudo once.')}\n`);
   for (const step of steps) {
     // bootout fails when it was not loaded, which is not an error here: the
     // point is to end up with it gone.
     spawnSync('sudo', step, { stdio: 'inherit' });
   }
   process.stdout.write(
-    `\nPort ${BARE_PORT} is no longer forwarded, and nothing starts at login.\n`
+    `\n  ${green('✓')} port ${BARE_PORT} is free, and nothing starts at login\n`
   );
 }
