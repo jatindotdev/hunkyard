@@ -53,9 +53,16 @@ says to run `hunk install` rather than quietly handing back the second origin.
 behind a forwarder that points at one. `--foreground` still serves on the port,
 because it is the escape hatch and has to work with nothing installed.
 
-`hunk install` also stops a server you started by hand first. The login agent
-binds that port at bootstrap, so launchd would otherwise start it, watch it fail
-to bind, and restart it forever.
+`hunk install` and `hunk uninstall` are idempotent, and quiet about it. Each
+half is compared against what is already there -- the file's contents, not
+merely its path, plus whether the thing is actually loaded -- and skipped when
+it matches, so a second run neither asks for a password nor takes your server
+down to change nothing. `hunk uninstall` with nothing installed says so instead
+of prompting.
+
+When it does reinstall the agent, it stops a server you started by hand first:
+the agent binds that port at bootstrap, so launchd would otherwise start it,
+watch it fail to bind, and restart it forever.
 
 ### The CLI reads better
 

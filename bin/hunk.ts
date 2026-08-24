@@ -399,14 +399,14 @@ async function main(): Promise<void> {
           : `${green('✓')} forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'} ${dim('(the repositories themselves are untouched)')}\n`
       );
     },
-    install: async (port) => {
-      // The agent binds this port at bootstrap. A server started by hand is
-      // already holding it, so launchd would start the agent, watch it fail to
-      // bind, and restart it forever. Clearing the way first is invisible when
-      // there is nothing there.
-      await stopServer(port);
-      await installService(port);
-    },
+    install: (port) =>
+      // Stopping is passed in rather than done here, so it happens only on a
+      // run that actually reinstalls the agent: a second `hunk install` should
+      // not take your server down to change nothing.
+      installService({
+        port,
+        stopServer: async () => void (await stopServer(port)),
+      }),
     uninstall: () => uninstallService(),
     serve: (port) => serve(port),
     forward: async ({ from, to }) => {
