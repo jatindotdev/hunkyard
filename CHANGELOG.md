@@ -64,6 +64,14 @@ When it does reinstall the agent, it stops a server you started by hand first:
 the agent binds that port at bootstrap, so launchd would otherwise start it,
 watch it fail to bind, and restart it forever.
 
+### Smaller things
+
+- **The GitHub token form is gone from the opener when the server already has a
+  token**, which is every machine with `gh` logged in. It was a prominent form
+  that would never be filled in. It stays in the header's settings menu, where
+  it is also how you override the server's token with another account's, and it
+  comes back on the opener when the server has no token to offer.
+
 ### The CLI reads better
 
 - **`hunk --help` lists the commands under a `COMMANDS` heading.** They used to

@@ -4,6 +4,7 @@ import { IconFolderOpen } from '@pierre/icons';
 
 import { Button } from '@/components/Button';
 import { useRepos } from '@/components/useRepos';
+import { useServerInfo } from '@/components/useServerInfo';
 import { encodeOpenerHref } from '@/lib/openerRoute';
 import { useRouter } from '@/src/navigation';
 
@@ -37,13 +38,18 @@ function Section({
 export function OpenSourceChooser() {
   const router = useRouter();
   const { home } = useRepos();
+  // The server resolves a token from the environment or from `gh auth token`,
+  // so on most machines there is nothing to paste and asking for one is a form
+  // that will never be filled in. It stays in the header's settings menu, where
+  // it is also the way to override the server's token with another account's.
+  const { github: serverHasToken, loading } = useServerInfo();
 
   return (
     <div className="flex flex-col gap-8">
       <Section title="A pull request, comparison, commit or patch">
         <div className="bg-background overflow-hidden rounded-lg border">
           <OpenFetchForm />
-          <OpenGitHubTokenForm />
+          {!loading && !serverHasToken && <OpenGitHubTokenForm />}
         </div>
       </Section>
 
