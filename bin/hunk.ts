@@ -14,7 +14,11 @@ import {
   agentInstallState,
   agentLogPath,
 } from '../lib/service/agent';
-import { canonicalOrigin } from '../lib/proxy/canonical';
+import {
+  BARE_ORIGIN,
+  canonicalOrigin,
+  ensureBareUrlProbe,
+} from '../lib/proxy/canonical';
 import {
   clearDaemonPid,
   readDaemonPid,
@@ -22,7 +26,12 @@ import {
 } from '../lib/repos/daemonPid';
 import { forgetRepos, registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
-import { CliError, resolveViewerPath, selfCommand } from './cli-core';
+import {
+  CliError,
+  resolveReviewOrigin,
+  resolveViewerPath,
+  selfCommand,
+} from './cli-core';
 import { bold, cyan, dim, errorPrefix, green, red, row, yellow } from './style';
 
 // Set on the detached child so it can tell that it is one. It says nothing
@@ -217,15 +226,16 @@ async function runStatus(port: number): Promise<void> {
   );
 }
 
-async function runStop(port: number): Promise<void> {
+// Stops whatever of ours is serving this port. Returns whether there was
+// anything to stop, so a caller that is only clearing the way can say nothing.
+async function stopServer(port: number): Promise<boolean> {
   const health = await describeServer(port);
   if (health == null) {
     // Nothing is serving, so any pid recorded for this port is from a server
     // that was killed rather than stopped. Left alone it accumulates one file
     // per port ever used.
     await clearDaemonPid(port);
-    process.stdout.write(`${dim(`No hunk server on port ${port}.`)}\n`);
-    return;
+    return false;
   }
 
   // The server records its own pid, so stopping it needs nothing from the
@@ -250,7 +260,27 @@ async function runStop(port: number): Promise<void> {
   }
   for (const pid of pids) process.kill(pid, 'SIGTERM');
   await clearDaemonPid(port);
-  process.stdout.write(`${green('✓')} stopped the server on port ${port}\n`);
+  return true;
+}
+
+async function runStop(port: number): Promise<void> {
+  process.stdout.write(
+    (await stopServer(port))
+      ? `${green('✓')} stopped the server on port ${port}\n`
+      : `${dim(`No hunk server on port ${port}.`)}\n`
+  );
+}
+
+async function requireCanonicalOrigin(port: number): Promise<string> {
+  const resolved = resolveReviewOrigin({
+    port,
+    bareReachable: await ensureBareUrlProbe(port),
+  });
+  if (resolved.kind === 'origin') return resolved.origin;
+  fail(
+    `${BARE_ORIGIN} is not being served yet`,
+    'Run `hunk install` once. It starts the server at login and forwards port 80,\nwhich needs sudo the one time. `hunk --foreground` serves on the port instead.'
+  );
 }
 
 async function review(options: {
@@ -302,13 +332,18 @@ async function review(options: {
     : viewer.kind === 'local' && repo != null
       ? `${viewer.path}?repo=${encodeURIComponent(repo.id)}`
       : viewer.path;
-  // The bare host when the forwarder answers, the port otherwise, so what is
-  // printed is the origin the browser will end up on either way.
-  const url = `${await canonicalOrigin(options.port)}${path}`;
 
   if (options.foreground) {
+    // The escape hatch, and the thing `hunk` tells you to run when the
+    // background server will not start. It has to work with nothing installed,
+    // so it names the port and says what would remove it.
+    const bare = await ensureBareUrlProbe(options.port);
+    const url = `${bare ? BARE_ORIGIN : `${BARE_ORIGIN}:${options.port}`}${path}`;
     process.stdout.write(`\n${row('hunkyard', bold(cyan(url)))}`);
     if (repo != null) process.stdout.write(row('reviewing', dim(repo.root)));
+    if (!bare) {
+      process.stdout.write(row('', dim('hunk install drops the port')));
+    }
     process.stdout.write(`\n  ${dim('Ctrl-C to stop')}\n\n`);
     if (options.open) openBrowser(url);
     await serve(options.port);
@@ -318,6 +353,10 @@ async function review(options: {
   if (running == null) {
     await startBackgroundServer(options.port);
   }
+
+  // Only now is the probe meaningful: the forwarder points at this port, so
+  // with nothing serving it, an installed forwarder still answers nothing.
+  const url = `${await requireCanonicalOrigin(options.port)}${path}`;
 
   process.stdout.write(`${bold(cyan(url))}\n`);
   if (token == null && viewer.kind === 'github') {
@@ -360,7 +399,14 @@ async function main(): Promise<void> {
           : `${green('✓')} forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'} ${dim('(the repositories themselves are untouched)')}\n`
       );
     },
-    install: (port) => installService(port),
+    install: async (port) => {
+      // The agent binds this port at bootstrap. A server started by hand is
+      // already holding it, so launchd would start the agent, watch it fail to
+      // bind, and restart it forever. Clearing the way first is invisible when
+      // there is nothing there.
+      await stopServer(port);
+      await installService(port);
+    },
     uninstall: () => uninstallService(),
     serve: (port) => serve(port),
     forward: async ({ from, to }) => {

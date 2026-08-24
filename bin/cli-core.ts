@@ -1,6 +1,8 @@
 // Resolving a target to a viewer path, kept out of the entry point so it can be
 // unit tested without starting a server. Argument parsing itself is citty's.
 
+import { BARE_ORIGIN } from '../lib/proxy/canonical';
+
 export const DEFAULT_PORT = 4865;
 
 // Whether this is running as the compiled executable rather than from a
@@ -43,6 +45,33 @@ export interface ViewerTarget {
 // Recognises the GitHub forms so `hunk owner/repo#1` works, and treats anything
 // else as a local revspec. Deliberately conservative: a bare `foo/bar` is far
 // likelier to be a branch than a repository, so it stays local.
+// Which origin a review should be handed over on.
+//
+// There is one URL for this app and it is the bare host: two origins would
+// split browser storage, so viewed state and display preferences would depend
+// on which of them you happened to open. Falling back to the ported URL is what
+// causes that, so it is not offered -- the answer to a missing forwarder is to
+// install it, once.
+//
+// A port chosen by hand is the exception. The forwarder points at one port, so
+// asking for another is asking not to be behind it, and refusing there would
+// make --port useless.
+export type ReviewOrigin =
+  | { kind: 'origin'; origin: string }
+  | { kind: 'needs-install' };
+
+export function resolveReviewOrigin(options: {
+  port: number;
+  bareReachable: boolean;
+}): ReviewOrigin {
+  if (options.port !== DEFAULT_PORT) {
+    return { kind: 'origin', origin: `${BARE_ORIGIN}:${options.port}` };
+  }
+  return options.bareReachable
+    ? { kind: 'origin', origin: BARE_ORIGIN }
+    : { kind: 'needs-install' };
+}
+
 export function resolveViewerPath(
   target: string | undefined
 ): ViewerTarget {

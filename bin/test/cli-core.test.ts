@@ -2,7 +2,9 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   CliError,
+  DEFAULT_PORT,
   isCompiledBinary,
+  resolveReviewOrigin,
   resolveViewerPath,
   selfCommand,
 } from '../cli-core';
@@ -89,5 +91,34 @@ describe('selfCommand', () => {
     expect(
       selfCommand('/src/bin/hunk.ts', ['bun', '/src/bin/hunk.ts'], '/usr/bin/bun')
     ).toEqual(['/usr/bin/bun', '/src/bin/hunk.ts']);
+  });
+});
+
+describe('resolveReviewOrigin', () => {
+  test('is the bare host once the forwarder answers', () => {
+    expect(
+      resolveReviewOrigin({ port: DEFAULT_PORT, bareReachable: true })
+    ).toEqual({ kind: 'origin', origin: 'http://hunkyard.localhost' });
+  });
+
+  // Handing back the ported URL instead would be a second origin, and browser
+  // storage is per-origin: viewed state would depend on which one you opened.
+  test('asks for an install rather than falling back to the port', () => {
+    expect(
+      resolveReviewOrigin({ port: DEFAULT_PORT, bareReachable: false })
+    ).toEqual({ kind: 'needs-install' });
+  });
+
+  // The forwarder points at one port, so asking for another is asking not to be
+  // behind it. Refusing here would make --port useless.
+  test('a port chosen by hand is served on that port', () => {
+    expect(resolveReviewOrigin({ port: 5000, bareReachable: false })).toEqual({
+      kind: 'origin',
+      origin: 'http://hunkyard.localhost:5000',
+    });
+    expect(resolveReviewOrigin({ port: 5000, bareReachable: true })).toEqual({
+      kind: 'origin',
+      origin: 'http://hunkyard.localhost:5000',
+    });
   });
 });

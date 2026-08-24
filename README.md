@@ -47,11 +47,17 @@ hunk stop               # stop it
 hunk forget <id>        # drop a repository from that list (--all for every one)
 ```
 
-`hunk` opens a browser and returns. It serves at
-`http://hunkyard.localhost:4865`, in the background, and keeps running until you
-stop it, so the second review of the day costs 44ms rather than a restart. It
-serves every repository you have opened, so running `hunk` in another one just
-works. Use `--foreground` to hold the terminal instead.
+`hunk` opens a browser and returns. It serves at `http://hunkyard.localhost`, in
+the background, and keeps running until you stop it, so the second review of the
+day costs 44ms rather than a restart. It serves every repository you have opened,
+so running `hunk` in another one just works. Use `--foreground` to hold the
+terminal instead.
+
+That URL needs `hunk install`, once, and `hunk` says so until you have run it.
+There is deliberately no fallback to `http://hunkyard.localhost:4865`: browser
+storage is per-origin, so handing out both would make your viewed state depend on
+which one you happened to open. `--port` is the exception -- asking for a
+particular port is asking not to be behind the forwarder.
 
 Run it outside a repository and it opens the picker rather than failing, so
 there is somewhere to go from a browser bookmark with no terminal involved.
@@ -64,8 +70,8 @@ hunk install     # login agent, and the port-80 forwarder (one sudo)
 hunk uninstall   # removes both
 ```
 
-The forwarder is half of it because the bare host is the point: two URLs for one
-app would split browser storage. See below.
+Run this once per machine. It is what makes `http://hunkyard.localhost` a URL,
+and what makes it work cold from a bookmark with no terminal involved.
 
 Without this the server starts on demand, which means running `hunk` at least
 once per boot. With it, `http://hunkyard.localhost` is a bookmark that works

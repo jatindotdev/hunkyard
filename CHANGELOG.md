@@ -41,6 +41,22 @@ opened. The bare host is canonical and the ported one redirects to it, gated on
 the forwarder actually answering so it fails towards serving rather than
 pointing at a dead port.
 
+### One URL, and `hunk install` is how you get it
+
+`hunk` hands over `http://hunkyard.localhost` and nothing else. It used to fall
+back to `http://hunkyard.localhost:4865` when the forwarder was not there, which
+is the thing that splits browser storage: two origins, so viewed state and
+display preferences depend on which URL you opened. Without the forwarder it now
+says to run `hunk install` rather than quietly handing back the second origin.
+
+`--port` is the exception, since asking for a particular port is asking not to be
+behind a forwarder that points at one. `--foreground` still serves on the port,
+because it is the escape hatch and has to work with nothing installed.
+
+`hunk install` also stops a server you started by hand first. The login agent
+binds that port at bootstrap, so launchd would otherwise start it, watch it fail
+to bind, and restart it forever.
+
 ### The CLI reads better
 
 - **`hunk --help` lists the commands under a `COMMANDS` heading.** They used to
