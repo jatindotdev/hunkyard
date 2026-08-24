@@ -13,7 +13,7 @@ export type OpenerRoute =
 // the same reason it is server-side: it truncates the string in a syscall.
 export function isAbsoluteBrowsePath(path: string): boolean {
   if (path === '' || path.includes('\0')) return false;
-  return path.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(path);
+  return path.startsWith('/');
 }
 
 export function resolveOpenerRoute(search: string): OpenerRoute {

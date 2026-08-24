@@ -9,7 +9,7 @@
   <a href="https://github.com/jatindotdev/hunkyard/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/jatindotdev/hunkyard/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/jatindotdev/hunkyard/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jatindotdev/hunkyard?label=release"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jatindotdev/hunkyard?color=blue"></a>
-  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey">
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux-lightgrey">
 </p>
 
 ![hunkyard reviewing a working tree](docs/screenshot.png)
@@ -90,6 +90,25 @@ started with, and `hunk status` says `stale` when the one on disk is newer.
 </details>
 
 <details>
+<summary>How <code>hunkyard.localhost</code> works with no port and no daemon</summary>
+
+Binding port 80 needs root; serving from it does not. `hunk install` registers a
+launchd job (a systemd socket unit on Linux) that binds `127.0.0.1:80` and holds
+it. `RunAtLoad` is off and `UserName` is you, so the service manager starts
+hunkyard on the first connection, as you, and hands over the socket it already
+bound. Nothing of ours ever runs privileged, and there is no process at all
+between reviews.
+
+launchd passes the socket by the name the plist gave it, through
+`launch_activate_socket` -- a C function, and the one place hunkyard uses FFI.
+systemd passes descriptors starting at 3 and needs none.
+
+macOS and Linux only. That handoff is what the whole design rests on, so rather
+than half support a platform without it, hunkyard refuses to start anywhere
+else.
+</details>
+
+<details>
 <summary><b>git hunk</b> works too</summary>
 
 The installer puts a `git-hunk` symlink next to the binary, with a man page, so
@@ -104,25 +123,6 @@ without one it would fail.
 Each one embeds the Bun runtime and the whole client. They are uncompressed, so
 one downloaded from the releases page runs after a `chmod`. GitHub does not
 compress release assets in transit either, so that is the size on the wire.
-</details>
-
-<details>
-<summary>Serving <code>hunkyard.localhost</code> with no port</summary>
-
-Port 80 needs root and the server does not, so only the listener runs
-privileged: `hunk install` adds a forwarder from `127.0.0.1:80` to the server's
-port, as a LaunchDaemon on macOS or a systemd unit on Linux. The server does not
-know it exists, and connections fail when no server is running exactly as they
-would without it.
-
-Once the forwarder answers, the bare host is the canonical origin and a page
-opened on `:4865` redirects to it. Browser storage is per-origin, so without
-that your viewed state would depend on which of the two URLs you happened to
-open. The redirect is gated on the forwarder actually answering, so removing it
-leaves the app serving on its own port rather than pointing at a dead one.
-
-Windows has no privileged-port concept, so the forwarder is a no-op there and
-the bare host is not available yet.
 </details>
 
 <details>

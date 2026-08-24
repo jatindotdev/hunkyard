@@ -16,14 +16,20 @@ import { SOCKET_NAME } from '../service/activation';
 export const PROXY_LABEL = 'app.hunkyard.proxy';
 export const BARE_PORT = 80;
 
-export type ServicePlatform = 'darwin' | 'linux' | 'unsupported';
+export type ServicePlatform = 'darwin' | 'linux';
 
-export function servicePlatform(platform = process.platform): ServicePlatform {
-  if (platform === 'darwin') return 'darwin';
-  if (platform === 'linux') return 'linux';
-  // Windows has no privileged-port concept, so the bare URL works without any
-  // of this and there is nothing to install.
-  return 'unsupported';
+// hunkyard runs on macOS and Linux. Both bind privileged ports the same way and
+// both hand a bound socket to an unprivileged process, which is what the whole
+// design rests on; anywhere else is refused at startup rather than half
+// supported.
+export function isSupportedPlatform(platform = process.platform): boolean {
+  return platform === 'darwin' || platform === 'linux';
+}
+
+export function servicePlatform(
+  platform = process.platform
+): ServicePlatform {
+  return platform === 'darwin' ? 'darwin' : 'linux';
 }
 
 export function launchdPlistPath(): string {

@@ -55,13 +55,19 @@ it a duplicate: restarting is only stopping, the forwarder is the socket the
 service manager holds, and `--foreground` is `hunk serve`. `hunk help` works as
 well as `hunk --help`.
 
-Two things that only surfaced once the CLI stopped starting servers. `hunk
+One thing that only surfaced once the CLI stopped starting servers: `hunk
 status` and `hunk stop` looked for the server on port 4865, which an activated
-server never uses -- they now find it by the pid it records, which also avoids
-a `status` that started a server in order to report that none was running. And
-on Windows, where nothing can be registered, `hunk` said to run `hunk install`
-and `hunk install` said there was nothing to install; it now hands over the
-ported URL, which is the only origin that platform has.
+server never uses. They now find it by the pid it records, which also avoids a
+`status` that started a server in order to report that none was running.
+
+### macOS and Linux only
+
+Windows is no longer built or supported. The design rests on a service manager
+binding a privileged port and handing the bound socket to an unprivileged
+process, and Windows has neither the privileged-port concept nor the handoff --
+so it could only ever have been a second, lesser shape of the same app. hunk
+refuses to start there rather than pretending otherwise, and the release no
+longer publishes a `.exe`.
 
 ### The server can start at login
 

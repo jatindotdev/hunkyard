@@ -19,15 +19,33 @@ TAG="${HUNK_VERSION:-}"
 INSTALL_DIR="${HUNK_INSTALL_DIR:-$HOME/.local/bin}"
 MAN_DIR="${HUNK_MAN_DIR:-$HOME/.local/share/man/man1}"
 
+# Colour, and nothing when this is not a terminal. Matching what the CLI does:
+# the URL, the path and the outcome are what you came to read, and the prose
+# around them is not. NO_COLOR is the standard opt-out, and a piped install --
+# which is how most of these run, through `curl | sh` -- gets plain text.
+if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${TERM:-}" != "dumb" ]; then
+  BOLD=$(printf '\033[1m'); DIM=$(printf '\033[2m')
+  CYAN=$(printf '\033[36m'); GREEN=$(printf '\033[32m')
+  YELLOW=$(printf '\033[33m'); RED=$(printf '\033[31m')
+  OFF=$(printf '\033[0m')
+else
+  BOLD=''; DIM=''; CYAN=''; GREEN=''; YELLOW=''; RED=''; OFF=''
+fi
+
 fail() {
-  echo "install: $1" >&2
+  echo "${RED}install:${OFF} $1" >&2
   exit 1
+}
+
+# One shape for every outcome line, the same as the CLI's.
+done_line() {
+  printf '  %s✓%s %-12s %s\n' "$GREEN" "$OFF" "$1" "$2"
 }
 
 case "$(uname -s)" in
   Darwin) os="darwin" ;;
   Linux) os="linux" ;;
-  *) fail "unsupported operating system: $(uname -s). Windows needs the .exe from the releases page." ;;
+  *) fail "unsupported operating system: $(uname -s). hunkyard runs on macOS and Linux." ;;
 esac
 
 case "$(uname -m)" in
@@ -98,7 +116,7 @@ download() {
 # the whole client, and GitHub does not compress release assets in transit. The
 # progress bar is the difference between waiting and wondering; the size it
 # reports is the real one, which is why none is stated here.
-echo "Downloading ${asset} from ${release}..."
+echo "Downloading ${BOLD}${asset}${OFF} ${DIM}from ${release}${OFF}"
 download "$asset" "${tmp}/hunk" show-progress || fail "could not download ${asset}.
   ${gh_error:-no error reported}
 
@@ -114,7 +132,7 @@ if download SHA256SUMS "${tmp}/SHA256SUMS"; then
       actual="$(shasum -a 256 "${tmp}/hunk" | awk '{print $1}')"
     fi
     [ "$actual" = "$expected" ] || fail "checksum mismatch for ${asset}"
-    echo "Checksum verified."
+    checksum_verified=yes
   fi
 fi
 
@@ -130,10 +148,17 @@ ln -sf "${INSTALL_DIR}/hunk" "${INSTALL_DIR}/git-hunk"
 if download git-hunk.1 "${tmp}/git-hunk.1"; then
   mkdir -p "$MAN_DIR"
   mv "${tmp}/git-hunk.1" "${MAN_DIR}/git-hunk.1"
-  echo "Installed the man page to ${MAN_DIR}/git-hunk.1"
+  man_installed=yes
 fi
 
-echo "Installed hunk to ${INSTALL_DIR}/hunk"
+echo
+done_line "hunk" "${BOLD}${CYAN}${INSTALL_DIR}/hunk${OFF}"
+if [ "${checksum_verified:-no}" = yes ]; then
+  done_line "checksum" "${DIM}matches the release${OFF}"
+fi
+if [ "${man_installed:-no}" = yes ]; then
+  done_line "git hunk" "${DIM}man page in ${MAN_DIR}${OFF}"
+fi
 
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*) on_path=yes ;;
@@ -142,8 +167,8 @@ esac
 
 if [ "$on_path" = no ]; then
   echo
-  echo "${INSTALL_DIR} is not on your PATH. Add this to your shell profile:"
-  echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
+  echo "${YELLOW}${INSTALL_DIR} is not on your PATH.${OFF} Add this to your shell profile:"
+  echo "  ${CYAN}export PATH=\"${INSTALL_DIR}:\$PATH\"${OFF}"
   exit 0
 fi
 
@@ -153,11 +178,13 @@ fi
 found="$(command -v hunk 2>/dev/null || true)"
 if [ -n "$found" ] && [ "$found" != "${INSTALL_DIR}/hunk" ]; then
   echo
-  echo "Another hunk is earlier on your PATH and will win:"
-  echo "  $found"
+  echo "${YELLOW}Another hunk is earlier on your PATH and will win:${OFF}"
+  echo "  ${DIM}${found}${OFF}"
   echo
-  echo "Run this one as ${INSTALL_DIR}/hunk, put ${INSTALL_DIR} first on PATH,"
-  echo "or remove the other one."
+  echo "${DIM}Run this one as ${INSTALL_DIR}/hunk, put ${INSTALL_DIR} first on PATH,${OFF}"
+  echo "${DIM}or remove the other one.${OFF}"
 else
-  echo "Run it with: hunk"
+  echo
+  echo "  ${DIM}hunk${OFF}          ${DIM}review what you have not committed${OFF}"
+  echo "  ${DIM}hunk install${OFF}  ${DIM}register ${OFF}${CYAN}http://hunkyard.localhost${OFF}${DIM}, once${OFF}"
 fi

@@ -188,7 +188,6 @@ async function portIsHeld(): Promise<boolean> {
 // that probed the port would start a server in order to report that none was
 // running.
 export async function serviceIsRegistered(): Promise<boolean> {
-  if (servicePlatform() === 'unsupported') return false;
   const { files } = registration('hunk', userInfo().username);
   const present = await Promise.all(
     files.map((file) => exists(file.destination))
@@ -199,14 +198,6 @@ export async function serviceIsRegistered(): Promise<boolean> {
 // Running this twice must be the same as running it once, and the second run
 // must not ask for a password to do nothing.
 export async function installService(): Promise<void> {
-  if (servicePlatform() === 'unsupported') {
-    process.stdout.write(
-      `${dim('Windows has no privileged-port concept, so there is nothing to register.')}\n` +
-        'Run `hunk --foreground` and use the port it prints.\n'
-    );
-    return;
-  }
-
   const executable = serviceExecutable();
   const user = userInfo().username;
   const { files, load } = registration(executable, user);
@@ -239,11 +230,6 @@ export async function installService(): Promise<void> {
 }
 
 export async function uninstallService(): Promise<void> {
-  if (servicePlatform() === 'unsupported') {
-    process.stdout.write(`${dim('Nothing was registered on this platform.')}\n`);
-    return;
-  }
-
   // The executable only shapes the file contents, which are about to be deleted.
   const { files, unload } = registration('hunk', userInfo().username);
 

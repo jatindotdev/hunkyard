@@ -4,21 +4,24 @@ import {
   BARE_PORT,
   PROXY_LABEL,
   launchdPlist,
+  isSupportedPlatform,
   servicePlatform,
   systemdSocketUnit,
   systemdUnit,
 } from '@/lib/proxy/service';
 import { SOCKET_NAME } from '@/lib/service/activation';
 
-describe('servicePlatform', () => {
-  test('recognises the two that have privileged ports', () => {
+describe('the supported platforms', () => {
+  test('are the two whose service managers hand over a bound socket', () => {
     expect(servicePlatform('darwin')).toBe('darwin');
     expect(servicePlatform('linux')).toBe('linux');
+    expect(isSupportedPlatform('darwin')).toBe(true);
+    expect(isSupportedPlatform('linux')).toBe(true);
   });
 
-  // Windows has no privileged-port concept, so there is nothing to register.
-  test('has nothing to register on Windows', () => {
-    expect(servicePlatform('win32')).toBe('unsupported');
+  test('and nothing else', () => {
+    expect(isSupportedPlatform('win32')).toBe(false);
+    expect(isSupportedPlatform('freebsd')).toBe(false);
   });
 });
 

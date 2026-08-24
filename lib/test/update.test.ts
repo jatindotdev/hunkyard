@@ -22,9 +22,6 @@ describe('assetName', () => {
     expect(assetName({ platform: 'linux', arch: 'arm64' })).toBe(
       'hunk-linux-arm64'
     );
-    expect(assetName({ platform: 'win32', arch: 'x64' })).toBe(
-      'hunk-windows-x64.exe'
-    );
   });
 
   // musl and glibc are different libcs rather than variants of one build.
@@ -43,8 +40,7 @@ describe('assetName', () => {
   test('has nothing for a platform with no release', () => {
     expect(assetName({ platform: 'freebsd', arch: 'x64' })).toBeNull();
     expect(assetName({ platform: 'linux', arch: 'riscv64' })).toBeNull();
-    // Windows publishes x64 only.
-    expect(assetName({ platform: 'win32', arch: 'arm64' })).toBeNull();
+    expect(assetName({ platform: 'win32', arch: 'x64' })).toBeNull();
   });
 });
 

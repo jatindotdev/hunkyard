@@ -62,12 +62,9 @@ describe('isAbsoluteBrowsePath', () => {
     expect(isAbsoluteBrowsePath('/Users/x')).toBe(true);
   });
 
-  test('accepts a windows path', () => {
-    expect(isAbsoluteBrowsePath('C:\\Users\\x')).toBe(true);
-  });
-
   test('refuses a relative path or an embedded NUL', () => {
     expect(isAbsoluteBrowsePath('dev')).toBe(false);
+    expect(isAbsoluteBrowsePath('C:\\Users\\x')).toBe(false);
     expect(isAbsoluteBrowsePath('')).toBe(false);
     expect(isAbsoluteBrowsePath('/Users/x\0/etc')).toBe(false);
   });

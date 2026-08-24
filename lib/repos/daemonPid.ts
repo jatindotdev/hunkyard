@@ -3,10 +3,14 @@ import { join } from 'node:path';
 
 import { stateDir } from './stateDir';
 
-// The pid of the server on a given port, so `hunk stop` can find it without
-// asking the system what holds the socket. lsof is not present on every Linux
-// image and does not exist on Windows, so it is a fallback rather than the
-// mechanism.
+// The pid of the server on a given port, so `hunk stop` and `hunk status` can
+// find it without asking the system what holds the socket.
+//
+// Asking the socket is not an option under socket activation: the service
+// manager starts the server when something connects, so a question about
+// whether anything is running would be what makes something run. An activated
+// server also takes an ephemeral port, so there is no port to ask on -- it
+// records its pid under the registered one instead.
 function pidPath(port: number): string {
   return join(stateDir(), `daemon-${port}.pid`);
 }

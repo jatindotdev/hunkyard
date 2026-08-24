@@ -17,7 +17,7 @@ import {
 } from './service';
 import { runUpdate } from './update';
 import { BARE_ORIGIN, ensureBareUrlProbe } from '../lib/proxy/canonical';
-import { BARE_PORT, servicePlatform } from '../lib/proxy/service';
+import { BARE_PORT, isSupportedPlatform } from '../lib/proxy/service';
 import {
   clearDaemonPid,
   readDaemonPid,
@@ -131,11 +131,7 @@ async function describeServer(
 
 function openBrowser(url: string): void {
   const [command, args] =
-    process.platform === 'darwin'
-      ? ['open', [url]]
-      : process.platform === 'win32'
-        ? ['cmd', ['/c', 'start', '', url]]
-        : ['xdg-open', [url]];
+    process.platform === 'darwin' ? ['open', [url]] : ['xdg-open', [url]];
   const child = spawn(command as string, args as string[], {
     stdio: 'ignore',
     detached: true,
@@ -314,7 +310,6 @@ async function requireCanonicalOrigin(port: number): Promise<string> {
   const resolved = resolveReviewOrigin({
     port,
     bareReachable: await ensureBareUrlProbe(),
-    canRegister: servicePlatform() !== 'unsupported',
   });
   if (resolved.kind === 'origin') return resolved.origin;
   fail(
@@ -382,6 +377,13 @@ async function review(options: {
 // Wrapped rather than run at the top level: --bytecode compiles to CJS, which
 // has no top-level await.
 async function main(): Promise<void> {
+  if (!isSupportedPlatform()) {
+    fail(
+      `hunkyard does not run on ${process.platform}`,
+      'It needs a service manager that binds a privileged port and hands the\nsocket to an unprivileged process. macOS and Linux both do; nothing else\nis supported.'
+    );
+  }
+
   const { name, rawArgs } = selectCommand(process.argv.slice(2));
 
   // citty's own help for a command that named itself; ours for the top level,

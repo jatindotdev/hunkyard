@@ -9,20 +9,13 @@ export interface BrowseCrumb {
 // of path logic the browser needs and importing node:path into client code
 // leaves the whole page blank.
 export function browseCrumbs(path: string): BrowseCrumb[] {
-  const separator = path.startsWith('/') ? '/' : '\\';
-  const trimmed =
-    path.length > 1 && path.endsWith(separator) ? path.slice(0, -1) : path;
-  const segments = trimmed.split(separator);
-  // A posix path starts with an empty segment; a Windows one starts with the
-  // drive.
-  const first = segments[0] ?? '';
-  const root = first === '' ? separator : `${first}${separator}`;
+  const trimmed = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path;
+  const crumbs: BrowseCrumb[] = [{ name: '/', path: '/' }];
 
-  const crumbs: BrowseCrumb[] = [{ name: root, path: root }];
-  let current = first === '' ? '' : first;
-  for (const segment of segments.slice(1)) {
+  let current = '';
+  for (const segment of trimmed.split('/')) {
     if (segment === '') continue;
-    current = `${current}${separator}${segment}`;
+    current = `${current}/${segment}`;
     crumbs.push({ name: segment, path: current });
   }
   return crumbs;

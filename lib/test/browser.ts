@@ -20,7 +20,6 @@ const CANDIDATES = [
   '/usr/bin/google-chrome-stable',
   '/usr/bin/chromium',
   '/usr/bin/chromium-browser',
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
 ];
 
 export async function findChrome(): Promise<string | null> {

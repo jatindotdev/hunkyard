@@ -5,8 +5,6 @@
 
 export const RELEASE_REPO = 'jatindotdev/hunkyard';
 
-export type UpdatePlatform = 'darwin' | 'linux' | 'win32';
-
 // The asset names the release build produces, from scripts/release.ts. A name
 // that does not match one of those is a download that 404s, so the mapping is
 // written the same way in both places rather than guessed at.
@@ -20,9 +18,7 @@ export function assetName(options: {
       ? 'darwin'
       : options.platform === 'linux'
         ? 'linux'
-        : options.platform === 'win32'
-          ? 'windows'
-          : null;
+        : null;
   if (os == null) return null;
 
   const arch =
@@ -32,9 +28,6 @@ export function assetName(options: {
         ? 'x64'
         : null;
   if (arch == null) return null;
-
-  // Windows ships x64 only, and with an extension.
-  if (os === 'windows') return arch === 'x64' ? 'hunk-windows-x64.exe' : null;
 
   // musl and glibc are different libcs rather than variants of one build, so
   // Alpine and friends need their own binary.

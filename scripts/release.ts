@@ -28,7 +28,6 @@ const TARGETS: readonly Target[] = [
   // friends need their own binary rather than the linux-x64 one.
   { target: 'bun-linux-x64-musl', name: 'hunk-linux-x64-musl' },
   { target: 'bun-linux-arm64-musl', name: 'hunk-linux-arm64-musl' },
-  { target: 'bun-windows-x64', name: 'hunk-windows-x64.exe' },
 ];
 
 const OUT_DIR = 'dist/release';

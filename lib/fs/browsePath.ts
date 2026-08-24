@@ -47,7 +47,7 @@ export function assertBrowsePath(path: string): string {
 }
 
 function isAbsolute(path: string): boolean {
-  return path.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(path);
+  return path.startsWith('/');
 }
 
 function normaliseTrailingSeparator(path: string): string {
