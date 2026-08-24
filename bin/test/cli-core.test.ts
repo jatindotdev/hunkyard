@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { CliError, resolveViewerPath, viewerUrl } from '../cli-core';
+import {
+  CliError,
+  isCompiledBinary,
+  resolveViewerPath,
+  selfCommand,
+} from '../cli-core';
 
 describe('resolveViewerPath', () => {
   test('no target is the working tree', () => {
@@ -59,10 +64,30 @@ describe('resolveViewerPath', () => {
   });
 });
 
-describe('viewerUrl', () => {
-  test('uses the stable hostname so localStorage survives restarts', () => {
-    expect(viewerUrl(4865, '/local')).toBe(
-      'http://hunkyard.localhost:4865/local'
-    );
+describe('isCompiledBinary', () => {
+  // `--bytecode`, which the release build uses, makes import.meta.path the
+  // original source path, so a check against it answers "not compiled" for
+  // exactly the binary that ships. argv[1] stays the bunfs path.
+  test('reads argv rather than the module path', () => {
+    expect(isCompiledBinary(['bun', '/$bunfs/root/hunk', 'status'])).toBe(true);
+    expect(
+      isCompiledBinary(['bun', '/Users/x/hunkyard/bin/hunk.ts', 'status'])
+    ).toBe(false);
+  });
+});
+
+describe('selfCommand', () => {
+  test('a compiled binary re-runs itself with no script argument', () => {
+    expect(
+      selfCommand('/src/bin/hunk.ts', ['bun', '/$bunfs/root/hunk'], '/usr/bin/hunk')
+    ).toEqual(['/usr/bin/hunk']);
+  });
+
+  // From a checkout execPath is bun itself, so the entry has to be named or the
+  // child re-runs bun with nothing to run.
+  test('a checkout names the entry', () => {
+    expect(
+      selfCommand('/src/bin/hunk.ts', ['bun', '/src/bin/hunk.ts'], '/usr/bin/bun')
+    ).toEqual(['/usr/bin/bun', '/src/bin/hunk.ts']);
   });
 });

@@ -6,7 +6,9 @@
 
 import { DEFAULT_PORT } from '../../server/index';
 
-export const SERVICE_LABEL = 'app.hunkyard.proxy';
+// Named for what it is, so it cannot be confused with the login agent's own
+// label in lib/service/agent.ts.
+export const PROXY_LABEL = 'app.hunkyard.proxy';
 export const BARE_PORT = 80;
 
 export type ServicePlatform = 'darwin' | 'linux' | 'unsupported';
@@ -20,11 +22,11 @@ export function servicePlatform(platform = process.platform): ServicePlatform {
 }
 
 export function launchdPlistPath(): string {
-  return `/Library/LaunchDaemons/${SERVICE_LABEL}.plist`;
+  return `/Library/LaunchDaemons/${PROXY_LABEL}.plist`;
 }
 
 export function systemdUnitPath(): string {
-  return `/etc/systemd/system/${SERVICE_LABEL}.service`;
+  return `/etc/systemd/system/${PROXY_LABEL}.service`;
 }
 
 // RunAtLoad and KeepAlive because a forwarder that stops forwarding is worse
@@ -36,7 +38,7 @@ export function launchdPlist(executable: string, to = DEFAULT_PORT): string {
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>${SERVICE_LABEL}</string>
+  <string>${PROXY_LABEL}</string>
   <key>ProgramArguments</key>
   <array>
     <string>${executable}</string>

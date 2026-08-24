@@ -2,7 +2,28 @@
 // unit tested without starting a server. Argument parsing itself is citty's.
 
 export const DEFAULT_PORT = 4865;
-export const HOSTNAME = 'hunkyard.localhost';
+
+// Whether this is running as the compiled executable rather than from a
+// checkout.
+//
+// argv[1], not import.meta.path: `--bytecode` makes import.meta.path the
+// original source path, so a check against it silently answers "not compiled"
+// for exactly the binary that ships.
+export function isCompiledBinary(argv = process.argv): boolean {
+  return argv[1]?.startsWith('/$bunfs/') === true;
+}
+
+// The command that re-runs this executable. A compiled binary is its own
+// execPath and needs no script argument; run from a checkout, execPath is bun
+// itself, so the entry has to be named -- and the caller names it, since the
+// entry is bin/hunk.ts rather than this file.
+export function selfCommand(
+  entry: string,
+  argv = process.argv,
+  execPath = process.execPath
+): string[] {
+  return isCompiledBinary(argv) ? [execPath] : [execPath, entry];
+}
 
 export class CliError extends Error {
   readonly hint: string | undefined;
@@ -50,8 +71,4 @@ export function resolveViewerPath(
   }
 
   return { kind: 'local', path: `/local/${encodeURIComponent(target)}` };
-}
-
-export function viewerUrl(port: number, path: string): string {
-  return `http://${HOSTNAME}:${port}${path}`;
 }

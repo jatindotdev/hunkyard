@@ -1,6 +1,10 @@
 import { createApiApp } from './app';
-import { clientRoutes, loadClientAssets } from './clientAssets';
+import { clientRoutes, indexDocument, loadClientAssets } from './clientAssets';
 import { rejectUntrustedRequest } from './guard';
+import {
+  canonicalRedirect,
+  ensureBareUrlProbe,
+} from '../lib/proxy/canonical';
 
 export const HOST = '127.0.0.1';
 export const DEFAULT_PORT = 4865;
@@ -14,7 +18,8 @@ export interface RunningServer {
 export function startServer(options: { port?: number } = {}): RunningServer {
   const port = options.port ?? Number(process.env.PORT ?? DEFAULT_PORT);
   const assets = loadClientAssets();
-  const app = createApiApp();
+  const document = indexDocument(assets);
+  const app = createApiApp({ port });
 
   const server = Bun.serve({
     hostname: HOST,
@@ -24,6 +29,11 @@ export function startServer(options: { port?: number } = {}): RunningServer {
       // JavaScript. The API is a route too, because the '/*' fallback would
       // otherwise answer /api/... with the app's HTML.
       ...clientRoutes(assets),
+      // The entry document is the one route that enters JavaScript, so that a
+      // page opened on the port can be moved to the canonical bare host. Never
+      // /api/*: the CLI's own health check and any curl would be redirected
+      // with it.
+      '/*': (request: Request) => canonicalRedirect(request, port) ?? document(),
       '/api/*': (request: Request) =>
         rejectUntrustedRequest(request) ?? app.fetch(request),
     },
@@ -31,6 +41,11 @@ export function startServer(options: { port?: number } = {}): RunningServer {
     // watch endpoint holds its connection open for as long as the tab is there.
     idleTimeout: 0,
   });
+
+  // Asked once here so the first page load already knows the answer. It is
+  // deliberately not awaited: the socket is listening, and the forwarder
+  // answering or not must never delay startup.
+  void ensureBareUrlProbe(port);
 
   return {
     port: server.port ?? port,

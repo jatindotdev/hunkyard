@@ -76,6 +76,20 @@ export function loadClientAssets(): ClientAssets {
   return embeddedAssets() ?? diskAssets();
 }
 
+// The entry document on its own, for the one route that has to enter JavaScript
+// -- a document request is the only kind that can be redirected to the
+// canonical origin, and a static Response cannot look at a Host header.
+export function indexDocument(assets: ClientAssets): () => Response {
+  const index = assets.files.get(`/${INDEX}`);
+  if (index == null) {
+    throw new Error(`The built client has no ${INDEX}.`);
+  }
+  return () =>
+    new Response(index, {
+      headers: { 'Cache-Control': NO_CACHE, 'Content-Type': 'text/html' },
+    });
+}
+
 // The client as a Bun.serve route table. A Response value in `routes` is served
 // straight from the server without entering JavaScript, which is the point of
 // building the whole client as routes rather than answering each request from a

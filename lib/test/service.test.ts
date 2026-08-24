@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 
 import {
   BARE_PORT,
-  SERVICE_LABEL,
+  PROXY_LABEL,
   launchdPlist,
   servicePlatform,
   systemdUnit,
@@ -28,7 +28,7 @@ describe('the service definitions', () => {
     expect(plist).toContain('<string>forward</string>');
     expect(plist).toContain(`<string>${BARE_PORT}</string>`);
     expect(plist).toContain('<string>4865</string>');
-    expect(plist).toContain(SERVICE_LABEL);
+    expect(plist).toContain(PROXY_LABEL);
   });
 
   // A forwarder that stops forwarding is worse than one never installed: the

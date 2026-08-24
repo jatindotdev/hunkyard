@@ -143,6 +143,7 @@ try {
   const status = hunk(['status', '--port', String(PORT)]);
   check('status names both repositories', /a-[a-f0-9]+/.test(status.out) && /b-[a-f0-9]+/.test(status.out), status.out);
   check('status reports the version', status.out.includes(version), status.out);
+  check('status reports the login agent', status.out.includes('login agent'), status.out);
 
   console.log('\nrefusing what it should refuse');
   const typo = hunk(['--stagedd', '--no-open', '--port', String(PORT)]);
@@ -151,8 +152,12 @@ try {
   check('a port out of range fails', badPort.status !== 0, badPort.out);
   const twoTargets = hunk(['--staged', 'HEAD', '--no-open', '--port', String(PORT)]);
   check('two targets fail', twoTargets.status !== 0 && twoTargets.out.includes('one target'), twoTargets.out);
-  const notARepo = hunk(['--no-open', '--port', String(PORT)], base);
-  check('somewhere that is not a repository fails', notARepo.status !== 0, notARepo.out);
+  const targetOutsideRepo = hunk(['HEAD~1', '--no-open', '--port', String(PORT)], base);
+  check(
+    'a revspec outside a repository fails',
+    targetOutsideRepo.status !== 0 && targetOutsideRepo.out.includes('not inside a git repository'),
+    targetOutsideRepo.out
+  );
   const unknownRepo = await get('/api/local-diff?repo=nope-12345678');
   check('an unknown repository id is a 404', unknownRepo.status === 404, String(unknownRepo.status));
   const rebound = await (async () => {
@@ -162,6 +167,18 @@ try {
     return response?.status ?? 0;
   })();
   check('a rebound Host is refused', rebound === 403, String(rebound));
+
+  console.log('\noutside a repository');
+  const opener = hunk(['--no-open', '--port', String(PORT)], base);
+  check(
+    'bare hunk opens the picker instead of failing',
+    opener.status === 0 && opener.out.trim().endsWith(`:${PORT}/`),
+    opener.out
+  );
+
+  console.log('\nserve, which is what the login agent runs');
+  const serveHelp = hunk(['serve', '--help']);
+  check('serve is a command', serveHelp.status === 0 && serveHelp.out.includes('--port'), serveHelp.out);
 
   console.log('\nthe port forwarder');
   const forward = Bun.spawn(

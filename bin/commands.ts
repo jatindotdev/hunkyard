@@ -30,9 +30,10 @@ export interface Handlers {
   status(port: number): Promise<void>;
   stop(port: number): Promise<void>;
   forget(options: { id?: string; all: boolean }): Promise<void>;
-  install(port: number): Promise<void>;
+  install(options: { port: number; bareUrl: boolean }): Promise<void>;
   uninstall(): Promise<void>;
   forward(options: { from: number; to: number }): Promise<void>;
+  serve(port: number): Promise<void>;
 }
 
 function makePort(handlers: Handlers) {
@@ -144,15 +145,36 @@ export function buildCommands(handlers: Handlers) {
     meta: {
       name: 'install',
       description:
-        'serve on http://hunkyard.localhost with no port, which needs one sudo',
+        'start the server at login, and serve on http://hunkyard.localhost with no port',
     },
-    args: { ...portArg },
-    run: ({ args }) => handlers.install(port(args.port)),
+    args: {
+      ...portArg,
+      'bare-url': {
+        type: 'boolean',
+        default: true,
+        description:
+          'also forward port 80, which needs one sudo (--no-bare-url to skip)',
+      },
+    },
+    run: ({ args }) =>
+      handlers.install({
+        port: port(args.port),
+        bareUrl: args['bare-url'] !== false,
+      }),
   });
 
   const uninstall = defineCommand({
     meta: { name: 'uninstall', description: 'undo install' },
     run: () => handlers.uninstall(),
+  });
+
+  // Run by the login agent and by the detached child, not by hand. An argv is
+  // better than an environment variable for this: a plist that sets a variable
+  // to tell the binary what to do hides the intent from anyone reading it.
+  const serve = defineCommand({
+    meta: { name: 'serve', description: 'run the server in this process' },
+    args: { ...portArg },
+    run: ({ args }) => handlers.serve(port(args.port)),
   });
 
   // Run by the installed service, not by hand.
@@ -166,7 +188,7 @@ export function buildCommands(handlers: Handlers) {
       handlers.forward({ from: port(args.from), to: port(args.to) }),
   });
 
-  return { review, status, stop, forget, install, uninstall, forward };
+  return { review, status, stop, forget, install, uninstall, serve, forward };
 }
 
 // citty accepts flags it was never told about and ignores them, so `--stagedd`
@@ -212,6 +234,7 @@ export type NamedCommand =
   | 'forget'
   | 'install'
   | 'uninstall'
+  | 'serve'
   | 'forward';
 
 const NAMED: readonly NamedCommand[] = [
@@ -220,6 +243,7 @@ const NAMED: readonly NamedCommand[] = [
   'forget',
   'install',
   'uninstall',
+  'serve',
   'forward',
 ];
 

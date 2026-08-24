@@ -9,17 +9,24 @@ import { startForwarder } from '../lib/proxy/forward';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
 import { installService, uninstallService } from './service';
 import {
+  AGENT_LABEL,
+  agentInstallState,
+  agentLogPath,
+} from '../lib/service/agent';
+import { canonicalOrigin } from '../lib/proxy/canonical';
+import {
   clearDaemonPid,
   readDaemonPid,
   writeDaemonPid,
 } from '../lib/repos/daemonPid';
 import { forgetRepos, registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
-import { CliError, resolveViewerPath, viewerUrl } from './cli-core';
+import { CliError, resolveViewerPath, selfCommand } from './cli-core';
 
-// Set by the parent when it re-launches itself detached, so the child knows to
-// serve rather than spawn another child.
-const SERVE_ENV = 'HUNKYARD_SERVE';
+// Set on the detached child so it can tell that it is one. It says nothing
+// about what to do -- that is `serve` on the argv -- it only stops a child that
+// failed to reach `serve` from spawning a child of its own, forever.
+const CHILD_ENV = 'HUNKYARD_CHILD';
 
 function fail(message: string, hint?: string): never {
   process.stderr.write(`hunk: ${message}\n`);
@@ -125,19 +132,23 @@ async function serve(port: number): Promise<void> {
   process.on('SIGTERM', stop);
 }
 
-// A compiled executable is its own execPath and needs no script argument. Run
-// from a checkout, execPath is bun itself, so the entry has to be named.
-function selfCommand(): string[] {
-  const compiled = import.meta.path.startsWith('/$bunfs/');
-  return compiled ? [process.execPath] : [process.execPath, import.meta.path];
-}
-
 // Re-launches this executable detached, so the terminal is free and the server
-// outlives the shell that started it.
+// outlives the shell that started it. The same `serve` the login agent runs.
 async function startBackgroundServer(port: number): Promise<void> {
-  const [command, ...args] = selfCommand();
-  const child = spawn(command as string, args, {
-    env: { ...process.env, [SERVE_ENV]: String(port) },
+  if (process.env[CHILD_ENV] != null) {
+    // A child that reached this line did not land on `serve`, so re-running
+    // itself is exactly what it just did. Without this the mistake is a fork
+    // bomb rather than an error, which is how it presented the once it
+    // happened: selfCommand named an entry the child read as a review target.
+    fail(
+      'the background server could not start itself',
+      'Run `hunk --foreground` to serve in this terminal and see why.'
+    );
+  }
+
+  const [command, ...args] = selfCommand(import.meta.path);
+  const child = spawn(command as string, [...args, 'serve', '--port', String(port)], {
+    env: { ...process.env, [CHILD_ENV]: '1' },
     stdio: 'ignore',
     detached: true,
   });
@@ -152,12 +163,37 @@ async function startBackgroundServer(port: number): Promise<void> {
 }
 
 async function runStatus(port: number): Promise<void> {
-  const health = await describeServer(port);
+  // An installed agent decides the port, and it need not be the default, so it
+  // is read back rather than assumed.
+  const agent = await agentInstallState();
+  const servingPort = agent.port ?? port;
+  const health = await describeServer(servingPort);
+  const canonical = await canonicalOrigin(servingPort);
+
   process.stdout.write(
     health == null
-      ? `hunk ${version}, no server on port ${port}\n`
-      : `hunk ${version} on http://127.0.0.1:${port}\n`
+      ? `hunk ${version}, no server on port ${servingPort}\n`
+      : `hunk ${version} on ${canonical}\n`
   );
+
+  process.stdout.write(
+    agent.installed
+      ? `  login agent  installed, port ${agent.port ?? port}\n`
+      : '  login agent  not installed (hunk install)\n'
+  );
+  // Only when the file is there and nothing answers: otherwise this is a
+  // subprocess on every status for no reason.
+  if (agent.installed && health == null && process.platform === 'darwin') {
+    const printed = spawnSync(
+      'launchctl',
+      ['print', `gui/${process.getuid?.() ?? ''}/${AGENT_LABEL}`],
+      { encoding: 'utf8' }
+    );
+    const state = /state = (\S+)/.exec(printed.stdout ?? '')?.[1];
+    process.stdout.write(
+      `  launchd      ${state ?? 'not loaded'}; see ${agentLogPath()}\n`
+    );
+  }
 
   // The list lives on disk rather than in the server, so it is worth showing
   // either way, and tidying it here is what drops a repository that is gone.
@@ -227,12 +263,15 @@ async function review(options: {
     throw error;
   }
 
-  // Only a local target needs a repository; a pull request does not.
+  // Only a local target needs a repository; a pull request does not. Being
+  // outside one is no longer an error: the opener is a page now, so there is
+  // somewhere to send you.
   const repoRoot = git(['rev-parse', '--show-toplevel']);
-  if (viewer.kind === 'local' && repoRoot == null) {
+  const opener = viewer.kind === 'local' && repoRoot == null;
+  if (opener && options.target != null) {
     fail(
       `${process.cwd()} is not inside a git repository`,
-      'Run hunk from a repository, or pass a pull request like owner/repo#123.'
+      `\`${options.target}\` can only be a local revspec here. Run hunk from a repository, or pass a pull request like owner/repo#123.`
     );
   }
 
@@ -254,12 +293,14 @@ async function review(options: {
   // it loads. A running server reads the registry per request, so it picks this
   // up without being told.
   const repo = repoRoot == null ? null : await registerRepo(repoRoot);
-  const url = viewerUrl(
-    options.port,
-    viewer.kind === 'local' && repo != null
+  const path = opener
+    ? '/'
+    : viewer.kind === 'local' && repo != null
       ? `${viewer.path}?repo=${encodeURIComponent(repo.id)}`
-      : viewer.path
-  );
+      : viewer.path;
+  // The bare host when the forwarder answers, the port otherwise, so what is
+  // printed is the origin the browser will end up on either way.
+  const url = `${await canonicalOrigin(options.port)}${path}`;
 
   if (options.foreground) {
     process.stdout.write(`\n  hunkyard   ${url}\n`);
@@ -279,12 +320,6 @@ async function review(options: {
     process.stdout.write(
       `\nNo GitHub token found. Public pull requests will work; private ones need\n\`gh auth login\`, or GH_TOKEN in your environment.\n`
     );
-  } else if (token != null && running?.github === false) {
-    // Signing in to gh after the server started leaves it without the token,
-    // which otherwise shows up as a pull request mysteriously failing to load.
-    process.stdout.write(
-      `\nThe running server started without a GitHub token and cannot pick this one\nup. Run \`hunk stop\` first if you need private pull requests.\n`
-    );
   }
   if (options.open) openBrowser(url);
 }
@@ -292,12 +327,7 @@ async function review(options: {
 // Wrapped rather than run at the top level: --bytecode compiles to CJS, which
 // has no top-level await.
 async function main(): Promise<void> {
-  // The detached child re-enters with nothing to do but serve.
-  const inherited = process.env[SERVE_ENV];
-  if (inherited != null && inherited !== '') {
-    await serve(Number(inherited));
-    return;
-  }
+  const { name, rawArgs } = selectCommand(process.argv.slice(2));
 
   const commands = buildCommands({
     fail,
@@ -319,8 +349,9 @@ async function main(): Promise<void> {
           : `Forgot ${removed} ${removed === 1 ? 'repository' : 'repositories'}. The repositories themselves are untouched.\n`
       );
     },
-    install: (port) => installService(port),
+    install: (options) => installService(options),
     uninstall: () => uninstallService(),
+    serve: (port) => serve(port),
     forward: async ({ from, to }) => {
       startForwarder({ from, to });
       process.stdout.write(`forwarding ${from} to ${to}\n`);
@@ -329,7 +360,6 @@ async function main(): Promise<void> {
     },
   });
 
-  const { name, rawArgs } = selectCommand(process.argv.slice(2));
   const command = commands[name] as Parameters<typeof runMain>[0];
   assertKnownFlags(
     rawArgs,
