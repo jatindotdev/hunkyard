@@ -28,6 +28,7 @@ describe('topLevelHelp', () => {
       'forget',
       'install',
       'uninstall',
+      'update',
     ]);
   });
 

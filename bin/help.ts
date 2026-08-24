@@ -25,6 +25,7 @@ const COMMANDS: readonly Entry[] = [
     description: 'start the server at login, on http://hunkyard.localhost',
   },
   { name: 'uninstall', description: 'undo install' },
+  { name: 'update', description: 'download the latest release, and restart' },
 ];
 
 const OPTIONS: readonly Entry[] = [

@@ -64,6 +64,18 @@ When it does reinstall the agent, it stops a server you started by hand first:
 the agent binds that port at bootstrap, so launchd would otherwise start it,
 watch it fail to bind, and restart it forever.
 
+### `hunk update`
+
+Downloads the latest release for this platform, verifies it against the
+release's `SHA256SUMS`, replaces the running binary and restarts the server.
+`hunk update --check` only reports whether a newer release exists.
+
+The swap is a rename rather than a write over the top. Replacing a running
+executable in place is what kills processes that have it mapped -- which is how
+two stray servers on this machine died -- while a rename swaps the directory
+entry and leaves the old inode alone until they exit. It also follows the
+`git-hunk` symlink to its target, so updating through that name updates `hunk`.
+
 ### `hunk restart`
 
 A server that is already running keeps serving the binary it was launched with,

@@ -45,6 +45,7 @@ hunk owner/repo#123     # review a pull request
 hunk status             # what is running, and which repositories it serves
 hunk stop               # stop it
 hunk restart            # restart it, after upgrading
+hunk update             # download the latest release and restart
 hunk forget <id>        # drop a repository from that list (--all for every one)
 ```
 

@@ -10,6 +10,7 @@ import { startForwarder } from '../lib/proxy/forward';
 import { assertKnownFlags, buildCommands, selectCommand } from './commands';
 import { topLevelHelp, wantsTopLevelHelp } from './help';
 import { installService, restartAgent, uninstallService } from './service';
+import { runUpdate } from './update';
 import {
   AGENT_LABEL,
   agentInstallState,
@@ -455,6 +456,14 @@ async function main(): Promise<void> {
         stopServer: async () => void (await stopServer(port)),
       }),
     uninstall: () => uninstallService(),
+    update: ({ check, port }) =>
+      runUpdate({
+        check,
+        version,
+        // Replacing the binary leaves the running server on the old one, so an
+        // update that does not restart is an update you are not running.
+        restart: () => runRestart(port),
+      }),
     serve: (port) => serve(port),
     forward: async ({ from, to }) => {
       startForwarder({ from, to });

@@ -33,6 +33,7 @@ export interface Handlers {
   forget(options: { id?: string; all: boolean }): Promise<void>;
   install(port: number): Promise<void>;
   uninstall(): Promise<void>;
+  update(options: { check: boolean; port: number }): Promise<void>;
   forward(options: { from: number; to: number }): Promise<void>;
   serve(port: number): Promise<void>;
 }
@@ -161,6 +162,22 @@ export function buildCommands(handlers: Handlers) {
     run: ({ args }) => handlers.install(port(args.port)),
   });
 
+  const update = defineCommand({
+    meta: {
+      name: 'update',
+      description: 'download the latest release and replace this binary',
+    },
+    args: {
+      check: {
+        type: 'boolean',
+        description: 'only say whether a newer release exists',
+      },
+      ...portArg,
+    },
+    run: ({ args }) =>
+      handlers.update({ check: args.check === true, port: port(args.port) }),
+  });
+
   const uninstall = defineCommand({
     meta: { name: 'uninstall', description: 'undo install' },
     run: () => handlers.uninstall(),
@@ -194,6 +211,7 @@ export function buildCommands(handlers: Handlers) {
     forget,
     install,
     uninstall,
+    update,
     serve,
     forward,
   };
@@ -243,6 +261,7 @@ export type NamedCommand =
   | 'forget'
   | 'install'
   | 'uninstall'
+  | 'update'
   | 'serve'
   | 'forward';
 
@@ -253,6 +272,7 @@ const NAMED: readonly NamedCommand[] = [
   'forget',
   'install',
   'uninstall',
+  'update',
   'serve',
   'forward',
 ];

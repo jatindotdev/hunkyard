@@ -16,6 +16,7 @@ function stub() {
     forget: noop,
     install: noop,
     uninstall: noop,
+    update: noop,
     serve: noop,
     forward: noop,
   });
