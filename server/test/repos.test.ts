@@ -13,7 +13,7 @@ let previousStateHome: string | undefined;
 let previousRepoRootEnv: string | undefined;
 const app = createReposApp();
 
-function call(
+async function call(
   path: string,
   init: RequestInit & { origin?: string | null } = {}
 ): Promise<Response> {
@@ -21,7 +21,7 @@ function call(
   const headers = new Headers(rest.headers);
   headers.set('host', 'hunkyard.localhost');
   if (origin != null) headers.set('origin', origin);
-  return app.fetch(
+  return await app.fetch(
     new Request(`http://hunkyard.localhost${path}`, { ...rest, headers })
   );
 }

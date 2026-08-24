@@ -6,13 +6,13 @@ import { memo } from 'react';
 import { Button } from '@/components/Button';
 import { DiffUrlForm } from '@/components/DiffUrlForm';
 
-// Submitting the home form should move to the shareable viewer URL first. The
-// viewer route owns fetching and renders its own loading state there.
-export const HomeFetchForm = memo(function HomeFetchForm() {
+// Submitting moves to the shareable viewer URL first; the viewer route owns
+// fetching and renders its own loading state there.
+export const OpenFetchForm = memo(function OpenFetchForm() {
   return (
     <div className="px-4">
       <DiffUrlForm
-        placeholder="https://github.com/org/repo/123"
+        placeholder="owner/repo#123, or a URL"
         inputClassName="text-md h-12 w-full text-start"
       >
         {(isPending, url) => (

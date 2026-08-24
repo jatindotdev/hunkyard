@@ -1,4 +1,4 @@
-import { basename, dirname, resolve, sep } from 'node:path';
+import { dirname, resolve, sep } from 'node:path';
 
 // Confines the browser to one subtree. Unset by default: there is no blocklist
 // either, because the server runs as you and can already read whatever you can.
@@ -73,22 +73,4 @@ export function parentOf(path: string, root: string | null = null): string | nul
   }
   const parent = dirname(normalised);
   return parent === normalised ? null : parent;
-}
-
-// The path segments from the root down to this directory, for a breadcrumb.
-export function browseCrumbs(
-  path: string
-): { name: string; path: string }[] {
-  const crumbs: { name: string; path: string }[] = [];
-  let current = normaliseTrailingSeparator(path);
-  for (;;) {
-    const parent = dirname(current);
-    if (parent === current) {
-      crumbs.unshift({ name: current, path: current });
-      break;
-    }
-    crumbs.unshift({ name: basename(current), path: current });
-    current = parent;
-  }
-  return crumbs;
 }

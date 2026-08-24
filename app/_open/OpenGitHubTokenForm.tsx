@@ -5,7 +5,7 @@ import { memo } from 'react';
 import { GitHubTokenControl } from '@/components/GitHubTokenControl';
 import { useGitHubToken } from '@/components/useGitHubToken';
 
-export const HomeGitHubTokenForm = memo(function HomeGitHubTokenForm() {
+export const OpenGitHubTokenForm = memo(function OpenGitHubTokenForm() {
   const { clearToken, hasToken, setToken } = useGitHubToken();
   return (
     <GitHubTokenControl

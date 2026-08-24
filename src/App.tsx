@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 
 import { NavigationProvider } from './navigation';
 import { useLocation } from './useLocation';
-import { HomePage } from '@/app/_home/HomePage';
+import { OpenPage } from '@/app/_open/OpenPage';
 import { ReviewUI, type ReviewSource } from '@/components/ReviewUI';
+import { useRepos } from '@/components/useRepos';
 import { encodeLocalDiffPath } from '@/lib/localDiffSource';
 import { resolveDiffshubViewerRoute } from '@/lib/resolveDiffshubViewerRoute';
 import { SITE_NAME } from '@/lib/site';
@@ -17,11 +18,18 @@ function toSegments(pathname: string): string[] {
 export function App() {
   const { pathname, search, navigate } = useLocation();
   const segments = toSegments(pathname);
-  const repoId = new URLSearchParams(search).get('repo') ?? undefined;
+  const params = new URLSearchParams(search);
+  const repoId = params.get('repo') ?? undefined;
+  // The diff route has always been able to fetch a patch from another forge;
+  // reading the domain back is what lets the client reach it.
+  const domain = params.get('domain') ?? undefined;
   const route =
-    segments.length === 0
-      ? null
-      : resolveDiffshubViewerRoute(segments, undefined);
+    segments.length === 0 ? null : resolveDiffshubViewerRoute(segments, domain);
+
+  // The header can name the repository only if it is told which one, and the
+  // list is already fetched for the opener.
+  const { repos } = useRepos();
+  const repoRoot = repos.find((repo) => repo.id === repoId)?.root;
 
   // Canonicalisation used to happen as a server redirect; here it is a history
   // replace, so the URL still ends up in its canonical form without a reload.
@@ -80,14 +88,14 @@ export function App() {
   if (route == null || route.kind === 'redirect') {
     return (
       <NavigationProvider value={navigator}>
-        <HomePage />
+        <OpenPage search={search} />
       </NavigationProvider>
     );
   }
 
   const source: ReviewSource =
     route.kind === 'render-local'
-      ? { kind: 'local', target: route.target, repoId }
+      ? { kind: 'local', target: route.target, repoId, repoRoot }
       : {
           kind: 'github',
           domain: route.domain,
@@ -96,12 +104,19 @@ export function App() {
         };
 
   if (needsRepoId) {
+    // Nothing has ever been opened, so there is no default to fall back to.
+    // The opener is where that is fixed, not the terminal.
+    if (defaultRepoMissing) {
+      return (
+        <NavigationProvider value={navigator}>
+          <OpenPage search="" />
+        </NavigationProvider>
+      );
+    }
     return (
       <NavigationProvider value={navigator}>
         <div className="text-muted-foreground grid h-dvh place-items-center p-6 text-center text-sm">
-          {defaultRepoMissing
-            ? 'No repository is registered yet. Run `hunk` inside a git repository.'
-            : 'Finding your repository...'}
+          Finding your repository…
         </div>
       </NavigationProvider>
     );

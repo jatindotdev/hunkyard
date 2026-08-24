@@ -1,3 +1,5 @@
+import { homedir } from 'node:os';
+
 import { Hono } from 'hono';
 
 import { REPO_ROOT_ENV, resolveFallbackRepo } from '../../lib/git/repo';
@@ -43,6 +45,10 @@ export function createReposApp(): Hono {
           lastUsedAt: repo.lastUsedAt,
         })),
         defaultId: repos[0]?.id ?? null,
+        // Where the filesystem browser should start, and the prefix the recents
+        // list shortens away. Knowing it here saves the opener a request just to
+        // find out where home is.
+        home: homedir(),
       },
       { headers: new Headers({ 'Cache-Control': 'no-store' }) }
     );

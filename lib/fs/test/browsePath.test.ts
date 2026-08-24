@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
+import { browseCrumbs } from '../browseCrumbs';
 import {
   assertBrowsePath,
-  browseCrumbs,
   InvalidBrowsePathError,
   isWithinRoot,
   parentOf,
@@ -75,5 +75,13 @@ describe('browseCrumbs', () => {
 
   test('is just the root at the root', () => {
     expect(browseCrumbs('/')).toEqual([{ name: '/', path: '/' }]);
+  });
+
+  test('handles a windows path', () => {
+    expect(browseCrumbs('C:\\Users\\x')).toEqual([
+      { name: 'C:\\', path: 'C:\\' },
+      { name: 'Users', path: 'C:\\Users' },
+      { name: 'x', path: 'C:\\Users\\x' },
+    ]);
   });
 });
