@@ -1,6 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 
 import { findRepoRoot } from '../git/exec';
@@ -24,10 +23,6 @@ function registryPath(): string {
   return join(stateDir(), 'repos.json');
 }
 
-function controlTokenPath(): string {
-  return join(stateDir(), 'control-token');
-}
-
 async function readFileJson(path: string): Promise<RegistryFile> {
   try {
     const parsed: unknown = JSON.parse(await readFile(path, 'utf8'));
@@ -36,31 +31,6 @@ async function readFileJson(path: string): Promise<RegistryFile> {
   } catch {
     return {};
   }
-}
-
-// The secret that separates "a local process asked" from "a web page asked".
-//
-// Registering a repository means telling the daemon to read a directory, so it
-// cannot be something any page that reaches the port can do. A CLI invocation
-// can read this file; a browser cannot, and never needs to -- the client only
-// ever addresses repositories that are already registered.
-export async function readControlToken(): Promise<string | null> {
-  try {
-    const token = (await readFile(controlTokenPath(), 'utf8')).trim();
-    return token === '' ? null : token;
-  } catch {
-    return null;
-  }
-}
-
-export async function ensureControlToken(): Promise<string> {
-  const existing = await readControlToken();
-  if (existing != null) return existing;
-  const token = randomBytes(32).toString('base64url');
-  await mkdir(stateDir(), { recursive: true });
-  // 0600: the whole point is that only this user's processes can read it.
-  await writeFile(controlTokenPath(), `${token}\n`, { mode: 0o600 });
-  return token;
 }
 
 // A recents list should not grow without bound, and nobody scrolls past the

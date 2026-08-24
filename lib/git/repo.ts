@@ -9,7 +9,7 @@ export class NoRepositoryError extends Error {
   constructor(message?: string) {
     super(
       message ??
-        'No local repository is registered. Local review is served by the `hunk` CLI; run `hunk` inside a git repository.'
+        'No repository has been opened yet. Open one from the home page, or run `hunk` inside a git repository.'
     );
     this.name = 'NoRepositoryError';
   }

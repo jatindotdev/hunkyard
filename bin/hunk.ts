@@ -13,12 +13,7 @@ import {
   readDaemonPid,
   writeDaemonPid,
 } from '../lib/repos/daemonPid';
-import {
-  ensureControlToken,
-  forgetRepos,
-  registerRepo,
-  tidyRepos,
-} from '../lib/repos/registry';
+import { forgetRepos, registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
 import { CliError, resolveViewerPath, viewerUrl } from './cli-core';
 
@@ -246,7 +241,6 @@ async function review(options: {
   // and a running server keeps whatever it started with.
   const token = resolveGitHubToken();
   if (token != null) process.env.HUNKYARD_GITHUB_TOKEN = token;
-  const controlToken = await ensureControlToken();
 
   const running = await describeServer(options.port);
   if (running == null && !(await isPortFree(options.port))) {
@@ -278,17 +272,6 @@ async function review(options: {
 
   if (running == null) {
     await startBackgroundServer(options.port);
-  } else if (controlToken != null && repoRoot != null) {
-    // Belt and braces: the running server reads the registry from disk, so this
-    // only matters if it ever caches it.
-    await fetch(`http://127.0.0.1:${options.port}/api/repos`, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-hunkyard-token': controlToken,
-      },
-      body: JSON.stringify({ path: repoRoot }),
-    }).catch(() => undefined);
   }
 
   process.stdout.write(`${url}\n`);

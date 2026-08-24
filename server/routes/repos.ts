@@ -1,32 +1,23 @@
 import { Hono } from 'hono';
 
 import { REPO_ROOT_ENV, resolveFallbackRepo } from '../../lib/git/repo';
-import {
-  listRepos,
-  readControlToken,
-  registerRepo,
-} from '../../lib/repos/registry';
+import { forgetRepos, registerRepo, tidyRepos } from '../../lib/repos/registry';
+import { isOurWrite } from '../guard';
 
-// Registering is no longer a privilege boundary: a request can name any
-// repository by path. It still writes the recents list that gives `hunk status`
-// and the default repository their contents, so it stays behind a token only
-// local processes can read, to keep a web page from filling that list with
-// noise. The browser client never registers anything.
-async function isControlRequest(request: Request): Promise<boolean> {
-  const token = await readControlToken();
-  if (token == null) return false;
-  const offered = request.headers.get('x-hunkyard-token');
-  return offered != null && offered === token;
-}
-
+// Registering used to need a token from the state directory, on the reasoning
+// that it told the daemon to read a directory. It no longer grants anything:
+// `?repo=<path>` already names any repository on the machine, so registering
+// only writes the recents list. What keeps a foreign page out of that list is
+// isOurWrite -- an Origin that is present and ours -- which is also what keeps
+// `curl -X POST` out of it.
 export function createReposApp(): Hono {
   const app = new Hono();
 
-  // Which repositories the client may address, and which one to fall back to.
-  // Readable without the token: it is the list the UI needs to render, and it
-  // says nothing a page could not learn by asking for each id in turn.
+  // Which repositories you have opened, and which one to fall back to. Tidied
+  // rather than merely listed: a temp directory from a test run is gone, and an
+  // entry for it is a row in the UI that cannot be opened.
   app.get('/api/repos', async (c) => {
-    const registered = await listRepos();
+    const registered = await tidyRepos();
     const fallback = await resolveFallbackRepo();
     // The environment variable is configuration and outranks the recents list,
     // matching how the diff routes resolve a request that names nothing. Under
@@ -45,7 +36,12 @@ export function createReposApp(): Hono {
 
     return c.json(
       {
-        repos: repos.map((repo) => ({ id: repo.id, root: repo.root })),
+        // lastUsedAt is what orders the list, so the client needs it too.
+        repos: repos.map((repo) => ({
+          id: repo.id,
+          root: repo.root,
+          lastUsedAt: repo.lastUsedAt,
+        })),
         defaultId: repos[0]?.id ?? null,
       },
       { headers: new Headers({ 'Cache-Control': 'no-store' }) }
@@ -53,8 +49,8 @@ export function createReposApp(): Hono {
   });
 
   app.post('/api/repos', async (c) => {
-    if (!(await isControlRequest(c.req.raw))) {
-      return c.text('Registering a repository needs the local control token.', 403);
+    if (!isOurWrite(c.req.raw)) {
+      return c.text('Registering a repository needs a request from the app.', 403);
     }
 
     const body = (await c.req.json().catch(() => null)) as {
@@ -66,10 +62,20 @@ export function createReposApp(): Hono {
 
     try {
       const repo = await registerRepo(body.path);
-      return c.json({ id: repo.id, root: repo.root });
+      return c.json({ id: repo.id, root: repo.root, lastUsedAt: repo.lastUsedAt });
     } catch (error) {
       return c.text(error instanceof Error ? error.message : 'Failed.', 400);
     }
+  });
+
+  // Forgetting is a write to the same list, and the repository itself is
+  // untouched.
+  app.delete('/api/repos/:id', async (c) => {
+    if (!isOurWrite(c.req.raw)) {
+      return c.text('Forgetting a repository needs a request from the app.', 403);
+    }
+    const removed = await forgetRepos(c.req.param('id'));
+    return c.json({ removed });
   });
 
   return app;
