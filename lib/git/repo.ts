@@ -45,7 +45,7 @@ export async function resolveFallbackRepo(): Promise<RegisteredRepo | null> {
 // `repo` is either an id from the registry, which is what `hunk` puts in the URL
 // because it reads well, or a path to any repository on the machine. The
 // registry is a list of what you have opened, for the default and for
-// `hunk status`; it is not an allowlist.
+// the opener's recents list; it is not an allowlist.
 //
 // What keeps that from being a way to read your disk from a web page is in
 // server/guard.ts, not here: the Host check refuses a name we do not answer on,

@@ -6,7 +6,7 @@
 // This exists because the unit tests never invoke the binary. Everything it
 // catches is a thing 282 passing tests said nothing about: a client that was not
 // embedded, `--version` printing usage and exiting 1, an unknown flag being
-// ignored, `hunk stop` needing lsof.
+// ignored, `hunk service stop` finding nothing to stop.
 //
 // It runs its own daemon on an unlikely port and redirects the state directory,
 // so it neither reads nor writes the registry of whoever runs it.
@@ -124,7 +124,7 @@ try {
     const cold = hunk(['--no-open']);
     check(
       'hunk says to register the URL rather than inventing one',
-      cold.status !== 0 && cold.out.includes('hunk install'),
+      cold.status !== 0 && cold.out.includes('hunk service install'),
       cold.out
     );
   }

@@ -4,7 +4,7 @@
 // There is one origin for this app, because browser storage is per-origin and
 // two would mean your viewed state depended on which URL you opened. Rather
 // than reconcile two, the ported one is not offered at all: this says whether
-// the real one works, and `hunk install` is the answer when it does not.
+// the real one works, and `hunk service install` is the answer when it is not.
 //
 // Asking is also starting. The service manager runs hunkyard on the first
 // connection, so a probe that succeeds has just started the server the caller

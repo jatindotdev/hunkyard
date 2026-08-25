@@ -185,6 +185,6 @@ if [ -n "$found" ] && [ "$found" != "${INSTALL_DIR}/hunk" ]; then
   echo "${DIM}or remove the other one.${OFF}"
 else
   echo
-  echo "  ${DIM}hunk${OFF}          ${DIM}review what you have not committed${OFF}"
-  echo "  ${DIM}hunk install${OFF}  ${DIM}register ${OFF}${CYAN}http://hunkyard.localhost${OFF}${DIM}, once${OFF}"
+  echo "  ${DIM}hunk${OFF}                  ${DIM}review what you have not committed${OFF}"
+  echo "  ${DIM}hunk service install${OFF}  ${DIM}register ${OFF}${CYAN}http://hunkyard.localhost${OFF}${DIM}, once${OFF}"
 fi

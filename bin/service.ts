@@ -184,7 +184,7 @@ async function portIsHeld(): Promise<boolean> {
 // connecting.
 //
 // Connecting would answer more precisely and cost more than it is worth: the
-// service manager starts the server when something connects, so a `hunk status`
+// service manager starts the server when something connects, so a `hunk service status`
 // that probed the port would start a server in order to report that none was
 // running.
 export async function serviceIsRegistered(): Promise<boolean> {

@@ -3,7 +3,7 @@ import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
 
 // When this process began serving. A long-lived server keeps running whatever
 // binary it started with, so a rebuilt or upgraded hunk on disk is not the hunk
-// answering: this is what lets `hunk status` notice.
+// answering: this is what lets `hunk service status` notice.
 const STARTED_AT = new Date().toISOString();
 
 // Lets a `hunk` invocation tell whether the port is occupied by us, so it can

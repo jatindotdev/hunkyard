@@ -9,7 +9,7 @@ import { stateDir } from './stateDir';
 export interface RegisteredRepo {
   id: string;
   root: string;
-  // When a `hunk` invocation last opened this repository, so `hunk status` can
+  // When a `hunk` invocation last opened this repository, so the opener can
   // show the useful ones first.
   lastUsedAt: string;
 }
@@ -38,7 +38,7 @@ async function readFileJson(path: string): Promise<RegistryFile> {
 const KEEP = 20;
 
 // Entries whose directory is gone. They cannot be reviewed and only clutter
-// `hunk status`, which is where a temp directory from a test run lingers.
+// the opener's list, which is where a temp directory from a test run lingers.
 export function pruneMissingRepos(
   repos: readonly RegisteredRepo[]
 ): RegisteredRepo[] {
@@ -69,7 +69,7 @@ async function write(repos: RegisteredRepo[], defaultId: string): Promise<void> 
   );
 }
 
-// Drops what is gone and writes the result, so `hunk status` reports what can
+// Drops what is gone and writes the result, so the list reports what can
 // actually be reviewed. Returns what is left.
 export async function tidyRepos(): Promise<RegisteredRepo[]> {
   const repos = await listRepos();

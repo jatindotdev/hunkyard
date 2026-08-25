@@ -3,7 +3,8 @@ import { join } from 'node:path';
 
 import { stateDir } from './stateDir';
 
-// The pid of the server on a given port, so `hunk stop` and `hunk status` can
+// The pid of the server on a given port, so `hunk service stop` and
+// `hunk service status` can
 // find it without asking the system what holds the socket.
 //
 // Asking the socket is not an option under socket activation: the service

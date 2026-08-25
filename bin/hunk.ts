@@ -166,7 +166,7 @@ async function serve(options: {
   if (options.activated && inherited.length === 0) {
     fail(
       'started with --activated but no socket was handed over',
-      'This is the form the service manager runs. Use `hunk serve` to run one in\na terminal.'
+      'This is the form the service manager runs. Use `hunk service run` to run\none in a terminal.'
     );
   }
 
@@ -245,12 +245,15 @@ async function runStatus(port: number): Promise<void> {
   process.stdout.write(
     registered
       ? row('url', `${green(BARE_ORIGIN)} ${dim('registered')}`)
-      : row('url', `${yellow('not registered')} ${dim('hunk install')}`)
+      : row('url', `${yellow('not registered')} ${dim('hunk service install')}`)
   );
 
   if (isStale(health)) {
     process.stdout.write(
-      row('version', `${yellow('stale')} ${dim('this binary is newer; hunk stop')}`)
+      row(
+        'version',
+        `${yellow('stale')} ${dim('this binary is newer; hunk service stop')}`
+      )
     );
   }
 
@@ -274,10 +277,13 @@ async function runStatus(port: number): Promise<void> {
   );
 }
 
-// Whether the answering server predates the binary being run right now. A
-// long-lived server keeps serving the code it started with, so rebuilding or
-// upgrading changes nothing until it is restarted -- and nothing about the
-// output says so, which is how you end up debugging a fix that is not running.
+// Whether the answering server predates the binary being run right now.
+//
+// A process keeps the executable image it was started with, so replacing the
+// file on disk changes nothing about what is already running -- and nothing in
+// the output would say so, which is how you end up debugging a fix that is not
+// the code answering your requests. Stopping is the whole remedy: the next
+// request starts a server on the new binary.
 function isStale(health: HealthBody | null): boolean {
   if (health?.startedAt == null) return false;
   const started = Date.parse(health.startedAt);
@@ -337,7 +343,7 @@ async function requireCanonicalOrigin(port: number): Promise<string> {
   if (resolved.kind === 'origin') return resolved.origin;
   fail(
     `${BARE_ORIGIN} is not being served yet`,
-    'Run `hunk install` once. It registers the URL and needs sudo the one time.\n`hunk serve` runs one in this terminal on a port instead.'
+    'Run `hunk service install` once. It registers the URL and needs sudo the one\ntime. `hunk service run` runs one in this terminal on a port instead.'
   );
 }
 
