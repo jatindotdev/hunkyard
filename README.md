@@ -77,11 +77,16 @@ starts one: launchd binds port 80 and holds it, and the first request is what
 starts hunkyard. It runs as you, never as root -- the socket is bound before
 anything of ours exists, and only the descriptor is handed over.
 
-It stops again once nothing has been connected for a few minutes, and the next
-request starts it back up. A tab you leave open stops holding it alive when you
-switch away and reconnects when you come back, so returning to a tab wakes the
-server rather than finding a dead one. `HUNKYARD_IDLE_TIMEOUT` sets the wait in
-seconds; `0` means never.
+It stops five minutes after the last connection closes, and the next request
+starts it back up. Connections, not requests: a tab watching a diff holds an
+event stream open, so it counts as in use without having to say so. Switching
+away from that tab drops the stream, and coming back reopens it -- which is both
+what lets the server go idle and what wakes it, since the reconnect is itself a
+request.
+
+`HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, and `0` disables it. Only an
+activated server stops on its own; one from `hunk service run` runs until you
+stop it.
 
 `hunk service stop` ends it now instead of when it goes idle. Upgrading is the
 reason to bother: a running server keeps serving the binary it started with, and

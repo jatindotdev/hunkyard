@@ -31,6 +31,12 @@ export function createIdleTimer(options: {
     timer = undefined;
   };
 
+  // Zero means never rather than immediately. A timeout of nothing would make
+  // the server exit the moment the last connection closed, which is the most
+  // aggressive setting rather than the disabled one, and disabling is what
+  // anyone typing 0 is asking for.
+  if (afterMs <= 0) return { idle: () => {}, busy: () => {}, cancel: () => {} };
+
   return {
     idle: () => {
       cancel();
@@ -45,7 +51,9 @@ export function createIdleTimer(options: {
   };
 }
 
-// `0` disables it, for anyone who would rather it stayed up.
+// Seconds, and `0` disables it for anyone who would rather it stayed up.
+// Anything unparseable falls back to the default rather than to never, since a
+// typo should not silently leave a server running for good.
 export function idleTimeoutFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): number {
