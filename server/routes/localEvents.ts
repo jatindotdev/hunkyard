@@ -6,6 +6,9 @@ import {
 import { resolveGitTarget } from '../../lib/git/targets';
 import { isWatchableTarget, watchTarget } from '../../lib/git/watch';
 
+// Often enough that a short idle timeout does not cut off someone reading.
+export const SSE_HEARTBEAT_MS = 10_000;
+
 // Server-sent events telling the viewer when the diff it is showing has
 // changed. Only mutable targets are watched; a commit cannot change.
 export async function handleLocalEvents(request: Request): Promise<Response> {
@@ -57,14 +60,17 @@ export async function handleLocalEvents(request: Request): Promise<Response> {
         send('changed', JSON.stringify({ at: Date.now() }));
       });
 
-      // A comment line keeps intermediaries from closing an idle connection.
+      // A comment line keeps intermediaries from closing an idle connection,
+      // and is also how a stream that nothing has happened on still counts as
+      // in use: the server measures idleness by traffic, so a reader sitting
+      // on an unchanging diff has to say something occasionally.
       heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(': keepalive\n\n'));
         } catch {
           clearInterval(heartbeat);
         }
-      }, 30_000);
+      }, SSE_HEARTBEAT_MS);
     },
     cancel() {
       handle?.close();

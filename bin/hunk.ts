@@ -213,15 +213,13 @@ async function serve(options: {
   const forwarder = forwardAdoptedSockets({
     fds: inherited,
     to: server.port,
-    onBusy: idle.busy,
-    onIdle: idle.idle,
+    onActivity: idle.touch,
   });
   void forwarder;
   await writeDaemonPid(BARE_PORT, server.port);
-  // Nothing has connected yet on a cold start, and the connection that started
-  // us is about to arrive; without arming this a server nobody then uses would
-  // stay up forever.
-  idle.idle();
+  // Armed from the start, so a server nobody then talks to does not stay up
+  // waiting to be spoken to for the first time.
+  idle.touch();
 }
 
 // What is registered, what is running, and whether it is current.

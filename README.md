@@ -84,7 +84,8 @@ away from that tab drops the stream, and coming back reopens it -- which is both
 what lets the server go idle and what wakes it, since the reconnect is itself a
 request.
 
-`HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, and `0` disables it. Only an
+`HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, with a floor of 20 so a reader
+cannot be cut off between two heartbeats; `0` disables it. Only an
 activated server stops on its own; one from `hunk service run` runs until you
 stop it. `HUNKYARD_TRACE_IDLE=1` makes it log every connection it opens and
 closes, which is how to answer "why is this still running".

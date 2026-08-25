@@ -1,10 +1,16 @@
 // When to stop.
 //
 // Under socket activation the service manager keeps the port bound, so exiting
-// is not the same as going away: the next connection starts us again. That makes
-// running only while something is connected the honest lifecycle, and it is what
-// keeps hunkyard from being a process that sits in your login items doing
-// nothing between reviews.
+// is not the same as going away: the next request starts us again. That makes
+// running only while something is using us the honest lifecycle, and it is what
+// keeps hunkyard from being a process that sits there doing nothing between
+// reviews.
+//
+// Measured in traffic rather than in open connections. A connection is the
+// obvious signal and the wrong one: browsers pool idle keep-alive sockets and
+// hold them long after the page that opened them is closed, so counting
+// connections meant a closed tab left the server running anyway. Bytes tell the
+// two apart -- an event stream heartbeats, a parked socket says nothing.
 
 // A minute after the last connection closes.
 //
@@ -15,10 +21,8 @@
 export const DEFAULT_IDLE_MS = 60_000;
 
 export interface IdleTimer {
-  // Nothing is connected any more; start counting.
-  idle(): void;
-  // Something connected; stop counting.
-  busy(): void;
+  // Something happened. Starts the clock again from here.
+  touch(): void;
   cancel(): void;
 }
 
@@ -35,13 +39,13 @@ export function createIdleTimer(options: {
   };
 
   // Zero means never rather than immediately. A timeout of nothing would make
-  // the server exit the moment the last connection closed, which is the most
+  // the server exit the moment it stopped being spoken to, which is the most
   // aggressive setting rather than the disabled one, and disabling is what
   // anyone typing 0 is asking for.
-  if (afterMs <= 0) return { idle: () => {}, busy: () => {}, cancel: () => {} };
+  if (afterMs <= 0) return { touch: () => {}, cancel: () => {} };
 
   return {
-    idle: () => {
+    touch: () => {
       cancel();
       timer = setTimeout(options.onExpired, afterMs);
       // A pending exit must never be the reason the process stays alive, or a
@@ -49,10 +53,14 @@ export function createIdleTimer(options: {
       // close it.
       timer.unref?.();
     },
-    busy: cancel,
     cancel,
   };
 }
+
+// Below this, a reader sitting on an unchanging diff could be cut off between
+// two heartbeats of the stream that represents them. Someone who wants it gone
+// sooner than this wants it disabled and stopped by hand.
+export const MIN_IDLE_MS = 20_000;
 
 // Seconds, and `0` disables it for anyone who would rather it stayed up.
 // Anything unparseable falls back to the default rather than to never, since a
@@ -64,5 +72,6 @@ export function idleTimeoutFromEnv(
   if (raw == null || raw.trim() === '') return DEFAULT_IDLE_MS;
   const seconds = Number.parseInt(raw, 10);
   if (!Number.isInteger(seconds) || seconds < 0) return DEFAULT_IDLE_MS;
-  return seconds * 1000;
+  if (seconds === 0) return 0;
+  return Math.max(seconds * 1000, MIN_IDLE_MS);
 }

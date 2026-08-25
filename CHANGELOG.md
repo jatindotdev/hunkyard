@@ -60,6 +60,19 @@ status` and `hunk stop` looked for the server on port 4865, which an activated
 server never uses. They now find it by the pid it records, which also avoids a
 `status` that started a server in order to report that none was running.
 
+### Idle means nothing is happening, not nothing is connected
+
+A closed tab did not stop the server. Browsers keep idle keep-alive sockets in a
+pool long after the page that opened them is gone -- two of them here, still
+parked with every tab shut -- and idleness was measured by counting open
+connections, so those two read as somebody using it.
+
+It is measured in traffic now. An event stream heartbeats, so a reader sitting
+on an unchanging diff still counts; a parked socket says nothing and does not.
+The heartbeat drops from 30s to 10s so that a short timeout cannot cut off a
+reader between two of them, and the timeout has a floor of 20s for the same
+reason.
+
 ### Waking up is fast now, and idling happens sooner
 
 Waking a stopped server takes about 0.13s, but it was taking ten whenever the
