@@ -28,8 +28,16 @@ export function forwardAdoptedSockets(options: {
   let open = 0;
   const servers: net.Server[] = [];
 
+  // A background server with no terminal is hard to ask what it is doing, and
+  // "why is it still running" is the question it gets. This answers it.
+  const trace = (what: string) => {
+    if (process.env.HUNKYARD_TRACE_IDLE == null) return;
+    process.stderr.write(`[idle] ${what} open=${open}\n`);
+  };
+
   const handle = (inbound: net.Socket) => {
     open += 1;
+    trace('open');
     if (open === 1) options.onBusy?.();
 
     const outbound = net.connect(options.to, '127.0.0.1');
@@ -48,6 +56,7 @@ export function forwardAdoptedSockets(options: {
 
     inbound.on('close', () => {
       open -= 1;
+      trace('inbound close');
       if (open === 0) options.onIdle?.();
       outbound.destroy();
     });

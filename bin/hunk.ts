@@ -26,7 +26,7 @@ import { BARE_PORT, isSupportedPlatform } from '../lib/proxy/service';
 import {
   clearDaemonPid,
   listDaemonPorts,
-  readDaemonPid,
+  readDaemonRecord,
   writeDaemonPid,
 } from '../lib/repos/daemonPid';
 import { registerRepo, tidyRepos } from '../lib/repos/registry';
@@ -98,12 +98,16 @@ interface RunningServer {
 // run. An activated server also picks an ephemeral port, so there is no port to
 // ask on -- only the pid it recorded under the registered one.
 async function findRunningServer(port: number): Promise<RunningServer | null> {
-  const activated = await readDaemonPid(BARE_PORT);
+  const activated = await readDaemonRecord(BARE_PORT);
   if (activated != null) {
-    // Safe to ask now: it is already up, so the request starts nothing.
+    // Straight to the server rather than through the registered socket.
+    // Connections through that socket are what keeps it from going idle, so
+    // asking after it that way would be a status check that kept alive the
+    // server it was reporting on -- and checking twice would keep it up for
+    // good.
     return {
-      pid: activated,
-      healthUrl: `http://127.0.0.1:${BARE_PORT}/api/health`,
+      pid: activated.pid,
+      healthUrl: `http://127.0.0.1:${activated.port}/api/health`,
       origin: BARE_ORIGIN,
     };
   }
@@ -114,12 +118,12 @@ async function findRunningServer(port: number): Promise<RunningServer | null> {
   const found = ports.includes(port) ? port : ports[0];
   if (found == null) return null;
 
-  const pid = await readDaemonPid(found);
-  if (pid == null) return null;
+  const record = await readDaemonRecord(found);
+  if (record == null) return null;
 
   return {
-    pid,
-    healthUrl: `http://127.0.0.1:${found}/api/health`,
+    pid: record.pid,
+    healthUrl: `http://127.0.0.1:${record.port}/api/health`,
     origin: `${BARE_ORIGIN}:${found}`,
   };
 }
@@ -180,7 +184,9 @@ async function serve(options: {
 
   const stop = () => {
     server.stop();
-    void clearDaemonPid(server.port).finally(() => process.exit(0));
+    // Filed under the registered port when activated, under its own otherwise.
+    const filedUnder = inherited.length > 0 ? BARE_PORT : server.port;
+    void clearDaemonPid(filedUnder).finally(() => process.exit(0));
   };
   process.on('SIGINT', stop);
   process.on('SIGTERM', stop);
@@ -211,7 +217,7 @@ async function serve(options: {
     onIdle: idle.idle,
   });
   void forwarder;
-  await writeDaemonPid(BARE_PORT);
+  await writeDaemonPid(BARE_PORT, server.port);
   // Nothing has connected yet on a cold start, and the connection that started
   // us is about to arrive; without arming this a server nobody then uses would
   // stay up forever.

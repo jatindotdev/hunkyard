@@ -46,14 +46,21 @@ describe('daemon pid file', () => {
   test('treats a pid that is gone as no server, and removes the file', async () => {
     await mkdir(join(stateHome, 'hunkyard'), { recursive: true });
     const path = join(stateHome, 'hunkyard', 'daemon-4865.pid');
-    await writeFile(path, '999999\n');
+    await writeFile(path, `${JSON.stringify({ pid: 999999, port: 4865 })}\n`);
     expect(await readDaemonPid(4865)).toBeNull();
     await expect(readFile(path, 'utf8')).rejects.toThrow();
   });
 
-  test('ignores a file that is not a pid', async () => {
+  // A file this version cannot read still has to be cleared, or it outlives
+  // every server and nothing ever tidies it. A bare pid is what an older
+  // version wrote.
+  test('removes a file it cannot read at all', async () => {
     await mkdir(join(stateHome, 'hunkyard'), { recursive: true });
-    await writeFile(join(stateHome, 'hunkyard', 'daemon-4865.pid'), 'nonsense\n');
-    expect(await readDaemonPid(4865)).toBeNull();
+    for (const contents of ['999999\n', 'not json\n', '']) {
+      const path = join(stateHome, 'hunkyard', 'daemon-4870.pid');
+      await writeFile(path, contents);
+      expect(await readDaemonPid(4870)).toBeNull();
+      await expect(readFile(path, 'utf8')).rejects.toThrow();
+    }
   });
 });

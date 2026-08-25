@@ -86,7 +86,8 @@ request.
 
 `HUNKYARD_IDLE_TIMEOUT` sets the wait in seconds, and `0` disables it. Only an
 activated server stops on its own; one from `hunk service run` runs until you
-stop it.
+stop it. `HUNKYARD_TRACE_IDLE=1` makes it log every connection it opens and
+closes, which is how to answer "why is this still running".
 
 `hunk service stop` ends it now instead of when it goes idle. Upgrading is the
 reason to bother: a running server keeps serving the binary it started with, and

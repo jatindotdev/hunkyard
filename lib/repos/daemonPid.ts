@@ -15,9 +15,28 @@ function pidPath(port: number): string {
   return join(stateDir(), `daemon-${port}.pid`);
 }
 
-export async function writeDaemonPid(port: number): Promise<void> {
+export interface DaemonRecord {
+  pid: number;
+  // The port the server is actually listening on, which is not the port this
+  // record is filed under: an activated server is filed under the registered
+  // port and listens on an ephemeral one.
+  //
+  // Recorded so anything asking after it can go straight to the server rather
+  // than through the registered socket. Connections through that socket are
+  // what "in use" is counted from, so a status check that went that way would
+  // keep alive the server it was reporting on.
+  port: number;
+}
+
+export async function writeDaemonPid(
+  port: number,
+  servingPort = port
+): Promise<void> {
   await mkdir(stateDir(), { recursive: true });
-  await writeFile(pidPath(port), `${process.pid}\n`);
+  await writeFile(
+    pidPath(port),
+    `${JSON.stringify({ pid: process.pid, port: servingPort })}\n`
+  );
 }
 
 export async function clearDaemonPid(port: number): Promise<void> {
@@ -27,22 +46,49 @@ export async function clearDaemonPid(port: number): Promise<void> {
 // The pid, or null when there is no file or the process it names is gone. A
 // stale file outlives a server that was killed rather than stopped, so the
 // process is checked rather than trusted.
-export async function readDaemonPid(port: number): Promise<number | null> {
-  let pid: number;
+export async function readDaemonRecord(
+  port: number
+): Promise<DaemonRecord | null> {
+  let raw: string;
   try {
-    pid = Number((await readFile(pidPath(port), 'utf8')).trim());
+    raw = (await readFile(pidPath(port), 'utf8')).trim();
   } catch {
     return null;
   }
-  if (!Number.isInteger(pid) || pid <= 0) return null;
+
+  let record: DaemonRecord | null = null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<DaemonRecord>;
+    if (Number.isInteger(parsed.pid) && (parsed.pid ?? 0) > 0) {
+      record = {
+        pid: parsed.pid as number,
+        port: Number.isInteger(parsed.port) ? (parsed.port as number) : port,
+      };
+    }
+  } catch {
+    // Not a record: garbage, or a file written by a version that stored a bare
+    // pid. Either way it names nothing we can check.
+  }
+
+  // Removed rather than left, or an unreadable file outlives every server and
+  // is never cleaned up by anything.
+  if (record == null) {
+    await clearDaemonPid(port);
+    return null;
+  }
+
   try {
     // Signal 0 checks the process exists without touching it.
-    process.kill(pid, 0);
-    return pid;
+    process.kill(record.pid, 0);
+    return record;
   } catch {
     await clearDaemonPid(port);
     return null;
   }
+}
+
+export async function readDaemonPid(port: number): Promise<number | null> {
+  return (await readDaemonRecord(port))?.pid ?? null;
 }
 
 // Every port a live server is recorded on. A server run by hand takes whichever

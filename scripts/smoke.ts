@@ -104,18 +104,30 @@ try {
     help.slice(0, 120)
   );
 
-  console.log('\nwith nothing registered and nothing running');
-  const cold = hunk(['--no-open']);
+  console.log('\nwith nothing running');
   check(
-    'hunk says to register the URL rather than inventing one',
-    cold.status !== 0 && cold.out.includes('hunk install'),
-    cold.out
-  );
-  check(
-    'and starts no server of its own',
+    'hunk starts no server of its own',
     (await get('/api/health')).status === 0,
     'something answered before the server was started'
   );
+
+  // Only meaningful where hunkyard.localhost is not registered. On a machine
+  // that has run `hunk service install` the real server answers port 80, and
+  // handing over its URL is the right answer rather than a failure.
+  const registered = await fetch('http://127.0.0.1:80/api/health')
+    .then((response) => response.text())
+    .then((body) => body.includes('"app":"hunkyard"'))
+    .catch(() => false);
+  if (registered) {
+    console.log('  skip  the unregistered case: this machine has it registered');
+  } else {
+    const cold = hunk(['--no-open']);
+    check(
+      'hunk says to register the URL rather than inventing one',
+      cold.status !== 0 && cold.out.includes('hunk install'),
+      cold.out
+    );
+  }
 
   console.log('\nserving');
   // The service manager starts the server on a connection; here there is no
