@@ -60,6 +60,22 @@ status` and `hunk stop` looked for the server on port 4865, which an activated
 server never uses. They now find it by the pid it records, which also avoids a
 `status` that started a server in order to report that none was running.
 
+### Waking up is fast now, and idling happens sooner
+
+Waking a stopped server takes about 0.13s, but it was taking ten whenever the
+last one had stopped recently. launchd will not start a job twice inside
+`ThrottleInterval`, and the default is ten seconds -- which for a job that
+exists to be started on demand is not throttling, it is a ten second stall on
+the next request after any quick stop. Stopping to pick up a new binary is
+exactly that shape, so the stall landed on the case most likely to be someone
+watching. It is one second now, still enough to stop a crash loop spinning.
+
+With waking that cheap, five minutes of idle was mostly a server sitting there.
+The default is a minute. Reviewing holds a connection open the whole time you
+are reading, so the clock only runs once the tab is closed or hidden.
+
+**This changes the installed job**, so run `hunk service install` again.
+
 ### The commands are grouped
 
 Everything that is not reviewing is about the service, so it lives under one:

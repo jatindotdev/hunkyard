@@ -7,7 +7,7 @@ import {
 } from '@/lib/service/idle';
 
 describe('idleTimeoutFromEnv', () => {
-  test('is five minutes by default', () => {
+  test('is a minute by default', () => {
     expect(idleTimeoutFromEnv({})).toBe(DEFAULT_IDLE_MS);
     expect(idleTimeoutFromEnv({ HUNKYARD_IDLE_TIMEOUT: '' })).toBe(
       DEFAULT_IDLE_MS

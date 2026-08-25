@@ -77,6 +77,13 @@ export function launchdPlist(
        between reviews. -->
   <key>RunAtLoad</key>
   <false/>
+  <!-- launchd will not start a job twice within ThrottleInterval, and the
+       default is ten seconds. For a job that exists to be started on demand
+       that is not throttling, it is a ten second stall on the next request
+       after any quick stop -- which is exactly what stopping to pick up a new
+       binary looks like. One second is enough to stop a crash loop spinning. -->
+  <key>ThrottleInterval</key>
+  <integer>1</integer>
   <key>Sockets</key>
   <dict>
     <key>${SOCKET_NAME}</key>
@@ -137,8 +144,10 @@ ExecStart=${executable} service run --activated
 User=${user}
 Environment=PATH=${SERVICE_PATH}
 # The socket unit restarts it on the next connection, so exiting when idle is
-# the design rather than a failure.
+# the design rather than a failure -- and rate limiting starts would turn a
+# quick stop into a refusal to start again.
 Restart=no
+StartLimitIntervalSec=0
 `;
 }
 

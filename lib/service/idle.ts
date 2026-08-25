@@ -6,11 +6,14 @@
 // keeps hunkyard from being a process that sits in your login items doing
 // nothing between reviews.
 
-export const DEFAULT_IDLE_MS = 5 * 60_000;
+// A minute after the last connection closes.
+//
+// Waking costs about 0.13s, so this is not about the cost of starting again --
+// it is about not churning through a process each time you glance away from the
+// tab. Reviewing keeps a connection open the whole time you are reading, so
+// this clock only runs once you have closed or hidden the tab.
+export const DEFAULT_IDLE_MS = 60_000;
 
-// Long enough that a browser's idle keep-alive sockets have closed and a page
-// being reloaded has come back, short enough that a machine left alone stops
-// running a server nobody asked for.
 export interface IdleTimer {
   // Nothing is connected any more; start counting.
   idle(): void;

@@ -77,8 +77,8 @@ starts one: launchd binds port 80 and holds it, and the first request is what
 starts hunkyard. It runs as you, never as root -- the socket is bound before
 anything of ours exists, and only the descriptor is handed over.
 
-It stops five minutes after the last connection closes, and the next request
-starts it back up. Connections, not requests: a tab watching a diff holds an
+It stops a minute after the last connection closes, and the next request starts
+it back up, which takes about 0.13s. Connections, not requests: a tab watching a diff holds an
 event stream open, so it counts as in use without having to say so. Switching
 away from that tab drops the stream, and coming back reopens it -- which is both
 what lets the server go idle and what wakes it, since the reconnect is itself a
