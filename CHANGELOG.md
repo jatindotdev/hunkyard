@@ -10,6 +10,22 @@ notes at that point, which is a thing that has already happened once.
 
 ## Unreleased
 
+### One field instead of three surfaces
+
+The opener was a URL box, a list of repositories and a folder browser, each with
+its own way in and its own way back -- and the folder browser had no way back at
+all, only an up-arrow that read as one.
+
+It is one field now. What you type decides what it means: a path lists the
+folders under it, a repository name matches what you have opened, and anything
+shaped like a pull request is parsed without touching the network. Choosing a
+repository turns it into a chip and everything after that searches inside it --
+uncommitted work with file counts, this branch against its base, branches, tags,
+recent commits, or a revision typed out. Escape clears, backspace on an empty
+field removes the chip, and descending into a folder rewrites the field rather
+than navigating, so there is no back button because there is nowhere to go back
+to.
+
 ### Open anything from the browser
 
 The CLI used to decide what you review: you `cd` into a repository, run `hunk`,

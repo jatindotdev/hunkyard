@@ -17,7 +17,6 @@ let previousState: string | undefined;
 let previousRoot: string | undefined;
 let server: { port: number; stop(): void };
 let browser: Browser;
-let origin: string;
 
 beforeAll(async () => {
   if (!available) return;
@@ -40,9 +39,8 @@ beforeAll(async () => {
   process.env.HUNKYARD_REPO_ROOT = repo;
 
   server = startServer({ port: 0 });
-  origin = `http://127.0.0.1:${server.port}`;
   browser = await Browser.launch();
-  await browser.open(`${origin}/?path=${encodeURIComponent(base)}`);
+  await browser.open(`http://127.0.0.1:${server.port}/`);
 }, 60_000);
 
 afterAll(async () => {
@@ -56,39 +54,69 @@ afterAll(async () => {
   await rm(base, { recursive: true, force: true });
 });
 
-function settle(ms = 800): Promise<void> {
+function settle(ms = 900): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const BODY = 'document.body.innerText';
 
+// Typed rather than pressed: a path contains characters the key protocol needs
+// modifiers for, and what matters here is what the field reacts to.
+async function type(text: string): Promise<void> {
+  await browser.evaluate(`(() => {
+    const el = document.querySelector('input');
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype, 'value'
+    ).set;
+    setter.call(el, ${JSON.stringify(text)});
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return 'ok';
+  })()`);
+  await settle();
+}
+
 describe.skipIf(!available)('the opener in a real browser', () => {
-  test('lists the folder and marks the repository in it', async () => {
+  test('a path lists the folders under it', async () => {
+    await type(`${base}/`);
     const text = await browser.evaluate<string>(BODY);
+    expect(text).toContain('FOLDERS');
     expect(text).toContain('repo');
     expect(text.toLowerCase()).toContain('git');
   });
 
-  test('opening the repository lands on the target picker', async () => {
+  test('a pull request is recognised without any network', async () => {
+    await type('oven-sh/bun#30412');
+    const text = await browser.evaluate<string>(BODY);
+    expect(text).toContain('PULL REQUEST');
+    expect(text).toContain('oven-sh/bun/pull/30412');
+  });
+
+  test('choosing a repository narrows to what it has to review', async () => {
+    await type(`${base}/repo`);
     await browser.evaluate(
-      `[...document.querySelectorAll('button')].find((b) => b.innerText.startsWith('repo')).click(), 'ok'`
+      `[...document.querySelectorAll('button')].find((b) => b.innerText.includes('open this repository') || b.innerText.startsWith('repo')).click(), 'ok'`
     );
-    await settle();
+    await settle(2500);
 
     expect(await browser.evaluate<string>('location.search')).toStartWith(
       '?repo=repo-'
     );
     const text = await browser.evaluate<string>(BODY);
+    expect(text).toContain('UNCOMMITTED');
     expect(text).toContain('Working tree');
-    expect(text).toContain('Recent commits');
-  });
-
-  test('the picker counts what is actually uncommitted', async () => {
     // One tracked file was changed after the commit, and nothing was staged.
-    expect(await browser.evaluate<string>(BODY)).toContain('1 file');
+    expect(text).toContain('1 file');
   });
 
-  test('picking the working tree opens the review', async () => {
+  test('typing inside a repository searches its refs and commits', async () => {
+    await type('first');
+    const text = await browser.evaluate<string>(BODY);
+    expect(text).toContain('COMMITS');
+    expect(text).toContain('first');
+  });
+
+  test('choosing a target opens the review', async () => {
+    await type('');
     await browser.evaluate(
       `[...document.querySelectorAll('button')].find((b) => b.innerText.startsWith('Working tree')).click(), 'ok'`
     );
@@ -100,15 +128,5 @@ describe.skipIf(!available)('the opener in a real browser', () => {
         `document.querySelector('diffs-container')?.shadowRoot?.textContent ?? ''`
       )
     ).toContain('export const add');
-  });
-
-  // Committing a repository pushes and stepping between folders replaces, so
-  // Back from a review is the picker rather than a folder on the way there.
-  test('back from the review is the picker', async () => {
-    await browser.evaluate('history.back(), "ok"');
-    await settle();
-    expect(await browser.evaluate<string>('location.search')).toStartWith(
-      '?repo=repo-'
-    );
   });
 });

@@ -1,32 +1,53 @@
 'use client';
 
-import { ThemedSurface } from '@/components/ThemedSurface';
 import { DiffsHubLogo } from '@/components/DiffsHubLogo';
-import { resolveOpenerRoute } from '@/lib/openerRoute';
+import { ThemedSurface } from '@/components/ThemedSurface';
+import { useServerInfo } from '@/components/useServerInfo';
+import { encodeOpenerHref, resolveOpenerRoute } from '@/lib/openerRoute';
+import { useRouter } from '@/src/navigation';
 
-import { FolderBrowser } from './FolderBrowser';
-import { OpenSourceChooser } from './OpenSourceChooser';
-import { TargetPicker } from './TargetPicker';
+import { OpenerBar } from './OpenerBar';
+import { OpenGitHubTokenForm } from './OpenGitHubTokenForm';
 
-// Everything you can open, at `/`. The query decides which of the three it is
-// showing: `/owner/repo/...` is the viewer's namespace, so a path segment here
-// would shadow a real GitHub owner.
+// Everything you can open, at `/`.
+//
+// One field rather than three surfaces. The query still carries which
+// repository is in scope, so a narrowed opener is a link like any other page --
+// but nothing else about where you are lives in the URL, because descending
+// through folders happens in the field rather than by navigating.
 export function OpenPage({ search }: { search: string }) {
+  const router = useRouter();
   const route = resolveOpenerRoute(search);
+  const repoId = route.kind === 'targets' ? route.repoId : undefined;
+  // The server resolves a token from the environment or from what the CLI wrote
+  // down, so on most machines there is nothing to paste.
+  const { github: serverHasToken, loading } = useServerInfo();
 
   return (
-    <ThemedSurface className="bg-[var(--diffshub-sidebar-bg)] flex min-h-[100svh] flex-col items-center">
-      <div className="flex w-full max-w-3xl flex-1 flex-col px-5 py-8 md:py-12">
-        <h1 className="mb-6 flex items-center gap-1.5 text-xl font-semibold tracking-tight">
-          <DiffsHubLogo />
-          Hunkyard
-        </h1>
-        {route.kind === 'browse' ? (
-          <FolderBrowser path={route.path} />
-        ) : route.kind === 'targets' ? (
-          <TargetPicker repoId={route.repoId} />
-        ) : (
-          <OpenSourceChooser />
+    <ThemedSurface className="flex min-h-[100svh] flex-col items-center bg-[var(--diffshub-sidebar-bg)]">
+      <div className="flex w-full max-w-2xl flex-1 flex-col px-5 pt-[14vh] pb-10">
+        <div className="mb-7 flex flex-col items-center gap-2.5">
+          <DiffsHubLogo className="size-7" />
+          <h1 className="text-muted-foreground text-sm">
+            Review a pull request, a branch, or what you have not committed
+          </h1>
+        </div>
+
+        <OpenerBar
+          repoId={repoId}
+          onScope={(next) =>
+            router.replace(
+              next == null
+                ? '/'
+                : encodeOpenerHref({ kind: 'targets', repoId: next })
+            )
+          }
+        />
+
+        {!loading && !serverHasToken && (
+          <div className="bg-background/60 mt-8 overflow-hidden rounded-xl border">
+            <OpenGitHubTokenForm />
+          </div>
         )}
       </div>
     </ThemedSurface>

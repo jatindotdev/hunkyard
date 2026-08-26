@@ -141,12 +141,13 @@ find out.
 
 ## What it does
 
-**Open anything from the browser.** A filesystem browser for finding a
-repository, a list of the ones you have opened before, and a picker inside each
-for the working tree, the index, this branch against its base, any two refs, a
-recent commit, or a revspec you type. `⌘K` moves between them without leaving
-the review you are in. Pull requests stay paste-a-URL: no inbox, nothing
-fetched about you.
+**One field opens anything.** Type a repository name, a path, or a pull request
+and the results say which you meant: recents, folders under the path so far, or
+the pull request parsed without touching the network. Choose a repository and it
+becomes a chip -- everything after that searches inside it, across the working
+tree, the index, this branch against its base, branches, tags, recent commits,
+or any revision you type. `⌘K` reaches the same thing from inside a review.
+Pull requests stay paste-a-URL: no inbox, nothing fetched about you.
 
 **Reviews local work, not just pull requests.** A three-dot range is diffed
 against the merge base, the same anchor GitHub uses, so a local review and the
