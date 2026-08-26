@@ -129,4 +129,27 @@ describe.skipIf(!available)('the opener in a real browser', () => {
       )
     ).toContain('export const add');
   });
+
+  // The chip sits before the cursor, so backspace removing it is the same
+  // gesture as deleting the last thing typed -- and the footer only offers it
+  // while there is nothing else left to delete.
+  test('backspace on an empty field leaves the repository', async () => {
+    // The case above navigated into the review. Back is the opener, still
+    // scoped -- and going back rather than reloading keeps this to one page
+    // load for the whole file.
+    await browser.evaluate('history.back(), "ok"');
+    await settle(1200);
+    expect(await browser.evaluate<string>('location.search')).toStartWith(
+      '?repo=repo-'
+    );
+
+    await type('');
+    expect(await browser.evaluate<string>(BODY)).toContain(
+      'leave this repository'
+    );
+
+    await browser.press('Backspace');
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    expect(await browser.evaluate<string>('location.search')).toBe('');
+  });
 });

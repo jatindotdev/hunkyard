@@ -58,6 +58,14 @@ const NAMED_KEYS: Record<string, { code: string; keyCode: number; text?: string 
   {
     Enter: { code: 'Enter', keyCode: 13, text: '\r' },
     Escape: { code: 'Escape', keyCode: 27 },
+    // No text: these edit or move rather than produce a character, and sending
+    // their name as text is rejected as an invalid parameter.
+    Backspace: { code: 'Backspace', keyCode: 8 },
+    Tab: { code: 'Tab', keyCode: 9 },
+    ArrowUp: { code: 'ArrowUp', keyCode: 38 },
+    ArrowDown: { code: 'ArrowDown', keyCode: 40 },
+    ArrowLeft: { code: 'ArrowLeft', keyCode: 37 },
+    ArrowRight: { code: 'ArrowRight', keyCode: 39 },
     '?': { code: 'Slash', keyCode: 191, text: '?' },
   };
 const MODIFIER_BITS: Record<string, number> = {

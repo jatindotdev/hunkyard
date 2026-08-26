@@ -28,6 +28,9 @@ export interface OpenerRow {
 export interface OpenerSection {
   label: string;
   rows: OpenerRow[];
+  // Shown instead of rows when there is nothing to offer but the absence is
+  // worth explaining. A section that simply vanishes reads as a bug.
+  note?: string;
 }
 
 // Everything offered when no repository is chosen yet: a pull request if that is
@@ -148,13 +151,22 @@ export function scopedSections(options: {
   const sections: OpenerSection[] = [];
 
   const targets = survey == null ? [] : suggestReviewTargets(survey);
-  const uncommitted = rankBy(
-    targets.filter((target) => target.kind !== 'range'),
-    text,
-    (target) => target.title,
-    3
+  // A count of zero is a diff with nothing in it, and offering it is offering a
+  // dead end: it is selectable, it is the first thing under the cursor, and it
+  // lands on an empty review. Counts are only known once the survey answers, so
+  // an unknown one is still offered rather than making the list jump.
+  const reviewable = targets.filter(
+    (target) => target.kind !== 'range' && target.count !== 0
   );
-  if (uncommitted.length > 0) {
+  const uncommitted = rankBy(reviewable, text, (target) => target.title, 3);
+
+  if (uncommitted.length === 0 && survey?.status != null && text === '') {
+    sections.push({
+      label: 'Uncommitted',
+      rows: [],
+      note: 'Nothing uncommitted. The working tree is clean.',
+    });
+  } else if (uncommitted.length > 0) {
     sections.push({
       label: 'Uncommitted',
       rows: uncommitted.map((target) => ({

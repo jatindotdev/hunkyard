@@ -173,6 +173,21 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
     >
       <div className="flex items-center gap-2.5 px-4 py-3.5">
         <IconSearch className="text-muted-foreground size-4 shrink-0" />
+        {scopedRepo != null && (
+          // Before the text, not after it. Backspace deletes leftwards, so a
+          // token sitting to the right of the cursor does not read as something
+          // backspace would remove -- which is exactly what it is.
+          <button
+            type="button"
+            onClick={() => onScope(undefined)}
+            className="bg-accent hover:bg-accent/70 text-foreground/90 flex shrink-0 items-center gap-1.5 rounded-md py-1 pr-1.5 pl-2 text-xs transition-colors"
+            title="Search everything again"
+          >
+            <IconFolder className="size-3 opacity-60" />
+            {baseName(scopedRepo.root)}
+            <IconX className="size-3 opacity-50" />
+          </button>
+        )}
         <input
           ref={inputRef}
           autoFocus
@@ -187,25 +202,13 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
         {opening && (
           <span className="text-muted-foreground text-xs">opening…</span>
         )}
-        {scopedRepo != null && (
-          <button
-            type="button"
-            onClick={() => onScope(undefined)}
-            className="bg-accent hover:bg-accent/70 text-foreground/90 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
-            title="Search everything again"
-          >
-            <IconFolder className="size-3 opacity-60" />
-            {baseName(scopedRepo.root)}
-            <IconX className="size-3 opacity-50" />
-          </button>
-        )}
       </div>
 
       {error != null && (
         <p className="text-destructive border-t px-4 py-2 text-xs">{error}</p>
       )}
 
-      {rows.length > 0 && (
+      {sections.length > 0 && (
         <div className="max-h-[52vh] overflow-y-auto border-t py-1">
           <Results
             sections={sections}
@@ -217,7 +220,7 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
         </div>
       )}
 
-      {rows.length === 0 && query.trim() !== '' && (
+      {sections.length === 0 && query.trim() !== '' && (
         <p className="text-muted-foreground border-t px-4 py-3 text-sm">
           Nothing matches. Paths start with <code>/</code> or <code>~</code>;
           pull requests look like <code>owner/repo#123</code>.
@@ -227,8 +230,10 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
       <div className="text-muted-foreground/70 flex items-center gap-3 border-t px-4 py-2 text-[11px]">
         <Hint keys="↑↓" label="move" />
         <Hint keys="↵" label={enterLabel(rows[active])} />
-        {scopedRepo != null ? (
-          <Hint keys="esc" label="leave this repository" />
+        {/* Whichever gesture is actually available: backspace only removes the
+            repository once there is nothing left to delete before it. */}
+        {scopedRepo != null && query === '' ? (
+          <Hint keys="⌫" label="leave this repository" />
         ) : (
           <Hint keys="esc" label="clear" />
         )}
@@ -276,7 +281,7 @@ function Results({
   onHover(index: number): void;
   onChoose(row: OpenerRow): void;
 }) {
-  if (rows.length === 0) return null;
+  if (sections.length === 0) return null;
 
   let index = -1;
   return (
@@ -286,6 +291,11 @@ function Results({
           <div className="text-muted-foreground/80 px-4 pt-3 pb-1 text-[11px] font-medium tracking-wide uppercase">
             {section.label}
           </div>
+          {section.note != null && (
+            <p className="text-muted-foreground px-4 py-1.5 text-sm">
+              {section.note}
+            </p>
+          )}
           {section.rows.map((row) => {
             index += 1;
             const at = index;
