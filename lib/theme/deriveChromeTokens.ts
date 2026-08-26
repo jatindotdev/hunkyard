@@ -1,5 +1,5 @@
 /**
- * deriveChromeTokens derives diffshub's contrast-heavy "chrome" token set — the
+ * deriveChromeTokens derives hunkyard's contrast-heavy "chrome" token set — the
  * opinionated app palette (most-legible foreground, derived muted text,
  * color-mix surfaces, luminance-based status tints).
  *
@@ -11,7 +11,7 @@
 import type { ThemeLike } from '@pierre/theming';
 import { colorUtils, normalizeThemeColors } from '@pierre/theming/color';
 
-// The opinionated app-chrome token set diffshubChromeMapping maps onto its CSS
+// The opinionated app-chrome token set hunkyardChromeMapping maps onto its CSS
 // variables. Moved out of @pierre/theming (which now stays neutral); the shape
 // is unchanged from the token set the package used to ship.
 export interface ChromeTokens {

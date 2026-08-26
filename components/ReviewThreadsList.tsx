@@ -21,13 +21,13 @@ function lineLabel(thread: Thread): string {
 }
 
 function lineClassName(side: ThreadSide): string {
-  // The themed chrome sets --diffshub-comment-add-fg / -del-fg from the active
+  // The themed chrome sets --hunkyard-comment-add-fg / -del-fg from the active
   // Shiki surface's luminance, so these stay legible on mixed palettes where a
   // plain `dark:` variant would leave low-contrast shades on a dark card. The
   // Tailwind values are fallbacks for the first render before chrome applies.
   return side === 'RIGHT'
-    ? 'text-[var(--diffshub-comment-add-fg,#047857)] dark:text-[var(--diffshub-comment-add-fg,#34d399)]'
-    : 'text-[var(--diffshub-comment-del-fg,#be123c)] dark:text-[var(--diffshub-comment-del-fg,#fb7185)]';
+    ? 'text-[var(--hunkyard-comment-add-fg,#047857)] dark:text-[var(--hunkyard-comment-add-fg,#34d399)]'
+    : 'text-[var(--hunkyard-comment-del-fg,#be123c)] dark:text-[var(--hunkyard-comment-del-fg,#fb7185)]';
 }
 
 // Lets a drag-selection inside a row finish without also navigating. mouseup

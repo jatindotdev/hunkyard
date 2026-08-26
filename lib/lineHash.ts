@@ -9,16 +9,16 @@ interface LineHashPoint {
   side: SelectionSide;
 }
 
-export interface DiffsHubLineHashTarget {
+export interface HunkyardLineHashTarget {
   itemId: string;
   range: SelectedLineRange;
 }
 
 const LINE_POINT_PATTERN = /^([AD])(\d+)$/;
 
-export function parseDiffsHubLineHash(
+export function parseHunkyardLineHash(
   hash: string
-): DiffsHubLineHashTarget | null {
+): HunkyardLineHashTarget | null {
   const text = hash.startsWith('#') ? hash.slice(1) : hash;
   if (text.length === 0) {
     return null;
@@ -43,7 +43,7 @@ export function parseDiffsHubLineHash(
   };
 }
 
-export function formatDiffsHubLineHash(
+export function formatHunkyardLineHash(
   selection: CodeViewLineSelection
 ): string | null {
   if (selection.id.length === 0) {

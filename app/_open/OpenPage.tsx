@@ -39,7 +39,7 @@ export function OpenPage({ search }: { search: string }) {
   }, []);
 
   return (
-    <ThemedSurface className="flex min-h-[100svh] flex-col items-center bg-[var(--diffshub-sidebar-bg)]">
+    <ThemedSurface className="flex min-h-[100svh] flex-col items-center bg-[var(--hunkyard-sidebar-bg)]">
       <div className="flex w-full max-w-2xl flex-1 flex-col px-5 pt-[14vh] pb-10">
         <div className="mb-7 flex flex-col items-center gap-2">
           <span className="flex items-center gap-2">

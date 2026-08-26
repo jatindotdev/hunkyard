@@ -18,28 +18,28 @@ import {
 import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 import { CODE_VIEW_BATCH_COUNT, getInitialBatchSize } from '@/lib/constants';
 import {
-  appendFileDiffToDiffsHubData,
-  buildDiffsHubData,
-  createDiffsHubDataAccumulator,
-  type DiffsHubItemIdRename,
-  snapshotDiffsHubTreeSource,
-  takePendingDiffsHubItems,
-} from '@/lib/diffsHubDataAccumulator';
+  appendFileDiffToHunkyardData,
+  buildHunkyardData,
+  createPatchAccumulator,
+  type HunkyardItemIdRename,
+  snapshotHunkyardTreeSource,
+  takePendingHunkyardItems,
+} from '@/lib/patchAccumulator';
 import { contentAddressedCacheKey } from '@/lib/diffCacheKey';
 import { getPatchTreePathPrefix } from '@/lib/gitPatchMetadata';
 import {
-  type DiffsHubLineHashTarget,
-  formatDiffsHubLineHash,
-  parseDiffsHubLineHash,
+  type HunkyardLineHashTarget,
+  formatHunkyardLineHash,
+  parseHunkyardLineHash,
 } from '@/lib/lineHash';
 import {
   getStreamedPatchMetadata,
   streamGitPatchFiles,
 } from '@/lib/streamGitPatchFiles';
 import type {
-  DiffsHubFileByItemId,
-  DiffsHubDiffStats,
-  DiffsHubFileTreeSource,
+  HunkyardFileByItemId,
+  HunkyardDiffStats,
+  FileTreeSource,
   ViewerLoadState,
 } from '@/lib/types';
 
@@ -72,15 +72,15 @@ interface UsePatchLoaderOptions {
 
 interface UsePatchLoaderResult {
   applyCollapseModeToLoaded(mode: 'expanded' | 'collapsed'): void;
-  fileByItemId: DiffsHubFileByItemId | null;
-  diffStats: DiffsHubDiffStats | null;
+  fileByItemId: HunkyardFileByItemId | null;
+  diffStats: HunkyardDiffStats | null;
   errorMessage: string | null;
   initialItems: CodeViewItem<ReviewAnnotationMetadata>[];
   loadState: ViewerLoadState;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
   retryLoad(): void;
-  treeSource: DiffsHubFileTreeSource | null;
+  treeSource: FileTreeSource | null;
   viewerKey: number;
 }
 
@@ -101,12 +101,12 @@ export function usePatchLoader({
   // Tree data is intentionally stored separately from items so annotation
   // updates do not cascade into the file tree and trigger needless rebuilds.
   // It is updated by fetch/stream batches in this viewer route.
-  const [treeSource, setTreeSource] = useState<DiffsHubFileTreeSource | null>(
+  const [treeSource, setTreeSource] = useState<FileTreeSource | null>(
     null
   );
-  const [diffStats, setDiffStats] = useState<DiffsHubDiffStats | null>(null);
+  const [diffStats, setDiffStats] = useState<HunkyardDiffStats | null>(null);
   const [fileByItemId, setFileByItemId] =
-    useState<DiffsHubFileByItemId | null>(null);
+    useState<HunkyardFileByItemId | null>(null);
   const [loadState, setLoadState] = useState<ViewerLoadState>('fetching');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -187,7 +187,7 @@ export function usePatchLoader({
 
   const tryApplyLineHashTarget = useStableCallback(() => {
     const { hash } = window.location;
-    const target = parseDiffsHubLineHash(hash);
+    const target = parseHunkyardLineHash(hash);
     if (target == null) {
       return;
     }
@@ -202,7 +202,7 @@ export function usePatchLoader({
       return;
     }
 
-    if (applyDiffsHubLineHashTarget(viewer, target)) {
+    if (applyHunkyardLineHashTarget(viewer, target)) {
       appliedLineHashKeyRef.current = applyKey;
     }
   });
@@ -210,7 +210,7 @@ export function usePatchLoader({
   const handleLineLinkChange = useStableCallback(
     (selection: CodeViewLineSelection | null) => {
       const nextHash =
-        selection == null ? null : formatDiffsHubLineHash(selection);
+        selection == null ? null : formatHunkyardLineHash(selection);
       appliedLineHashKeyRef.current =
         nextHash == null
           ? null
@@ -253,7 +253,7 @@ export function usePatchLoader({
           if (!isCurrentRequest()) {
             return;
           }
-          const loadedData = buildDiffsHubData(patchContent, patchRequestKey);
+          const loadedData = buildHunkyardData(patchContent, patchRequestKey);
           if (!isCurrentRequest()) {
             return;
           }
@@ -300,7 +300,7 @@ export function usePatchLoader({
           return;
         }
 
-        const accumulator = createDiffsHubDataAccumulator();
+        const accumulator = createPatchAccumulator();
         let streamPatchIndex = 0;
         let streamTreePathPrefix: string | undefined;
         let pendingPublishFileCount = 0;
@@ -323,7 +323,7 @@ export function usePatchLoader({
           lastTreePublishTime = performance.now();
           setFileByItemId(accumulator.itemIdToFile);
           setDiffStats({ ...accumulator.diffStats });
-          setTreeSource(snapshotDiffsHubTreeSource(accumulator));
+          setTreeSource(snapshotHunkyardTreeSource(accumulator));
         };
 
         const publishPendingData = async () => {
@@ -333,7 +333,7 @@ export function usePatchLoader({
 
           pendingPublishFileCount = 0;
           lastPublishTime = performance.now();
-          const pendingItems = takePendingDiffsHubItems(accumulator);
+          const pendingItems = takePendingHunkyardItems(accumulator);
           prepareItemsForViewer(pendingItems);
           if (!hasPublishedInitialItems) {
             hasPublishedInitialItems = true;
@@ -432,13 +432,13 @@ export function usePatchLoader({
             `${cacheKeyPrefix}-0-${accumulator.fileIndex}`
           );
 
-          const itemIdRename = appendFileDiffToDiffsHubData(
+          const itemIdRename = appendFileDiffToHunkyardData(
             accumulator,
             fileDiff,
             streamTreePathPrefix
           );
           if (itemIdRename != null) {
-            applyDiffsHubItemIdRename(viewerRef.current, itemIdRename);
+            applyHunkyardItemIdRename(viewerRef.current, itemIdRename);
             if (loadedItemIdsRef.current.delete(itemIdRename.oldId)) {
               loadedItemIdsRef.current.add(itemIdRename.newId);
             }
@@ -535,9 +535,9 @@ function getLineHashApplyKey(viewerKey: number, hash: string): string {
   return `${viewerKey}:${hash}`;
 }
 
-function applyDiffsHubLineHashTarget(
+function applyHunkyardLineHashTarget(
   viewer: CodeViewHandle<ReviewAnnotationMetadata>,
-  target: DiffsHubLineHashTarget
+  target: HunkyardLineHashTarget
 ): boolean {
   const item = viewer.getItem(target.itemId);
   if (item == null) {
@@ -572,9 +572,9 @@ function applyDiffsHubLineHashTarget(
   return true;
 }
 
-function applyDiffsHubItemIdRename(
+function applyHunkyardItemIdRename(
   viewer: CodeViewHandle<ReviewAnnotationMetadata> | null,
-  rename: DiffsHubItemIdRename
+  rename: HunkyardItemIdRename
 ): void {
   viewer?.updateItemId(rename.oldId, rename.newId);
 }

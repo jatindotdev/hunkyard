@@ -4,7 +4,7 @@ import { docsThemeCatalog } from './themeCatalog';
 
 export { docsThemeCatalog } from './themeCatalog';
 
-// The single owner of the diffshub app's theming state. Color mode (light/
+// The single owner of the hunkyard app's theming state. Color mode (light/
 // dark/system), the light/dark theme-name picks, and their persistence all
 // live here, so there is no parallel state ownership. The controller creates
 // and owns the resolver; consumers that need an explicit resolver use the
@@ -20,8 +20,8 @@ export { docsThemeCatalog } from './themeCatalog';
 // TODO(theming): migrate off these legacy keys and use
 // createThemeController's built-in `storageKey` persistence shape instead.
 const MODE_KEY = 'theme';
-const LIGHT_THEME_KEY = 'diffshub-light-theme';
-const DARK_THEME_KEY = 'diffshub-dark-theme';
+const LIGHT_THEME_KEY = 'hunkyard-light-theme';
+const DARK_THEME_KEY = 'hunkyard-dark-theme';
 
 function readKey(key: string): string | null {
   try {
@@ -41,7 +41,7 @@ function writeKey(key: string, value: string): void {
 
 // Maps the controller's selection onto the app's three storage keys: mode as a
 // plain `light`/`dark`/`system` string under `theme` (what the bootstrap script
-// reads), and the theme names under the diffshub-prefixed keys.
+// reads), and the theme names under the hunkyard-prefixed keys.
 const docsPersistence: ThemePersistence = {
   load() {
     const mode = readKey(MODE_KEY);

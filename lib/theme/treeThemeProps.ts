@@ -1,6 +1,6 @@
 // → future @pierre/trees. Pure mapping from the resolved active theme to the
 // FileTree style props. Equals themeToTreeStyles(active.theme), plus an opt-in
-// contrast-based foreground upgrade that diffshub relies on (preserved exactly
+// contrast-based foreground upgrade that hunkyard relies on (preserved exactly
 // from the previous buildResolvedTheme so file rows match the chrome instead of
 // a dim sideBar.foreground).
 import { themeToTreeStyles, type TreeThemeStyles } from '@pierre/trees';
@@ -12,7 +12,7 @@ export interface TreeThemePropsOptions {
   // When true, compare deriveChromeTokens(active.theme)?.fg against the theme's
   // raw sideBar.foreground; when they disagree, overwrite the tree's
   // unconditional foreground fallbacks so file rows match the chrome. Tokens the
-  // theme sets explicitly keep their intended values. Off by default; diffshub
+  // theme sets explicitly keep their intended values. Off by default; hunkyard
   // turns it on to preserve its current behavior.
   reconcileForegroundFromChrome?: boolean;
 }

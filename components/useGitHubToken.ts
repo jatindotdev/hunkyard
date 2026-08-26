@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-const GITHUB_TOKEN_STORAGE_KEY = 'diffshub.github.token';
+const GITHUB_TOKEN_STORAGE_KEY = 'hunkyard.github.token';
+
+// What the key was called before this application had its own name. Read once,
+// moved across, and removed: renaming a storage key without this throws away a
+// token somebody pasted in, and they would have no way to know why.
+const LEGACY_TOKEN_STORAGE_KEY = 'diffshub.github.token';
 
 export interface GitHubTokenState {
   clearToken(): void;
@@ -49,7 +54,14 @@ export function useGitHubToken(): GitHubTokenState {
 
 function readStoredToken(): string {
   try {
-    return globalThis.localStorage?.getItem(GITHUB_TOKEN_STORAGE_KEY) ?? '';
+    const current = globalThis.localStorage?.getItem(GITHUB_TOKEN_STORAGE_KEY);
+    if (current != null && current !== '') return current;
+
+    const legacy = globalThis.localStorage?.getItem(LEGACY_TOKEN_STORAGE_KEY);
+    if (legacy == null || legacy === '') return '';
+    globalThis.localStorage?.setItem(GITHUB_TOKEN_STORAGE_KEY, legacy);
+    globalThis.localStorage?.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+    return legacy;
   } catch {
     return '';
   }

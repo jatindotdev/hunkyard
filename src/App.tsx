@@ -8,7 +8,7 @@ import { OpenPage } from '@/app/_open/OpenPage';
 import { ReviewUI, type ReviewSource } from '@/components/ReviewUI';
 import { useRepos } from '@/components/useRepos';
 import { encodeLocalDiffPath } from '@/lib/localDiffSource';
-import { resolveDiffshubViewerRoute } from '@/lib/resolveDiffshubViewerRoute';
+import { resolveViewerRoute } from '@/lib/resolveViewerRoute';
 import { SITE_NAME } from '@/lib/site';
 
 function toSegments(pathname: string): string[] {
@@ -24,7 +24,7 @@ export function App() {
   // reading the domain back is what lets the client reach it.
   const domain = params.get('domain') ?? undefined;
   const route =
-    segments.length === 0 ? null : resolveDiffshubViewerRoute(segments, domain);
+    segments.length === 0 ? null : resolveViewerRoute(segments, domain);
 
   // The header can name the repository only if it is told which one, and the
   // list is already fetched for the opener.

@@ -19,11 +19,11 @@ import { useViewedFiles } from './useViewedFiles';
 import { useReviewKeyboard } from './useReviewKeyboard';
 import { KeyboardHelp } from './KeyboardHelp';
 import { OpenerOverlay, useOpenerHotkey } from './OpenerOverlay';
-import type { ReviewViewerCommands } from './DiffsHubViewer';
-import { DiffsHubHeader } from './DiffsHubHeader';
-import { DiffsHubSidebar } from './DiffsHubSidebar';
-import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
-import { DiffsHubViewer } from './DiffsHubViewer';
+import type { ReviewViewerCommands } from './HunkyardViewer';
+import { HunkyardHeader } from './HunkyardHeader';
+import { HunkyardSidebar } from './HunkyardSidebar';
+import { HunkyardStatusPanel } from './HunkyardStatusPanel';
+import { HunkyardViewer } from './HunkyardViewer';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { useGitHubToken } from './useGitHubToken';
 import { useLocalDiffWatch } from './useLocalDiffWatch';
@@ -67,7 +67,7 @@ interface ReviewUIProps {
 }
 
 export function ReviewUI({ source }: ReviewUIProps) {
-  // Provide the diffshub-scoped theme context, then render the body BELOW it so
+  // Provide the hunkyard-scoped theme context, then render the body BELOW it so
   // the diffs hook + selection hook can read the controller context.
   return (
     <ThemeSourceProvider controller={themeController}>
@@ -482,7 +482,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
 
   return (
     <ReviewGrid>
-      <DiffsHubHeader
+      <HunkyardHeader
         className="[grid-area:header]"
         collapseMode={collapseMode}
         colorMode={colorMode}
@@ -515,7 +515,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
       />
       {viewerAvailable && treeSource != null ? (
         <>
-          <DiffsHubSidebar
+          <HunkyardSidebar
             viewedCount={viewed.viewedPaths.size}
             focusedPath={
               focusedItemId == null ? undefined : pathForItemId(focusedItemId)
@@ -541,7 +541,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
             viewerRef={viewerRef}
             onSelectItem={handleSelectTreeItem}
           />
-          <DiffsHubViewer
+          <HunkyardViewer
             commandsRef={viewerCommandsRef}
             isViewedAt={viewed.isViewedAt}
             onToggleViewed={viewed.setViewed}
@@ -577,7 +577,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
           />
         </>
       ) : (
-        <DiffsHubStatusPanel
+        <HunkyardStatusPanel
           awaitingHighlighter={
             // The patch is in hand and the tree is built; the only thing left
             // is the worker pool. Common for a local diff, which arrives in

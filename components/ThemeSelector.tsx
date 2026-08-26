@@ -9,7 +9,7 @@ import {
 
 interface ThemeSelectorProps {
   // Render-prop: receives the current selection + setters and renders the UI.
-  // Headless by design — diffshub keeps its own switcher markup and just wires
+  // Headless by design — hunkyard keeps its own switcher markup and just wires
   // it to these values.
   children: (selection: ThemeSelectionResult) => ReactNode;
 }

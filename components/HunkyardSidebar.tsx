@@ -26,8 +26,8 @@ import {
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
 import { ReviewSubmitPanel } from './ReviewSubmitPanel';
 import { ReviewThreadsList } from './ReviewThreadsList';
-import { DiffsHubDiffStats } from './DiffsHubDiffStats';
-import { DiffsHubFileTree } from './DiffsHubFileTree';
+import { HunkyardDiffStats } from './HunkyardDiffStats';
+import { HunkyardFileTree } from './HunkyardFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
@@ -45,13 +45,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/DropdownMenu';
 import { cn } from '@/lib/cn';
-import { filterDiffsHubFileTreeSource } from '@/lib/filterDiffsHubFileTreeSource';
-import { getDiffsHubFileTreeAvailableStatuses } from '@/lib/getDiffsHubFileTreeAvailableStatuses';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { filterFileTreeSource } from '@/lib/filterFileTreeSource';
+import { getFileTreeAvailableStatuses } from '@/lib/getFileTreeAvailableStatuses';
+import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 import type {
-  DiffsHubDiffStats as DiffsHubDiffStatsData,
-  DiffsHubFileTreeSource,
+  HunkyardDiffStats as HunkyardDiffStatsData,
+  FileTreeSource,
 } from '@/lib/types';
 
 type SidebarTab = 'files' | 'comments';
@@ -59,7 +59,7 @@ type SidebarStatusPanel = 'diffStats' | 'systemMonitor';
 
 const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 
-interface DiffsHubSidebarProps {
+interface HunkyardSidebarProps {
   className?: string;
   threads: readonly Thread[];
   // Only set when the source batches; a local review has nothing to submit.
@@ -68,7 +68,7 @@ interface DiffsHubSidebarProps {
     body: string
   ) => void;
   reviewBusy?: boolean;
-  diffStats: DiffsHubDiffStatsData | null;
+  diffStats: HunkyardDiffStatsData | null;
   // How many files the reviewer has marked viewed, for the Files tab badge.
   viewedCount: number;
   // The file the keyboard map is currently on, mirrored into the tree so j/k
@@ -79,13 +79,13 @@ interface DiffsHubSidebarProps {
   onSelectThread(thread: Thread): void;
   onSelectItem(itemId: string): void;
   scrollRef: RefObject<HTMLDivElement | null>;
-  source: DiffsHubFileTreeSource;
+  source: FileTreeSource;
   streaming: boolean;
   themeCycle: ThemeCycleControls;
   viewerRef: RefObject<CodeViewHandle<ReviewAnnotationMetadata> | null>;
 }
 
-export const DiffsHubSidebar = memo(function DiffsHubSidebar({
+export const HunkyardSidebar = memo(function HunkyardSidebar({
   className,
   threads,
   onSubmitReview,
@@ -102,7 +102,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   streaming,
   themeCycle,
   viewerRef,
-}: DiffsHubSidebarProps) {
+}: HunkyardSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
   // Counts threads rather than comments: a conversation is one thing to read,
   // and a busy thread should not inflate the badge.
@@ -116,7 +116,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   // instead of an opacity-derived fade of the file-tree's muted text.
   // Shared with the header so both chrome surfaces stay in sync.
   const { style: sidebarChromeStyle } = useChromeThemeProps(
-    diffshubChromeMapping
+    hunkyardChromeMapping
   );
   const sidebarStyle =
     Object.keys(sidebarChromeStyle).length > 0 ? sidebarChromeStyle : undefined;
@@ -137,11 +137,11 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
     ReadonlySet<GitStatus>
   >(() => new Set());
   const availableStatuses = useMemo(
-    () => getDiffsHubFileTreeAvailableStatuses(source),
+    () => getFileTreeAvailableStatuses(source),
     [source]
   );
   const filteredSource = useMemo(
-    () => filterDiffsHubFileTreeSource(source, selectedStatuses),
+    () => filterFileTreeSource(source, selectedStatuses),
     [source, selectedStatuses]
   );
   useEffect(() => {
@@ -327,7 +327,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             hidden={activeTab !== 'files'}
             className="h-full min-h-0"
           >
-            <DiffsHubFileTree
+            <HunkyardFileTree
               source={filteredSource}
               onModelReady={handleModelReady}
               onSelectItem={onSelectItem}
@@ -352,7 +352,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             onSubmit={onSubmitReview}
           />
         )}
-        <DiffsHubDiffStats
+        <HunkyardDiffStats
           expanded={activeStatusPanel === 'diffStats'}
           onToggle={() => toggleStatusPanel('diffStats')}
           stats={diffStats}
@@ -389,10 +389,10 @@ function SidebarWrapper({
       className={cn(
         className,
         'contain-strict z-30 flex h-full min-h-0 flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform motion-reduce:transition-none md:z-auto md:translate-y-0 md:will-change-auto',
-        // Fall back to the neutral diffshub chrome background when no Shiki
+        // Fall back to the neutral hunkyard chrome background when no Shiki
         // theme bg is available yet (initial render before the resolver
         // returns).
-        themeStyle == null && 'bg-[var(--diffshub-sidebar-bg)]',
+        themeStyle == null && 'bg-[var(--hunkyard-sidebar-bg)]',
         mobileOverlayOpen
           ? 'pointer-events-auto translate-y-0 overflow-hidden rounded-t-xl shadow-[0_0_0_1px_var(--color-border-opaque),_0_16px_32px_rgb(0_0_0_/0.25)] md:h-full md:overflow-visible md:rounded-none md:border-0 md:shadow-none'
           : 'pointer-events-none translate-y-[calc(100%+1.5rem)] overflow-hidden rounded-xl md:pointer-events-auto md:h-full md:overflow-visible md:rounded-none pt-3 border-r border-[var(--color-border-opaque)]'
@@ -479,7 +479,7 @@ function FileTreeFilterButton({
         >
           <IconFilter className="size-4 md:size-3" />
           {isFiltered && (
-            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--diffshub-sidebar-bg)] bg-blue-500 dark:bg-blue-400" />
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--hunkyard-sidebar-bg)] bg-blue-500 dark:bg-blue-400" />
           )}
         </Button>
       </DropdownMenuTrigger>

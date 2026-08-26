@@ -25,7 +25,7 @@ interface LoadedDiffFilesResponse {
 }
 
 // Creates a Diffs `loadDiffFiles` callback for GitHub routes supported by
-// DiffsHub. Browser code only talks to DiffsHub's same-origin API route so the
+// Hunkyard. Browser code only talks to Hunkyard's same-origin API route so the
 // server can attach optional GitHub auth and share caches across viewers.
 export function createGitHubDiffFileLoader(
   path: string,
@@ -47,7 +47,7 @@ export function createGitHubDiffFileLoader(
       case 'deleted':
         return Promise.reject(
           new Error(
-            `DiffsHub GitHub file loader cannot hydrate ${fileDiff.type} diffs.`
+            `Hunkyard GitHub file loader cannot hydrate ${fileDiff.type} diffs.`
           )
         );
       case 'change':
@@ -103,8 +103,8 @@ async function fetchLoadedDiffFiles(
     const detail = await readLoaderErrorDetail(response);
     throw new Error(
       detail.length > 0
-        ? `DiffsHub GitHub file loader failed (${response.status}): ${detail}`
-        : `DiffsHub GitHub file loader failed (${response.status}).`
+        ? `Hunkyard GitHub file loader failed (${response.status}): ${detail}`
+        : `Hunkyard GitHub file loader failed (${response.status}).`
     );
   }
 
@@ -161,7 +161,7 @@ function normalizeLoadedDiffFiles(
 ): FileDiffLoadedFiles {
   if (!isRecord(data)) {
     throw new Error(
-      'DiffsHub GitHub file loader returned an invalid response.'
+      'Hunkyard GitHub file loader returned an invalid response.'
     );
   }
 
@@ -173,7 +173,7 @@ function normalizeLoadedDiffFiles(
   if (type === 'rename-pure') {
     if (files.oldFile !== null || files.newFile === null) {
       throw new Error(
-        'DiffsHub GitHub file loader returned an invalid pure rename response.'
+        'Hunkyard GitHub file loader returned an invalid pure rename response.'
       );
     }
     return { oldFile: null, newFile: files.newFile };
@@ -181,7 +181,7 @@ function normalizeLoadedDiffFiles(
 
   if (files.oldFile === null || files.newFile === null) {
     throw new Error(
-      'DiffsHub GitHub file loader returned an invalid changed-file response.'
+      'Hunkyard GitHub file loader returned an invalid changed-file response.'
     );
   }
   return { oldFile: files.oldFile, newFile: files.newFile };
@@ -192,12 +192,12 @@ function normalizeFileContents(value: unknown): FileContents | null {
     return null;
   }
   if (!isRecord(value)) {
-    throw new Error('DiffsHub GitHub file loader returned an invalid file.');
+    throw new Error('Hunkyard GitHub file loader returned an invalid file.');
   }
 
   const { cacheKey, contents, name } = value;
   if (typeof name !== 'string' || typeof contents !== 'string') {
-    throw new Error('DiffsHub GitHub file loader returned an invalid file.');
+    throw new Error('Hunkyard GitHub file loader returned an invalid file.');
   }
 
   return {

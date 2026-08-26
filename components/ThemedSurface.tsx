@@ -4,7 +4,7 @@ import type { CSSProperties, ElementType, ReactNode } from 'react';
 
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ChromeMapping } from '@/lib/theme/chromeThemeProps';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import type { ThemeInput } from '@/lib/theme/ThemeSource';
 
 interface ThemedSurfaceProps {
@@ -17,13 +17,13 @@ interface ThemedSurfaceProps {
 }
 
 // A themed chrome host. Renders `as` (default div) with the chrome style applied
-// from the active theme via the given mapping (default diffshubChromeMapping).
+// from the active theme via the given mapping (default hunkyardChromeMapping).
 // Caller `style` (spread after) still wins on key collisions.
 export function ThemedSurface({
   as,
   children,
   className,
-  mapping = diffshubChromeMapping,
+  mapping = hunkyardChromeMapping,
   style,
   theme,
 }: ThemedSurfaceProps) {

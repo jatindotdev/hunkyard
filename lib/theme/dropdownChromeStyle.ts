@@ -20,9 +20,9 @@ export function getDropdownThemeStyle(
 
   return {
     ...themeChromeStyle,
-    backgroundColor: 'var(--diffshub-popover-bg, var(--color-popover))',
-    borderColor: 'var(--diffshub-popover-border, var(--color-border))',
-    boxShadow: 'var(--diffshub-popover-shadow, 0 4px 8px rgb(0 0 0 / 0.07))',
-    color: 'var(--diffshub-popover-fg, var(--color-popover-foreground))',
+    backgroundColor: 'var(--hunkyard-popover-bg, var(--color-popover))',
+    borderColor: 'var(--hunkyard-popover-border, var(--color-border))',
+    boxShadow: 'var(--hunkyard-popover-shadow, 0 4px 8px rgb(0 0 0 / 0.07))',
+    color: 'var(--hunkyard-popover-fg, var(--color-popover-foreground))',
   };
 }

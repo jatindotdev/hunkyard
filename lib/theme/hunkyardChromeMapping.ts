@@ -1,8 +1,8 @@
-// Stays app-local. The diffshub-specific mapping from neutral ChromeTokens to
+// Stays app-local. The hunkyard-specific mapping from neutral ChromeTokens to
 // the app's CSS variables — preserved byte-for-byte from the previous
-// buildThemeChromeStyle (the --diffshub-*/--color-*/--foreground vocabulary plus
-// the app-only --diffshub-card-* (6/12/12) and annotation-hover-border (28%)
-// mixes). Only the handful of diffshub-specific surfaces the neutral set does
+// buildThemeChromeStyle (the --hunkyard-*/--color-*/--foreground vocabulary plus
+// the app-only --hunkyard-card-* (6/12/12) and annotation-hover-border (28%)
+// mixes). Only the handful of hunkyard-specific surfaces the neutral set does
 // not carry are derived locally from the same foreground/surface pair.
 import type { ThemeLike } from '@pierre/theming';
 import { normalizeThemeColors } from '@pierre/theming/color';
@@ -19,7 +19,7 @@ export type ChromeMapping = (
   theme: ThemeLike
 ) => CSSProperties | undefined;
 
-export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
+export const hunkyardChromeMapping: ChromeMapping = (chrome, theme) => {
   // Mirror the previous behavior: the chrome background is the resolved theme's
   // sidebar background, read straight from the shared normalizeThemeColors
   // surface derivation (the same key trees and deriveChromeTokens read).
@@ -35,7 +35,7 @@ export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
   }
 
   const fg = chrome.fg;
-  // The base the diffshub-specific card mixes blend the foreground into. Mirror
+  // The base the hunkyard-specific card mixes blend the foreground into. Mirror
   // the previous `bg ?? 'transparent'` fallback exactly.
   const base = bg ?? 'transparent';
   const style: CSSProperties & Record<string, string> = {};
@@ -49,25 +49,25 @@ export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
   style['--border'] = chrome.border;
   style['--color-border-opaque'] = chrome.borderOpaque;
   style['--border-opaque'] = chrome.borderOpaque;
-  // diffshub-specific card surfaces: a touch softer than the popover (6/12/12
+  // hunkyard-specific card surfaces: a touch softer than the popover (6/12/12
   // vs the neutral 7/14/20 set), so they read as quiet inline rows rather than
   // floating menus. Not part of the shared ChromeTokens.
-  style['--diffshub-card-bg'] = `color-mix(in srgb, ${fg} 6%, ${base})`;
-  style['--diffshub-card-hover-bg'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
-  style['--diffshub-card-border'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
-  style['--diffshub-popover-bg'] = chrome.surface;
-  style['--diffshub-popover-fg'] = fg;
-  style['--diffshub-popover-muted-fg'] = chrome.mutedFg;
-  style['--diffshub-popover-hover-bg'] = chrome.surfaceHover;
-  style['--diffshub-popover-selected-bg'] = chrome.surfaceSelected;
-  style['--diffshub-popover-border'] = chrome.surfaceBorder;
-  style['--diffshub-popover-shadow'] = chrome.surfaceShadow;
-  style['--diffshub-annotation-bg'] = chrome.surface;
-  style['--diffshub-annotation-fg'] = fg;
-  style['--diffshub-annotation-border'] = chrome.surfaceBorder;
-  style['--diffshub-annotation-hover-border'] =
+  style['--hunkyard-card-bg'] = `color-mix(in srgb, ${fg} 6%, ${base})`;
+  style['--hunkyard-card-hover-bg'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
+  style['--hunkyard-card-border'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
+  style['--hunkyard-popover-bg'] = chrome.surface;
+  style['--hunkyard-popover-fg'] = fg;
+  style['--hunkyard-popover-muted-fg'] = chrome.mutedFg;
+  style['--hunkyard-popover-hover-bg'] = chrome.surfaceHover;
+  style['--hunkyard-popover-selected-bg'] = chrome.surfaceSelected;
+  style['--hunkyard-popover-border'] = chrome.surfaceBorder;
+  style['--hunkyard-popover-shadow'] = chrome.surfaceShadow;
+  style['--hunkyard-annotation-bg'] = chrome.surface;
+  style['--hunkyard-annotation-fg'] = fg;
+  style['--hunkyard-annotation-border'] = chrome.surfaceBorder;
+  style['--hunkyard-annotation-hover-border'] =
     `color-mix(in srgb, ${fg} 28%, ${base})`;
-  style['--diffshub-annotation-shadow'] = chrome.surfaceShadow;
+  style['--hunkyard-annotation-shadow'] = chrome.surfaceShadow;
   style['--color-popover'] = chrome.surface;
   style['--popover'] = chrome.surface;
   style['--color-popover-foreground'] = fg;
@@ -99,14 +99,14 @@ export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
   style['--primary-foreground'] = chrome.background;
   style['--color-ring'] = chrome.ring;
   style['--ring'] = chrome.ring;
-  style['--diffshub-comment-add-fg'] = chrome.additionFg;
-  style['--diffshub-comment-del-fg'] = chrome.deletionFg;
-  style['--diffshub-diff-separator'] = chrome.separator;
+  style['--hunkyard-comment-add-fg'] = chrome.additionFg;
+  style['--hunkyard-comment-del-fg'] = chrome.deletionFg;
+  style['--hunkyard-diff-separator'] = chrome.separator;
   if (chrome.scrollbarThumb != null) {
-    style['--diffshub-scrollbar-thumb-bg'] = chrome.scrollbarThumb;
+    style['--hunkyard-scrollbar-thumb-bg'] = chrome.scrollbarThumb;
   }
   if (chrome.scrollbarTrack != null) {
-    style['--diffshub-scrollbar-track-bg'] = chrome.scrollbarTrack;
+    style['--hunkyard-scrollbar-track-bg'] = chrome.scrollbarTrack;
   }
   return style as CSSProperties;
 };

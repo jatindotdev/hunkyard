@@ -1,5 +1,5 @@
 /* Ioskeley Mono, an OFL-1.1 monospace built with Iosevka in the spirit of
-   Berkeley Mono. Upstream diffshub shipped Berkeley Mono itself, which is
+   Berkeley Mono. Upstream hunkyard shipped Berkeley Mono itself, which is
    commercially licensed and cannot be redistributed; this keeps the look with a
    licence that permits bundling. Vendored rather than fetched at runtime so a
    local tool has no network dependency, and OFL.txt sits beside the files as
@@ -102,7 +102,7 @@
   --border-opaque: color-mix(
     in oklch,
     var(--border) 100%,
-    var(--diffshub-sidebar-bg) 0%
+    var(--hunkyard-sidebar-bg) 0%
   );
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -120,7 +120,7 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 
-  --diffshub-sidebar-bg: #f7f7f7;
+  --hunkyard-sidebar-bg: #f7f7f7;
 
   color-scheme: light;
 }
@@ -144,7 +144,7 @@
   --border: oklch(1 0 0 / 10%);
   --border-opaque: color-mix(
     in oklch,
-    var(--diffshub-sidebar-bg) 90%,
+    var(--hunkyard-sidebar-bg) 90%,
     oklch(1 0 0)
   );
   --color-border: oklch(1 0 0 / 10%);
@@ -163,7 +163,7 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --diffshub-sidebar-bg: #101010;
+  --hunkyard-sidebar-bg: #101010;
   color-scheme: dark;
 }
 
@@ -187,7 +187,7 @@
     --border: oklch(1 0 0 / 10%);
     --border-opaque: color-mix(
       in oklch,
-      var(--diffshub-sidebar-bg) 90%,
+      var(--hunkyard-sidebar-bg) 90%,
       oklch(1 0 0)
     );
     --color-border: oklch(1 0 0 / 10%);
@@ -211,7 +211,7 @@
 }
 
 @media (width <= 768px) {
-  body.diffshub {
+  body.hunkyard {
     background-color: light-dark(#fff, oklch(14.5% 0 0));
   }
 }
@@ -233,8 +233,8 @@
   body {
     @apply bg-background text-foreground font-geist;
   }
-  body.diffshub {
-    background-color: var(--diffshub-sidebar-bg);
+  body.hunkyard {
+    background-color: var(--hunkyard-sidebar-bg);
   }
   textarea {
     @apply outline-offset-1;
@@ -313,10 +313,10 @@
 }
 
 .cv-scrollbar {
-  /* Themed thumb from the diffshub chrome mapping (deriveChromeTokens);
+  /* Themed thumb from the hunkyard chrome mapping (deriveChromeTokens);
      light-dark fallback for non-themed contexts. */
   --cv-scrollbar-thumb-bg: var(
-    --diffshub-scrollbar-thumb-bg,
+    --hunkyard-scrollbar-thumb-bg,
     light-dark(
       color-mix(in lab, var(--background) 85%, black),
       color-mix(in lab, var(--background) 80%, white)
@@ -333,11 +333,11 @@
 .cv-scrollbar::-webkit-scrollbar-track {
   /* Themed editor surface so the gutter isn't a dark band beside the diff;
      transparent fallback keeps default behavior. */
-  background: var(--diffshub-scrollbar-track-bg, transparent);
+  background: var(--hunkyard-scrollbar-track-bg, transparent);
   /* Reuse the inter-file separator so the gutter edge reads as one hairline
      with the file boundaries. */
   border-left: 1px solid
-    var(--diffshub-diff-separator, var(--color-border-opaque));
+    var(--hunkyard-diff-separator, var(--color-border-opaque));
   margin-top: -1px;
 }
 
@@ -379,7 +379,7 @@
 @supports (-moz-appearance: none) {
   .cv-scrollbar {
     scrollbar-color: var(--cv-scrollbar-thumb-bg)
-      var(--diffshub-scrollbar-track-bg, transparent);
+      var(--hunkyard-scrollbar-track-bg, transparent);
   }
   .cv-mini-scrollbar {
     scrollbar-color: var(--cv-mini-scrollbar-thumb-bg) transparent;
@@ -435,12 +435,12 @@
   }
 }
 
-.diffshub-border-deleted {
+.hunkyard-border-deleted {
   display: inline-flex;
   align-items: stretch;
 }
 
-.diffshub-border-deleted::before {
+.hunkyard-border-deleted::before {
   flex-shrink: 0;
   display: block;
   content: '';

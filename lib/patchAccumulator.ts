@@ -14,23 +14,23 @@ import { contentAddressedCacheKey } from './diffCacheKey';
 import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
-  DiffsHubFileByItemId,
-  DiffsHubFileLineCounts,
-  DiffsHubViewerFile,
-  DiffsHubDiffStats,
-  DiffsHubFileTreeSource,
+  HunkyardFileByItemId,
+  HunkyardFileLineCounts,
+  HunkyardViewerFile,
+  HunkyardDiffStats,
+  FileTreeSource,
 } from './types';
 
-export interface DiffsHubDataAccumulator {
-  diffStats: DiffsHubDiffStats;
+export interface PatchAccumulator {
+  diffStats: HunkyardDiffStats;
   fileIndex: number;
   gitStatusByPath: Map<string, GitStatusEntry>;
-  itemIdToFile: Map<string, DiffsHubViewerFile>;
+  itemIdToFile: Map<string, HunkyardViewerFile>;
   items: CodeViewItem<ReviewAnnotationMetadata>[];
-  // The last tree source emitted by snapshotDiffsHubTreeSource for this
+  // The last tree source emitted by snapshotHunkyardTreeSource for this
   // accumulator. Each new snapshot links back to this so the consumer can
   // recognize append-only growth and skip the full PathStore rebuild.
-  lastTreeSource: DiffsHubFileTreeSource | undefined;
+  lastTreeSource: FileTreeSource | undefined;
   nextCollisionSuffixByBase: Map<string, number>;
   pendingGitStatusRemovePaths: Set<string>;
   pendingGitStatusSetByPath: Map<string, GitStatusEntry>;
@@ -38,11 +38,11 @@ export interface DiffsHubDataAccumulator {
   pendingItemById: Map<string, CodeViewItem<ReviewAnnotationMetadata>>;
   pathToItemId: Map<string, string>;
   pathStateByTreePath: Map<string, CodeViewPathState>;
-  lineCountsByPath: Map<string, DiffsHubFileLineCounts>;
+  lineCountsByPath: Map<string, HunkyardFileLineCounts>;
   paths: string[];
 }
 
-export interface DiffsHubItemIdRename {
+export interface HunkyardItemIdRename {
   oldId: string;
   newId: string;
 }
@@ -54,14 +54,14 @@ interface CodeViewPathState {
   sawDeleted: boolean;
 }
 
-export interface LoadedDiffsHubData {
-  itemIdToFile: DiffsHubFileByItemId;
-  diffStats: DiffsHubDiffStats;
+export interface LoadedHunkyardData {
+  itemIdToFile: HunkyardFileByItemId;
+  diffStats: HunkyardDiffStats;
   items: CodeViewItem<ReviewAnnotationMetadata>[];
-  treeSource: DiffsHubFileTreeSource;
+  treeSource: FileTreeSource;
 }
 
-export function createDiffsHubDataAccumulator(): DiffsHubDataAccumulator {
+export function createPatchAccumulator(): PatchAccumulator {
   return {
     diffStats: {
       addedLines: 0,
@@ -86,11 +86,11 @@ export function createDiffsHubDataAccumulator(): DiffsHubDataAccumulator {
   };
 }
 
-export function appendFileDiffToDiffsHubData(
-  accumulator: DiffsHubDataAccumulator,
+export function appendFileDiffToHunkyardData(
+  accumulator: PatchAccumulator,
   fileDiff: FileDiffMetadata,
   treePathPrefix: string | undefined
-): DiffsHubItemIdRename | undefined {
+): HunkyardItemIdRename | undefined {
   const { diffStats } = accumulator;
   diffStats.fileCount++;
   diffStats.totalLinesOfCode += fileDiff.unifiedLineCount;
@@ -158,8 +158,8 @@ export function appendFileDiffToDiffsHubData(
   return itemIdRename;
 }
 
-export function takePendingDiffsHubItems(
-  accumulator: DiffsHubDataAccumulator
+export function takePendingHunkyardItems(
+  accumulator: PatchAccumulator
 ): CodeViewItem<ReviewAnnotationMetadata>[] {
   const { pendingItems } = accumulator;
   accumulator.pendingItems = [];
@@ -173,12 +173,12 @@ export function takePendingDiffsHubItems(
 // delta with model.batch instead of rebuilding the whole PathStore. Consumers
 // that recreate the accumulator (e.g. a new request) discard the prior link
 // implicitly because lastTreeSource is undefined on a fresh accumulator.
-export function snapshotDiffsHubTreeSource(
-  accumulator: DiffsHubDataAccumulator
-): DiffsHubFileTreeSource {
+export function snapshotHunkyardTreeSource(
+  accumulator: PatchAccumulator
+): FileTreeSource {
   const previousSource = accumulator.lastTreeSource;
   const gitStatusPatch = takePendingGitStatusPatch(accumulator);
-  const snapshot: DiffsHubFileTreeSource = {
+  const snapshot: FileTreeSource = {
     gitStatus: Array.from(accumulator.gitStatusByPath.values()),
     gitStatusPatch: previousSource == null ? undefined : gitStatusPatch,
     pathCount: accumulator.paths.length,
@@ -192,7 +192,7 @@ export function snapshotDiffsHubTreeSource(
 }
 
 function takePendingGitStatusPatch(
-  accumulator: DiffsHubDataAccumulator
+  accumulator: PatchAccumulator
 ): FileTreeGitStatusPatch | undefined {
   const { pendingGitStatusRemovePaths, pendingGitStatusSetByPath } =
     accumulator;
@@ -218,10 +218,10 @@ function takePendingGitStatusPatch(
 // Moves the current CodeView item for a path off the canonical tree id so the
 // next diff entry for that same path can own tree navigation without rebuilding.
 function renameCurrentPathItem(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   treePath: string,
   pathState: CodeViewPathState
-): DiffsHubItemIdRename | undefined {
+): HunkyardItemIdRename | undefined {
   const oldId = pathState.currentItemId;
   const newId = createSupersededItemId(
     accumulator,
@@ -248,7 +248,7 @@ function renameCurrentPathItem(
 }
 
 function createSupersededItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   treePath: string,
   changeType: ChangeTypes
 ): string {
@@ -257,7 +257,7 @@ function createSupersededItemId(
 }
 
 function createFallbackItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   treePath: string
 ): string {
   return createUniqueItemId(accumulator, `${treePath}?2`);
@@ -266,7 +266,7 @@ function createFallbackItemId(
 // Resolves rare id collisions by advancing a per-base suffix instead of scanning
 // accumulated items.
 function createUniqueItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   baseId: string
 ): string {
   if (!accumulator.itemIdToFile.has(baseId)) {
@@ -286,7 +286,7 @@ function createUniqueItemId(
 // Maintains the file tree status for a real path while repeated patch entries
 // replace the path's final CodeView item.
 function updateGitStatusByPath(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   treePath: string,
   changeType: ChangeTypes,
   hadDeletedEntry: boolean
@@ -321,7 +321,7 @@ function updateGitStatusByPath(
 }
 
 function recordGitStatusSet(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   entry: GitStatusEntry
 ): void {
   accumulator.pendingGitStatusRemovePaths.delete(entry.path);
@@ -329,37 +329,37 @@ function recordGitStatusSet(
 }
 
 function recordGitStatusRemove(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PatchAccumulator,
   path: string
 ): void {
   accumulator.pendingGitStatusSetByPath.delete(path);
   accumulator.pendingGitStatusRemovePaths.add(path);
 }
 
-export function snapshotDiffsHubData(
-  accumulator: DiffsHubDataAccumulator
-): LoadedDiffsHubData {
+export function snapshotHunkyardData(
+  accumulator: PatchAccumulator
+): LoadedHunkyardData {
   return {
     itemIdToFile: new Map(accumulator.itemIdToFile),
     diffStats: { ...accumulator.diffStats },
     items: accumulator.items.slice(),
-    treeSource: snapshotDiffsHubTreeSource(accumulator),
+    treeSource: snapshotHunkyardTreeSource(accumulator),
   };
 }
 
 // Converts raw patch text into the exact state slices consumed by the diff
 // viewer, sidebar tree, stats panel, and comment index in one linear pass.
-export function buildDiffsHubData(
+export function buildHunkyardData(
   patchContent: string,
   githubPath: string
-): LoadedDiffsHubData {
+): LoadedHunkyardData {
   const parsedPatches = parsePatchFiles(
     patchContent,
     // Use the url as a cache key
     encodeURIComponent(githubPath)
   );
 
-  const accumulator = createDiffsHubDataAccumulator();
+  const accumulator = createPatchAccumulator();
   const shouldPrefixTreePaths = parsedPatches.length > 1;
   for (const [patchIndex, patch] of parsedPatches.entries()) {
     const treePathPrefix = shouldPrefixTreePaths
@@ -373,9 +373,9 @@ export function buildDiffsHubData(
         fileDiff,
         `${encodeURIComponent(githubPath)}-${patchIndex}-${fileIndex}`
       );
-      appendFileDiffToDiffsHubData(accumulator, fileDiff, treePathPrefix);
+      appendFileDiffToHunkyardData(accumulator, fileDiff, treePathPrefix);
     }
   }
 
-  return snapshotDiffsHubData(accumulator);
+  return snapshotHunkyardData(accumulator);
 }

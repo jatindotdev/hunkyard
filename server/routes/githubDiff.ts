@@ -554,7 +554,7 @@ async function fetchDirectPatchTarget(
 ): Promise<PatchFetchResult> {
   const response = await fetch(target.patchURL, {
     cache: 'no-store',
-    headers: { 'User-Agent': 'pierre-diffshub', ...target.requestHeaders },
+    headers: { 'User-Agent': 'pierre-hunkyard', ...target.requestHeaders },
     signal,
   });
   return { response, target };
@@ -566,7 +566,7 @@ async function fetchGitHubPullPatchTarget(
 ): Promise<PatchFetchResult> {
   const pullResponse = await fetch(target.pullURL, {
     cache: 'no-store',
-    headers: { 'User-Agent': 'pierre-diffshub', ...target.requestHeaders },
+    headers: { 'User-Agent': 'pierre-hunkyard', ...target.requestHeaders },
     signal,
   });
 
@@ -697,7 +697,7 @@ async function fetchGitHubDiagnosticStatus(
     const response = await fetch(createGitHubAPIURL(path), {
       cache: 'no-store',
       headers: {
-        'User-Agent': 'pierre-diffshub',
+        'User-Agent': 'pierre-hunkyard',
         ...createGitHubJSONAPIHeaders(token),
       },
     });

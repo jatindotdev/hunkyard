@@ -5,21 +5,21 @@ import { memo, useEffect } from 'react';
 
 import { StatItem } from './StatItem';
 import { StatusRow } from './StatusRow';
-import type { DiffsHubDiffStats as DiffsHubDiffStatsData } from '@/lib/types';
+import type { HunkyardDiffStats as HunkyardDiffStatsData } from '@/lib/types';
 
-interface DiffsHubDiffStatsProps {
+interface HunkyardDiffStatsProps {
   expanded: boolean;
   onToggle(): void;
-  stats: DiffsHubDiffStatsData | null;
+  stats: HunkyardDiffStatsData | null;
   streaming: boolean;
 }
 
-export const DiffsHubDiffStats = memo(function DiffsHubDiffStats({
+export const HunkyardDiffStats = memo(function HunkyardDiffStats({
   expanded,
   onToggle,
   stats,
   streaming,
-}: DiffsHubDiffStatsProps) {
+}: HunkyardDiffStatsProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'F2') {

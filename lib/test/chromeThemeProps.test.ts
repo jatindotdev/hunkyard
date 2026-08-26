@@ -5,12 +5,12 @@ import { describe, expect, test } from 'bun:test';
 import type { CSSProperties } from 'react';
 
 import { chromeThemeProps } from '../theme/chromeThemeProps';
-import { diffshubChromeMapping } from '../theme/diffshubChromeMapping';
+import { hunkyardChromeMapping } from '../theme/hunkyardChromeMapping';
 
 // Golden chrome styles captured from the pre-theming buildThemeChromeStyle for
 // the two default Pierre soft themes. These are identical to the fixtures in
 // apps/docs/test/themeChromeStyle.test.ts and lock that the new
-// chromeThemeProps + diffshubChromeMapping pipeline is byte-for-byte identical.
+// chromeThemeProps + hunkyardChromeMapping pipeline is byte-for-byte identical.
 const LIGHT_SOFT_CHROME: Record<string, string> = {
   backgroundColor: '#f7f7f7',
   color: '#737373',
@@ -22,23 +22,23 @@ const LIGHT_SOFT_CHROME: Record<string, string> = {
   '--border': 'color-mix(in srgb, #737373 20%, transparent)',
   '--color-border-opaque': 'color-mix(in srgb, #737373 22%, #f7f7f7)',
   '--border-opaque': 'color-mix(in srgb, #737373 22%, #f7f7f7)',
-  '--diffshub-card-bg': 'color-mix(in srgb, #737373 6%, #f7f7f7)',
-  '--diffshub-card-hover-bg': 'color-mix(in srgb, #737373 12%, #f7f7f7)',
-  '--diffshub-card-border': 'color-mix(in srgb, #737373 12%, #f7f7f7)',
-  '--diffshub-popover-bg': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
-  '--diffshub-popover-fg': '#737373',
-  '--diffshub-popover-muted-fg': '#737373',
-  '--diffshub-popover-hover-bg': 'color-mix(in srgb, #737373 14%, #f7f7f7)',
-  '--diffshub-popover-selected-bg': 'color-mix(in srgb, #737373 20%, #f7f7f7)',
-  '--diffshub-popover-border': 'color-mix(in srgb, #737373 18%, #f7f7f7)',
-  '--diffshub-popover-shadow':
+  '--hunkyard-card-bg': 'color-mix(in srgb, #737373 6%, #f7f7f7)',
+  '--hunkyard-card-hover-bg': 'color-mix(in srgb, #737373 12%, #f7f7f7)',
+  '--hunkyard-card-border': 'color-mix(in srgb, #737373 12%, #f7f7f7)',
+  '--hunkyard-popover-bg': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
+  '--hunkyard-popover-fg': '#737373',
+  '--hunkyard-popover-muted-fg': '#737373',
+  '--hunkyard-popover-hover-bg': 'color-mix(in srgb, #737373 14%, #f7f7f7)',
+  '--hunkyard-popover-selected-bg': 'color-mix(in srgb, #737373 20%, #f7f7f7)',
+  '--hunkyard-popover-border': 'color-mix(in srgb, #737373 18%, #f7f7f7)',
+  '--hunkyard-popover-shadow':
     '0 8px 16px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.05)',
-  '--diffshub-annotation-bg': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
-  '--diffshub-annotation-fg': '#737373',
-  '--diffshub-annotation-border': 'color-mix(in srgb, #737373 18%, #f7f7f7)',
-  '--diffshub-annotation-hover-border':
+  '--hunkyard-annotation-bg': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
+  '--hunkyard-annotation-fg': '#737373',
+  '--hunkyard-annotation-border': 'color-mix(in srgb, #737373 18%, #f7f7f7)',
+  '--hunkyard-annotation-hover-border':
     'color-mix(in srgb, #737373 28%, #f7f7f7)',
-  '--diffshub-annotation-shadow':
+  '--hunkyard-annotation-shadow':
     '0 8px 16px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.05)',
   '--color-popover': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
   '--popover': 'color-mix(in srgb, #737373 7%, #f7f7f7)',
@@ -68,11 +68,11 @@ const LIGHT_SOFT_CHROME: Record<string, string> = {
   '--primary-foreground': '#f7f7f7',
   '--color-ring': '#737373',
   '--ring': '#737373',
-  '--diffshub-comment-add-fg': '#047857',
-  '--diffshub-comment-del-fg': '#be123c',
-  '--diffshub-diff-separator': 'color-mix(in srgb, #525252 22%, #ffffff)',
-  '--diffshub-scrollbar-thumb-bg': 'color-mix(in lab, #ffffff 85%, black)',
-  '--diffshub-scrollbar-track-bg': '#ffffff',
+  '--hunkyard-comment-add-fg': '#047857',
+  '--hunkyard-comment-del-fg': '#be123c',
+  '--hunkyard-diff-separator': 'color-mix(in srgb, #525252 22%, #ffffff)',
+  '--hunkyard-scrollbar-thumb-bg': 'color-mix(in lab, #ffffff 85%, black)',
+  '--hunkyard-scrollbar-track-bg': '#ffffff',
 };
 
 const DARK_SOFT_CHROME: Record<string, string> = {
@@ -86,23 +86,23 @@ const DARK_SOFT_CHROME: Record<string, string> = {
   '--border': 'color-mix(in srgb, #8a8a8a 20%, transparent)',
   '--color-border-opaque': 'color-mix(in srgb, #8a8a8a 22%, #101010)',
   '--border-opaque': 'color-mix(in srgb, #8a8a8a 22%, #101010)',
-  '--diffshub-card-bg': 'color-mix(in srgb, #8a8a8a 6%, #101010)',
-  '--diffshub-card-hover-bg': 'color-mix(in srgb, #8a8a8a 12%, #101010)',
-  '--diffshub-card-border': 'color-mix(in srgb, #8a8a8a 12%, #101010)',
-  '--diffshub-popover-bg': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
-  '--diffshub-popover-fg': '#8a8a8a',
-  '--diffshub-popover-muted-fg': '#7e7e7e',
-  '--diffshub-popover-hover-bg': 'color-mix(in srgb, #8a8a8a 14%, #101010)',
-  '--diffshub-popover-selected-bg': 'color-mix(in srgb, #8a8a8a 20%, #101010)',
-  '--diffshub-popover-border': 'color-mix(in srgb, #8a8a8a 18%, #101010)',
-  '--diffshub-popover-shadow':
+  '--hunkyard-card-bg': 'color-mix(in srgb, #8a8a8a 6%, #101010)',
+  '--hunkyard-card-hover-bg': 'color-mix(in srgb, #8a8a8a 12%, #101010)',
+  '--hunkyard-card-border': 'color-mix(in srgb, #8a8a8a 12%, #101010)',
+  '--hunkyard-popover-bg': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
+  '--hunkyard-popover-fg': '#8a8a8a',
+  '--hunkyard-popover-muted-fg': '#7e7e7e',
+  '--hunkyard-popover-hover-bg': 'color-mix(in srgb, #8a8a8a 14%, #101010)',
+  '--hunkyard-popover-selected-bg': 'color-mix(in srgb, #8a8a8a 20%, #101010)',
+  '--hunkyard-popover-border': 'color-mix(in srgb, #8a8a8a 18%, #101010)',
+  '--hunkyard-popover-shadow':
     '0 8px 16px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.05)',
-  '--diffshub-annotation-bg': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
-  '--diffshub-annotation-fg': '#8a8a8a',
-  '--diffshub-annotation-border': 'color-mix(in srgb, #8a8a8a 18%, #101010)',
-  '--diffshub-annotation-hover-border':
+  '--hunkyard-annotation-bg': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
+  '--hunkyard-annotation-fg': '#8a8a8a',
+  '--hunkyard-annotation-border': 'color-mix(in srgb, #8a8a8a 18%, #101010)',
+  '--hunkyard-annotation-hover-border':
     'color-mix(in srgb, #8a8a8a 28%, #101010)',
-  '--diffshub-annotation-shadow':
+  '--hunkyard-annotation-shadow':
     '0 8px 16px rgb(0 0 0 / 0.07), 0 2px 4px rgb(0 0 0 / 0.05)',
   '--color-popover': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
   '--popover': 'color-mix(in srgb, #8a8a8a 7%, #101010)',
@@ -132,18 +132,18 @@ const DARK_SOFT_CHROME: Record<string, string> = {
   '--primary-foreground': '#101010',
   '--color-ring': '#8a8a8a',
   '--ring': '#8a8a8a',
-  '--diffshub-comment-add-fg': '#34d399',
-  '--diffshub-comment-del-fg': '#fb7185',
-  '--diffshub-diff-separator': 'color-mix(in srgb, #8a8a8a 22%, #101010)',
-  '--diffshub-scrollbar-thumb-bg': 'color-mix(in lab, #171717 80%, white)',
-  '--diffshub-scrollbar-track-bg': '#171717',
+  '--hunkyard-comment-add-fg': '#34d399',
+  '--hunkyard-comment-del-fg': '#fb7185',
+  '--hunkyard-diff-separator': 'color-mix(in srgb, #8a8a8a 22%, #101010)',
+  '--hunkyard-scrollbar-thumb-bg': 'color-mix(in lab, #171717 80%, white)',
+  '--hunkyard-scrollbar-track-bg': '#171717',
 };
 
-describe('chromeThemeProps + diffshubChromeMapping', () => {
+describe('chromeThemeProps + hunkyardChromeMapping', () => {
   test('matches the pre-theming chrome byte-for-byte (pierre-light-soft)', () => {
     const { style } = chromeThemeProps(
       { theme: lightSoftTheme as ThemeLike, colorScheme: 'light' },
-      diffshubChromeMapping
+      hunkyardChromeMapping
     );
     expect(style).toEqual(LIGHT_SOFT_CHROME as CSSProperties);
   });
@@ -151,7 +151,7 @@ describe('chromeThemeProps + diffshubChromeMapping', () => {
   test('matches the pre-theming chrome byte-for-byte (pierre-dark-soft)', () => {
     const { style } = chromeThemeProps(
       { theme: darkSoftTheme as ThemeLike, colorScheme: 'dark' },
-      diffshubChromeMapping
+      hunkyardChromeMapping
     );
     expect(style).toEqual(DARK_SOFT_CHROME as CSSProperties);
   });
@@ -160,7 +160,7 @@ describe('chromeThemeProps + diffshubChromeMapping', () => {
     expect(
       chromeThemeProps(
         { theme: undefined, colorScheme: 'light' },
-        diffshubChromeMapping
+        hunkyardChromeMapping
       ).style
     ).toEqual({});
   });

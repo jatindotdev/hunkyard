@@ -17,7 +17,7 @@ import {
   CODE_VIEW_FILE_TREE_ITEM_HEIGHT,
   getInitialBatchSize,
 } from '@/lib/constants';
-import type { DiffsHubFileTreeSource } from '@/lib/types';
+import type { FileTreeSource } from '@/lib/types';
 // `@pierre/trees` types its public paths as this but does not export the
 // alias from the package root; it is a plain path string.
 type FileTreePublicId = string;
@@ -32,7 +32,7 @@ const PRESERVE_INPUT_ORDER_SORT: FileTreeSortComparator = () => 0;
 
 // Layout-only overrides. Colors flow through from the resolved Shiki theme
 // (via themeToTreeStyles) so the sidebar matches the diff theme, but the
-// density and padding stay tuned for the diffshub layout regardless of
+// density and padding stay tuned for the hunkyard layout regardless of
 // which theme the user picks. `--trees-git-renamed-color-override` is kept
 // because most Shiki themes don't define a "renamed" decoration color.
 const DENSITY_OVERRIDE_STYLES = {
@@ -41,20 +41,20 @@ const DENSITY_OVERRIDE_STYLES = {
   '--trees-git-renamed-color-override': 'light-dark(#007aff, #007aff)',
 } as CSSProperties;
 
-interface DiffsHubFileTreeProps {
+interface HunkyardFileTreeProps {
   // Callback invoked with the underlying tree model once it's mounted, and
   // again with `null` on unmount. Lets parents drive imperative APIs like
   // search open/close without owning the model creation.
   onModelReady(model: FileTreeModel | null): void;
   onSelectItem(itemId: string): void;
-  source: DiffsHubFileTreeSource;
+  source: FileTreeSource;
 }
 
-export const DiffsHubFileTree = memo(function DiffsHubFileTree({
+export const HunkyardFileTree = memo(function HunkyardFileTree({
   onModelReady,
   onSelectItem,
   source,
-}: DiffsHubFileTreeProps) {
+}: HunkyardFileTreeProps) {
   const sourceRef = useRef(source);
   const previousSourceRef = useRef(source);
   const [initialVisibleRowCount] = useState(getInitialBatchSize);

@@ -73,7 +73,7 @@ const PoolOptions: WorkerPoolOptions = {
 // Both tokenised twenty languages with no failures, so this is a speed trade
 // rather than a coverage one.
 const HighlighterOptions: WorkerInitializationRenderOptions = {
-  // diffshub used to override the default pair with the soft pierre themes;
+  // hunkyard used to override the default pair with the soft pierre themes;
   // now that the canonical default IS the non-soft pair (shared via theming),
   // every site initializes the pool with the same defaults.
   theme: DEFAULT_THEMES,

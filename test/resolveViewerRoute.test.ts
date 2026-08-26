@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { resolveDiffshubViewerRoute } from '../lib/resolveDiffshubViewerRoute';
+import { resolveViewerRoute } from '../lib/resolveViewerRoute';
 
-describe('resolveDiffshubViewerRoute', () => {
+describe('resolveViewerRoute', () => {
   describe('empty path', () => {
     test('redirects to home', () => {
-      expect(resolveDiffshubViewerRoute([], undefined)).toEqual({
+      expect(resolveViewerRoute([], undefined)).toEqual({
         kind: 'redirect',
         target: '/',
       });
@@ -15,7 +15,7 @@ describe('resolveDiffshubViewerRoute', () => {
   describe('GitHub (default host) canonical paths', () => {
     test('PR path renders without rewrite', () => {
       expect(
-        resolveDiffshubViewerRoute(['owner', 'repo', 'pull', '123'], undefined)
+        resolveViewerRoute(['owner', 'repo', 'pull', '123'], undefined)
       ).toEqual({
         domain: undefined,
         kind: 'render',
@@ -26,7 +26,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
     test('commit path renders without rewrite', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'commit', 'abc1234'],
           undefined
         )
@@ -40,7 +40,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
     test('empty-string domain is treated as default GitHub', () => {
       expect(
-        resolveDiffshubViewerRoute(['owner', 'repo', 'pull', '123'], '')
+        resolveViewerRoute(['owner', 'repo', 'pull', '123'], '')
       ).toEqual({
         domain: undefined,
         kind: 'render',
@@ -53,7 +53,7 @@ describe('resolveDiffshubViewerRoute', () => {
   describe('GitHub (default host) redirects', () => {
     test('PR changes tab redirects to canonical PR path', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'pull', '123', 'changes'],
           undefined
         )
@@ -65,7 +65,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
     test('PR files tab redirects to canonical PR path', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'pull', '123', 'files'],
           undefined
         )
@@ -77,7 +77,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
     test('PR changes tab scoped to a SHA redirects to commit path', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           [
             'pierrecomputer',
             'pierre',
@@ -97,7 +97,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
     test('PR files tab scoped to a SHA redirects to commit path', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'pull', '123', 'files', 'abc1234'],
           undefined
         )
@@ -112,7 +112,7 @@ describe('resolveDiffshubViewerRoute', () => {
       // trailing segment isn't hex, we want to pass it through rather than
       // misinterpret it as a commit.
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'pull', '123', 'changes', 'reviews'],
           undefined
         )
@@ -128,7 +128,7 @@ describe('resolveDiffshubViewerRoute', () => {
   describe('alternate domain', () => {
     test('renders against the requested host without rewriting', () => {
       expect(
-        resolveDiffshubViewerRoute(
+        resolveViewerRoute(
           ['owner', 'repo', 'pull', '123', 'changes'],
           'gitlab.com'
         )
@@ -144,7 +144,7 @@ describe('resolveDiffshubViewerRoute', () => {
       // Caller resolves Array → single string before calling. This test
       // documents that an unexpected empty string falls back to GitHub.
       expect(
-        resolveDiffshubViewerRoute(['owner', 'repo', 'pull', '123'], '')
+        resolveViewerRoute(['owner', 'repo', 'pull', '123'], '')
       ).toEqual({
         domain: undefined,
         kind: 'render',
@@ -157,7 +157,7 @@ describe('resolveDiffshubViewerRoute', () => {
 
 describe('local targets', () => {
   test('renders a local review without touching GitHub canonicalization', () => {
-    const route = resolveDiffshubViewerRoute(['local', 'main...feature'], undefined);
+    const route = resolveViewerRoute(['local', 'main...feature'], undefined);
     expect(route).toEqual({
       kind: 'render-local',
       target: 'main...feature',
@@ -166,7 +166,7 @@ describe('local targets', () => {
   });
 
   test('bare /local is the working tree', () => {
-    const route = resolveDiffshubViewerRoute(['local'], undefined);
+    const route = resolveViewerRoute(['local'], undefined);
     expect(route).toEqual({
       kind: 'render-local',
       target: undefined,
@@ -175,7 +175,7 @@ describe('local targets', () => {
   });
 
   test('an unencoded slashed revspec redirects to its canonical form', () => {
-    const route = resolveDiffshubViewerRoute(
+    const route = resolveViewerRoute(
       ['local', 'origin', 'main...feature'],
       undefined
     );
@@ -187,12 +187,12 @@ describe('local targets', () => {
 
   test('a local path is unaffected by the domain query param', () => {
     // `domain` is a GitHub-side escape hatch and must not leak into local mode.
-    const route = resolveDiffshubViewerRoute(['local', 'HEAD'], 'tangled.org');
+    const route = resolveViewerRoute(['local', 'HEAD'], 'tangled.org');
     expect(route.kind).toBe('render-local');
   });
 
   test('GitHub paths still resolve as before', () => {
-    const route = resolveDiffshubViewerRoute(['owner', 'repo', 'pull', '7'], undefined);
+    const route = resolveViewerRoute(['owner', 'repo', 'pull', '7'], undefined);
     expect(route.kind).toBe('render');
     if (route.kind === 'render') {
       expect(route.url).toBe('https://github.com/owner/repo/pull/7');

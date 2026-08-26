@@ -11,7 +11,7 @@ import {
 import { fixedSource, type ThemeInput } from '@/lib/theme/ThemeSource';
 
 // Returns the spreadable chrome style props for the active theme, mapped to the
-// app's CSS variables by the supplied mapping (diffshub passes diffshubChromeMapping).
+// app's CSS variables by the supplied mapping (hunkyard passes hunkyardChromeMapping).
 export function useChromeThemeProps(
   mapping: ChromeMapping,
   theme?: ThemeInput

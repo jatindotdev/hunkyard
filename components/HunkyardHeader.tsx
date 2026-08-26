@@ -43,7 +43,7 @@ import { GitHubTokenControl } from '@/components/GitHubTokenControl';
 import { Switch } from '@/components/Switch';
 import { docsThemeCatalog } from '@/components/themeCatalog';
 import { cn } from '@/lib/cn';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 
 type LightThemeName = string;
@@ -87,7 +87,7 @@ interface HeaderProps {
   showBackgrounds: boolean;
 }
 
-export const DiffsHubHeader = memo(function DiffsHubHeader({
+export const HunkyardHeader = memo(function HunkyardHeader({
   className,
   collapseMode,
   colorMode,
@@ -125,10 +125,10 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   const showExternalLink = localTarget == null && currentUrl === initialUrl;
   // Mirror the sidebar's themed chrome so the header bar lives on the same
   // Shiki surface (background, text, icons, borders) instead of the global
-  // light/dark palette. Falls back to the diffshub-sidebar-bg CSS variable
+  // light/dark palette. Falls back to the hunkyard-sidebar-bg CSS variable
   // on first render while the theme is still resolving.
   const { style: headerChromeStyle } = useChromeThemeProps(
-    diffshubChromeMapping
+    hunkyardChromeMapping
   );
   const themeChromeStyle =
     Object.keys(headerChromeStyle).length > 0 ? headerChromeStyle : undefined;
@@ -141,7 +141,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
       className={cn(
         'z-10 contain-layout contain-paint flex flex-wrap md:flex-nowrap items-center gap-2.5 pt-3 pb-2 px-4 md:px-3 md:py-1.5 border-b border-[var(--color-border-opaque)]',
         themeChromeStyle == null &&
-          'bg-background md:bg-[var(--diffshub-sidebar-bg)]',
+          'bg-background md:bg-[var(--hunkyard-sidebar-bg)]',
         className
       )}
       style={themeChromeStyle}

@@ -13,7 +13,7 @@ import {
 
 // Returns the spreadable FileTree style props for the active theme (provider, or
 // the per-component `theme` override). Pass reconcileForegroundFromChrome to
-// preserve diffshub's contrast-based foreground upgrade.
+// preserve hunkyard's contrast-based foreground upgrade.
 export function useTreeThemeProps(
   theme?: ThemeInput,
   options?: TreeThemePropsOptions

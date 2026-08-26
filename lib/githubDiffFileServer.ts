@@ -456,7 +456,7 @@ async function fetchGitHubJSON(
 function createGitHubJSONHeaders(token: string | undefined): HeadersInit {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
-    'User-Agent': 'pierre-diffshub',
+    'User-Agent': 'pierre-hunkyard',
     'X-GitHub-Api-Version': GITHUB_API_VERSION,
   };
   if (token != null && token !== '') {
@@ -467,7 +467,7 @@ function createGitHubJSONHeaders(token: string | undefined): HeadersInit {
 
 function createGitHubRawHeaders(token: string | undefined): HeadersInit {
   const headers: Record<string, string> = {
-    'User-Agent': 'pierre-diffshub',
+    'User-Agent': 'pierre-hunkyard',
   };
   if (token != null && token !== '') {
     headers.Authorization = `Bearer ${token}`;
@@ -479,7 +479,7 @@ function createGitHubRawAPIHeaders(token: string): HeadersInit {
   return {
     Accept: GITHUB_RAW_MEDIA_TYPE,
     Authorization: `Bearer ${token}`,
-    'User-Agent': 'pierre-diffshub',
+    'User-Agent': 'pierre-hunkyard',
     'X-GitHub-Api-Version': GITHUB_API_VERSION,
   };
 }
@@ -495,7 +495,7 @@ async function assertGitHubResponseOK(
   const detail = (await response.text()).trim();
   if (isGitHubRateLimitResponse(response, detail)) {
     throw new Error(
-      'GitHub rate limit exceeded. Add a GitHub token in DiffsHub settings to raise the limit.'
+      'GitHub rate limit exceeded. Add a GitHub token in Hunkyard settings to raise the limit.'
     );
   }
 

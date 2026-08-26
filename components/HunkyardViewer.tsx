@@ -43,7 +43,7 @@ import type {
   Thread,
   ThreadAnchor,
 } from '@/lib/review/types';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import {
   classifyNonTextFile,
   describeNonTextFile,
@@ -82,7 +82,7 @@ export interface ReviewViewerCommands {
   toggleViewedForItem(itemId: string): void;
 }
 
-interface DiffsHubViewerProps {
+interface HunkyardViewerProps {
   commandsRef: RefObject<ReviewViewerCommands | null>;
   className?: string;
   diffStyle: 'split' | 'unified';
@@ -123,7 +123,7 @@ interface DiffsHubViewerProps {
   onViewerReady(): void;
 }
 
-export const DiffsHubViewer = memo(function DiffsHubViewer({
+export const HunkyardViewer = memo(function HunkyardViewer({
   commandsRef,
   className,
   diffStyle,
@@ -155,11 +155,11 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   loadDiffFiles,
   onLineLinkChange,
   onViewerReady,
-}: DiffsHubViewerProps) {
+}: HunkyardViewerProps) {
 
   const [selectedLines, setSelectedLines] =
     useState<CodeViewLineSelection | null>(null);
-  const { style: chromeStyle } = useChromeThemeProps(diffshubChromeMapping);
+  const { style: chromeStyle } = useChromeThemeProps(hunkyardChromeMapping);
   // Preserve the previous `undefined`-means-not-resolved contract that
   // buildAnnotationThemeStyle and the className fallbacks depend on.
   const themeChromeStyle =
@@ -516,7 +516,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       initialItems={initialItems}
       className={cn(
         className,
-        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] [will-change:scroll-position] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--diffshub-diff-separator,var(--color-border-opaque)),0_1px_0_var(--diffshub-diff-separator,var(--color-border-opaque))]'
+        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] [will-change:scroll-position] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--hunkyard-diff-separator,var(--color-border-opaque)),0_1px_0_var(--hunkyard-diff-separator,var(--color-border-opaque))]'
       )}
       options={options}
       style={annotationThemeStyle}

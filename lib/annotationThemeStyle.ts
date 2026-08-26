@@ -1,19 +1,19 @@
 import type { CSSProperties } from 'react';
 
 const ANNOTATION_THEME_STYLE_KEYS = [
-  '--diffshub-annotation-bg',
-  '--diffshub-annotation-border',
-  '--diffshub-annotation-fg',
-  '--diffshub-annotation-hover-border',
-  '--diffshub-annotation-shadow',
-  '--diffshub-popover-muted-fg',
+  '--hunkyard-annotation-bg',
+  '--hunkyard-annotation-border',
+  '--hunkyard-annotation-fg',
+  '--hunkyard-annotation-hover-border',
+  '--hunkyard-annotation-shadow',
+  '--hunkyard-popover-muted-fg',
   // Inter-file separator hairline. Carries the themed border-opaque value
   // (same weight as the header/sidebar chrome borders) so it stays visible
   // on any theme without reading darker than the surrounding chrome.
-  '--diffshub-diff-separator',
+  '--hunkyard-diff-separator',
   // Main scrollbar thumb + gutter tint; this element is the cv-scrollbar host.
-  '--diffshub-scrollbar-thumb-bg',
-  '--diffshub-scrollbar-track-bg',
+  '--hunkyard-scrollbar-thumb-bg',
+  '--hunkyard-scrollbar-track-bg',
 ] as const;
 
 export function buildAnnotationThemeStyle(
