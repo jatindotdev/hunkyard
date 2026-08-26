@@ -106,14 +106,22 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
     await browser.press('Meta+k');
     await new Promise((resolve) => setTimeout(resolve, 900));
 
-    const overlay = await browser.evaluate<string>(
-      `document.querySelector('[data-opener-overlay]')?.innerText ?? ''`
-    );
-    expect(overlay).toContain('searching inside this repository');
-    expect(overlay).toContain('Working tree');
+    try {
+      const overlay = await browser.evaluate<string>(
+        `document.querySelector('[data-opener-overlay]')?.innerText ?? ''`
+      );
+      // The repository is named as a chip in the field, and the footer says
+      // what leaving it would do.
+      expect(overlay).toContain('leave this repository');
+      expect(overlay).toContain('Working tree');
+      expect(overlay).toContain('BRANCHES');
+    } finally {
+      // Whatever happened above, the overlay must not be left over the page:
+      // every test after this one drives the review underneath it.
+      await browser.press('Escape');
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
 
-    await browser.press('Escape');
-    await new Promise((resolve) => setTimeout(resolve, 400));
     expect(
       await browser.evaluate<string | null>(
         `document.querySelector('[data-opener-overlay]') ? 'open' : null`

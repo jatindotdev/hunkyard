@@ -3,15 +3,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useChromeThemeProps } from './useChromeThemeProps';
 import { OpenerBar } from '@/app/_open/OpenerBar';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
 
 // The opener, over whatever you are already looking at.
 //
 // It is the same field the home page is, rather than a menu that lists some of
 // the same things: two surfaces answering "what do you want to review" would
 // drift, and the one that lived in the header already had less in it.
+//
+// Deliberately not wrapped in the diff surface's chrome theme. That theme is
+// derived from the syntax colours and its `--color-foreground` is the muted one
+// code is written in -- applied here it silently turned every label in the
+// panel mid-grey. This is app chrome and uses the app's own tokens.
 export function OpenerOverlay({
   open,
   onClose,
@@ -25,7 +28,6 @@ export function OpenerOverlay({
   // Scope is local here rather than in the URL: the URL belongs to the review
   // underneath, which is still there when this closes.
   const [scoped, setScoped] = useState<string | undefined>(repoId);
-  const { style } = useChromeThemeProps(diffshubChromeMapping);
 
   useEffect(() => {
     if (open) setScoped(repoId);
@@ -57,13 +59,12 @@ export function OpenerOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Open something to review"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-5 pt-[12vh] backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-5 pt-[12vh] backdrop-blur-[2px]"
       onMouseDown={(event) => {
         // Only the backdrop, so a drag that ends outside the panel does not
         // close it mid-selection.
         if (event.target === event.currentTarget) onClose();
       }}
-      style={style}
     >
       <div className="w-full max-w-2xl">
         <OpenerBar repoId={scoped} onScope={setScoped} onNavigate={onClose} />

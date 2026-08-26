@@ -98,7 +98,15 @@ export function unscopedSections(options: {
   // empty box would bury the repositories you actually use under Applications
   // and Library.
   if (query.kind === 'path' && listing != null) {
-    const entries = rankBy(listing.entries, pathFilter, (entry) => entry.name, 8);
+    // Whatever is already listed above as a repository is not worth a second
+    // row saying the same thing one section down.
+    const shown = new Set(matched.map((repo) => repo.root));
+    const entries = rankBy(
+      listing.entries.filter((entry) => !shown.has(entry.path)),
+      pathFilter,
+      (entry) => entry.name,
+      8
+    );
     const rows = entries.map((entry) => ({
       id: `dir:${entry.path}`,
       title: entry.name,

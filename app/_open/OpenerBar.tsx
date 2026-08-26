@@ -160,67 +160,106 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
       : 'A repository, a path, or a pull request';
 
   return (
-    <div className="flex w-full flex-col gap-3">
-      <div
-        className={cn(
-          'bg-background/80 focus-within:border-ring/60 rounded-2xl border shadow-2xl backdrop-blur transition-colors',
-          'focus-within:ring-ring/10 focus-within:ring-4'
+    <div
+      className={cn(
+        // One object, not a field with a list floating under it. A palette that
+        // comes apart into two cards reads as two things to aim at.
+        'bg-background overflow-hidden rounded-xl border shadow-2xl',
+        // A hairline of light along the edge, so the panel reads as raised
+        // rather than as a hole cut in the backdrop.
+        'ring-1 ring-white/8 dark:ring-white/10',
+        'focus-within:border-ring/50'
+      )}
+    >
+      <div className="flex items-center gap-2.5 px-4 py-3.5">
+        <IconSearch className="text-muted-foreground size-4 shrink-0" />
+        <input
+          ref={inputRef}
+          autoFocus
+          value={query}
+          onChange={(event) => setQuery(event.currentTarget.value)}
+          onKeyDown={onKeyDown}
+          placeholder={placeholder}
+          spellCheck={false}
+          autoComplete="off"
+          className="text-foreground placeholder:text-muted-foreground/60 min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+        />
+        {opening && (
+          <span className="text-muted-foreground text-xs">opening…</span>
         )}
-      >
-        <div className="flex items-center gap-2.5 px-4 py-3.5">
-          <IconSearch className="text-muted-foreground size-4 shrink-0" />
-          <input
-            ref={inputRef}
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-            onKeyDown={onKeyDown}
-            placeholder={placeholder}
-            spellCheck={false}
-            autoComplete="off"
-            className="placeholder:text-muted-foreground/70 min-w-0 flex-1 bg-transparent text-base outline-none"
-          />
-          {opening && (
-            <span className="text-muted-foreground text-xs">opening…</span>
-          )}
-        </div>
-
         {scopedRepo != null && (
-          <div className="flex items-center gap-2 px-4 pb-3">
-            <button
-              type="button"
-              onClick={() => onScope(undefined)}
-              className="bg-accent/70 hover:bg-accent flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors"
-              title="Search everything again"
-            >
-              <IconFolder className="size-3 opacity-60" />
-              {baseName(scopedRepo.root)}
-              <IconX className="size-3 opacity-50" />
-            </button>
-            <span className="text-muted-foreground truncate text-xs">
-              searching inside this repository
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => onScope(undefined)}
+            className="bg-accent hover:bg-accent/70 text-foreground/90 flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors"
+            title="Search everything again"
+          >
+            <IconFolder className="size-3 opacity-60" />
+            {baseName(scopedRepo.root)}
+            <IconX className="size-3 opacity-50" />
+          </button>
         )}
       </div>
 
-      {error != null && <p className="text-destructive px-1 text-xs">{error}</p>}
+      {error != null && (
+        <p className="text-destructive border-t px-4 py-2 text-xs">{error}</p>
+      )}
 
-      <Results
-        sections={sections}
-        rows={rows}
-        active={active}
-        onHover={setActive}
-        onChoose={choose}
-      />
+      {rows.length > 0 && (
+        <div className="max-h-[52vh] overflow-y-auto border-t py-1">
+          <Results
+            sections={sections}
+            rows={rows}
+            active={active}
+            onHover={setActive}
+            onChoose={choose}
+          />
+        </div>
+      )}
 
       {rows.length === 0 && query.trim() !== '' && (
-        <p className="text-muted-foreground px-1 text-sm">
+        <p className="text-muted-foreground border-t px-4 py-3 text-sm">
           Nothing matches. Paths start with <code>/</code> or <code>~</code>;
           pull requests look like <code>owner/repo#123</code>.
         </p>
       )}
+
+      <div className="text-muted-foreground/70 flex items-center gap-3 border-t px-4 py-2 text-[11px]">
+        <Hint keys="↑↓" label="move" />
+        <Hint keys="↵" label={enterLabel(rows[active])} />
+        {scopedRepo != null ? (
+          <Hint keys="esc" label="leave this repository" />
+        ) : (
+          <Hint keys="esc" label="clear" />
+        )}
+      </div>
     </div>
+  );
+}
+
+// What Enter would do to the row under the cursor, rather than a guess at what
+// most rows do.
+function enterLabel(row: OpenerRow | undefined): string {
+  switch (row?.action.kind) {
+    case 'browse':
+      return 'open folder';
+    case 'open':
+      return 'open repository';
+    case 'scope':
+      return 'search inside';
+    default:
+      return 'review';
+  }
+}
+
+function Hint({ keys, label }: { keys: string; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <kbd className="bg-accent/60 rounded px-1.5 py-0.5 font-sans text-[10px]">
+        {keys}
+      </kbd>
+      {label}
+    </span>
   );
 }
 
@@ -241,10 +280,10 @@ function Results({
 
   let index = -1;
   return (
-    <div className="border-border bg-background/60 max-h-[52vh] overflow-y-auto rounded-xl border">
+    <>
       {sections.map((section) => (
         <div key={section.label}>
-          <div className="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-medium tracking-wide uppercase">
+          <div className="text-muted-foreground/80 px-4 pt-3 pb-1 text-[11px] font-medium tracking-wide uppercase">
             {section.label}
           </div>
           {section.rows.map((row) => {
@@ -258,13 +297,20 @@ function Results({
                 onMouseEnter={() => onHover(at)}
                 onClick={() => onChoose(row)}
                 className={cn(
-                  'flex w-full items-center gap-3 px-3 py-2 text-left transition-colors',
-                  at === active ? 'bg-accent' : 'hover:bg-accent/40'
+                  'flex w-full items-center gap-3 px-4 py-2 text-left',
+                  at === active && 'bg-accent'
                 )}
               >
-                <Icon className="size-4 shrink-0 opacity-50" />
+                <Icon
+                  className={cn(
+                    'size-4 shrink-0',
+                    at === active ? 'opacity-80' : 'opacity-45'
+                  )}
+                />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm">{row.title}</span>
+                  <span className="text-foreground block truncate text-sm">
+                    {row.title}
+                  </span>
                   {row.detail != null && row.detail !== '' && (
                     <span className="text-muted-foreground block truncate text-xs">
                       {row.detail}
@@ -281,6 +327,6 @@ function Results({
           })}
         </div>
       ))}
-    </div>
+    </>
   );
 }
