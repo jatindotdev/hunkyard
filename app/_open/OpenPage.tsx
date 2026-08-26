@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-import { DiffsHubLogo } from '@/components/DiffsHubLogo';
+import { HunkyardLogo } from '@/components/HunkyardLogo';
 import { ThemedSurface } from '@/components/ThemedSurface';
 import { useServerInfo } from '@/components/useServerInfo';
 import { encodeOpenerHref, resolveOpenerRoute } from '@/lib/openerRoute';
@@ -41,8 +41,13 @@ export function OpenPage({ search }: { search: string }) {
   return (
     <ThemedSurface className="flex min-h-[100svh] flex-col items-center bg-[var(--diffshub-sidebar-bg)]">
       <div className="flex w-full max-w-2xl flex-1 flex-col px-5 pt-[14vh] pb-10">
-        <div className="mb-7 flex flex-col items-center gap-2.5">
-          <DiffsHubLogo className="size-7" />
+        <div className="mb-7 flex flex-col items-center gap-2">
+          <span className="flex items-center gap-2">
+            <HunkyardLogo className="size-6" />
+            <span className="text-[17px] font-semibold tracking-tight">
+              Hunkyard
+            </span>
+          </span>
           <h1 className="text-muted-foreground text-sm">
             Review a pull request, a branch, or what you have not committed
           </h1>

@@ -28,7 +28,7 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { DiffsHubLogo } from './DiffsHubLogo';
+import { HunkyardLogo } from './HunkyardLogo';
 import { SourceSwitcher } from './SourceSwitcher';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
@@ -150,7 +150,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
         href="/"
         className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-200 hover:scale-110 md:static md:translate-x-0"
       >
-        <DiffsHubLogo />
+        <HunkyardLogo />
       </Link>
       <SourceSwitcher
         className="order-last md:order-none md:mr-auto"
