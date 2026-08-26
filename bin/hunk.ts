@@ -29,6 +29,7 @@ import {
   readDaemonRecord,
   writeDaemonPid,
 } from '../lib/repos/daemonPid';
+import { storeGitHubToken } from '../lib/repos/githubTokenStore';
 import { registerRepo, tidyRepos } from '../lib/repos/registry';
 import { startServer } from '../server/index';
 import {
@@ -372,11 +373,11 @@ async function review(options: {
     );
   }
 
-  // The token has to be in the server's environment, and the server may be a
-  // process that is already running. So it is read before either branch below,
-  // and a running server keeps whatever it started with.
+  // Nothing starts the server from a shell any more, so a token that lives in
+  // your environment cannot reach it by being inherited. This is the hand-off:
+  // written down here, where a process with no session can still find it.
   const token = resolveGitHubToken();
-  if (token != null) process.env.HUNKYARD_GITHUB_TOKEN = token;
+  await storeGitHubToken(token);
 
 
   // Registered before the browser opens, so the page can address it as soon as

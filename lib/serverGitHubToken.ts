@@ -1,4 +1,8 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { stateDir } from './repos/stateDir';
 
 // The GitHub token the local server holds on the user's behalf.
 //
@@ -18,9 +22,21 @@ let askedAt = 0;
 // request, short enough that `gh auth login` starts working without a restart.
 const NEGATIVE_TTL_MS = 60_000;
 
-// A server started at login has no GH_TOKEN in its environment, because nothing
-// exported one into launchd's. Asking `gh` directly is what keeps private pull
-// requests working when no terminal was involved in starting the server.
+// What the CLI wrote down, from a shell that had one. Read synchronously
+// because everything reading a token here is, and the file is a line long.
+function tokenFromStore(): string | null {
+  try {
+    const token = readFileSync(join(stateDir(), 'github-token'), 'utf8').trim();
+    return token === '' ? null : token;
+  } catch {
+    return null;
+  }
+}
+
+// A last resort, and often a dead end: `gh` frequently reads GITHUB_TOKEN from
+// the environment rather than storing one, so a process with no shell asking
+// `gh` gets the same nothing it already had. It still helps for anyone whose
+// `gh` does hold its own credential.
 function tokenFromGh(): string | null {
   try {
     const result = spawnSync('gh', ['auth', 'token'], { encoding: 'utf8' });
@@ -42,11 +58,13 @@ export function resolveServerGitHubToken(): string | undefined {
   }
 
   // Memoised: a found token never changes for the life of the process, and a
-  // missing one is re-checked occasionally rather than on every request.
+  // missing one is re-checked occasionally rather than on every request -- which
+  // is also how a token stored after the server started gets picked up without
+  // restarting it.
   if (cached != null) return cached;
   if (Date.now() - askedAt < NEGATIVE_TTL_MS && askedAt !== 0) return undefined;
   askedAt = Date.now();
-  cached = tokenFromGh();
+  cached = tokenFromStore() ?? tokenFromGh();
   return cached ?? undefined;
 }
 
