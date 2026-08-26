@@ -54,6 +54,9 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
   const { repos, home, open } = useRepos();
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
+  // Scrolling on hover would fight the mouse that caused the change, so only a
+  // keyboard move asks for the row to be brought into view.
+  const byKeyboard = useRef(false);
   const [opening, setOpening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +94,17 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
   useEffect(() => {
     setActive(0);
   }, [query, repoId]);
+
+  useEffect(() => {
+    if (!byKeyboard.current) return;
+    byKeyboard.current = false;
+    // `nearest` scrolls the least it can, and only when the row is actually
+    // outside the list -- moving between two visible rows should not move
+    // anything else.
+    document
+      .querySelector(`[data-opener-row="${active}"]`)
+      ?.scrollIntoView({ block: 'nearest' });
+  }, [active]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -135,9 +149,11 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
+      byKeyboard.current = true;
       setActive((index) => Math.min(index + 1, rows.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
+      byKeyboard.current = true;
       setActive((index) => Math.max(index - 1, 0));
     } else if (event.key === 'Enter') {
       event.preventDefault();
@@ -304,6 +320,7 @@ function Results({
               <button
                 key={row.id}
                 type="button"
+                data-opener-row={at}
                 onMouseEnter={() => onHover(at)}
                 onClick={() => onChoose(row)}
                 className={cn(

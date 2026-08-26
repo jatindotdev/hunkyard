@@ -115,7 +115,62 @@ describe.skipIf(!available)('the opener in a real browser', () => {
     expect(text).toContain('first');
   });
 
+  // Arrowing past the bottom of the list has to bring the row with it, or the
+  // selection walks off screen and the keyboard stops being usable.
+  test('arrow keys keep the highlighted row in view', async () => {
+    await type('');
+
+    const measure = () =>
+      browser.evaluate<string>(`(() => {
+        const rows = [...document.querySelectorAll('[data-opener-row]')];
+        const list = rows[0] && rows[0].closest('.overflow-y-auto');
+        const active = document.querySelector('.bg-accent[data-opener-row]');
+        if (!list || !active) return JSON.stringify({ found: false });
+        const listBox = list.getBoundingClientRect();
+        const activeBox = active.getBoundingClientRect();
+        return JSON.stringify({
+          found: true,
+          rows: rows.length,
+          index: Number(active.getAttribute('data-opener-row')),
+          overflowing: list.scrollHeight > list.clientHeight + 1,
+          scrollTop: Math.round(list.scrollTop),
+          visible:
+            activeBox.top >= listBox.top - 1 &&
+            activeBox.bottom <= listBox.bottom + 1,
+        });
+      })()`);
+
+    const before = JSON.parse(await measure()) as {
+      found: boolean;
+      rows: number;
+      overflowing: boolean;
+      scrollTop: number;
+    };
+    expect(before.found).toBe(true);
+
+    for (let step = 0; step < before.rows + 2; step += 1) {
+      await browser.press('ArrowDown');
+    }
+    await settle(400);
+
+    const after = JSON.parse(await measure()) as {
+      index: number;
+      scrollTop: number;
+      visible: boolean;
+    };
+
+    // The selection reached the last row and stayed on screen getting there.
+    expect(after.index).toBe(before.rows - 1);
+    expect(after.visible).toBe(true);
+    // Scrolling only proves anything when there was somewhere to scroll: a list
+    // that fits needs none, and this fixture is small.
+    if (before.overflowing) {
+      expect(after.scrollTop).toBeGreaterThan(before.scrollTop);
+    }
+  }, 20_000);
+
   test('choosing a target opens the review', async () => {
+    // The case above walked the selection down the list.
     await type('');
     await browser.evaluate(
       `[...document.querySelectorAll('button')].find((b) => b.innerText.startsWith('Working tree')).click(), 'ok'`

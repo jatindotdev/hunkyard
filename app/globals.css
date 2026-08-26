@@ -401,7 +401,10 @@
   @apply -translate-y-2;
   @apply rounded-xl border border-[rgb(0_0_0_/_0.15)] bg-clip-padding p-4 dark:border-[rgb(255_255_255_/_0.1)];
   @apply opacity-0 shadow-2xl;
-  @apply pointer-events-none transition-all duration-200 ease-out;
+  /* Named rather than `all`: this element also owns a max-height, and
+     animating that would animate its own reflow. */
+  @apply pointer-events-none transition-[opacity,transform] duration-200 ease-out;
+  @apply motion-reduce:transition-[opacity];
   @apply [scrollbar-color:transparent_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin];
   @apply hover:[scrollbar-color:auto];
 

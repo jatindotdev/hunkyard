@@ -148,7 +148,9 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
     >
       <Link
         href="/"
-        className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-200 hover:scale-110 md:static md:translate-x-0"
+        // Gated on a real pointer: on touch, a tap fires hover and the mark
+        // swells under the finger that is pressing it.
+        className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-200 ease-out [@media(hover:hover)and(pointer:fine)]:hover:scale-105 motion-reduce:transition-none md:static md:translate-x-0"
       >
         <HunkyardLogo />
       </Link>

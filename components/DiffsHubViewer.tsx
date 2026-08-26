@@ -584,7 +584,7 @@ function CollapseDiffButton({
       aria-label={
         disabled ? undefined : collapsed ? 'Expand diff' : 'Collapse diff'
       }
-      className="text-muted-foreground hover:bg-muted hover:text-foreground ml-[-8px] inline-flex size-6 cursor-pointer items-center justify-center rounded-md transition disabled:pointer-events-none disabled:opacity-50"
+      className="text-muted-foreground hover:bg-muted hover:text-foreground ml-[-8px] inline-flex size-6 cursor-pointer items-center justify-center rounded-md transition-colors disabled:pointer-events-none disabled:opacity-50"
       onClick={(event) => {
         event.preventDefault();
         event.stopPropagation();

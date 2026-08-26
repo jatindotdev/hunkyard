@@ -210,7 +210,7 @@ function StatsDisplay({
           <button
             type="button"
             onClick={scrollTester.toggleState}
-            className="hover:bg-muted/50 hover:text-foreground text-muted-foreground hidden size-5 cursor-pointer items-center justify-center rounded-md transition md:inline-flex"
+            className="hover:bg-muted/50 hover:text-foreground text-muted-foreground hidden size-5 cursor-pointer items-center justify-center rounded-md transition-colors md:inline-flex"
             title={isBrrt ? 'Pause autoscroll' : 'Start autoscroll'}
             aria-label={isBrrt ? 'Pause autoscroll' : 'Start autoscroll'}
             aria-pressed={isBrrt}
@@ -282,7 +282,7 @@ function ThemeCycleToggle({ controls }: ThemeCycleToggleProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="hover:bg-muted/50 hover:text-foreground text-muted-foreground hidden h-5 cursor-pointer items-center gap-1 rounded-md px-1 text-[10px] leading-none tabular-nums transition md:inline-flex"
+      className="hover:bg-muted/50 hover:text-foreground text-muted-foreground hidden h-5 cursor-pointer items-center gap-1 rounded-md px-1 text-[10px] leading-none tabular-nums transition-colors md:inline-flex"
       title={title}
       aria-label={title}
       aria-pressed={cycling}
