@@ -99,6 +99,28 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
     expect(decorations).toContain('+1');
   });
 
+  // The opener, over the review, scoped to the repository already being read.
+  // Its own surface rather than a menu, so this is the check that the two have
+  // not come apart.
+  test('opens the opener on Cmd-K, narrowed to this repository', async () => {
+    await browser.press('Meta+k');
+    await new Promise((resolve) => setTimeout(resolve, 900));
+
+    const overlay = await browser.evaluate<string>(
+      `document.querySelector('[data-opener-overlay]')?.innerText ?? ''`
+    );
+    expect(overlay).toContain('searching inside this repository');
+    expect(overlay).toContain('Working tree');
+
+    await browser.press('Escape');
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(
+      await browser.evaluate<string | null>(
+        `document.querySelector('[data-opener-overlay]') ? 'open' : null`
+      )
+    ).toBeNull();
+  });
+
   test('opens the shortcut list on ?', async () => {
     await browser.press('?');
     expect(

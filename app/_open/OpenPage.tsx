@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { DiffsHubLogo } from '@/components/DiffsHubLogo';
 import { ThemedSurface } from '@/components/ThemedSurface';
 import { useServerInfo } from '@/components/useServerInfo';
@@ -22,6 +24,19 @@ export function OpenPage({ search }: { search: string }) {
   // The server resolves a token from the environment or from what the CLI wrote
   // down, so on most machines there is nothing to paste.
   const { github: serverHasToken, loading } = useServerInfo();
+
+  // The same shortcut as everywhere else, doing the only thing left to do when
+  // the field is already the page: put the cursor in it.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>('input')?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   return (
     <ThemedSurface className="flex min-h-[100svh] flex-col items-center bg-[var(--diffshub-sidebar-bg)]">

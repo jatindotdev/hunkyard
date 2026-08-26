@@ -18,6 +18,7 @@ import { boolPref, oneOf, usePersistedState } from './usePersistedState';
 import { useViewedFiles } from './useViewedFiles';
 import { useReviewKeyboard } from './useReviewKeyboard';
 import { KeyboardHelp } from './KeyboardHelp';
+import { OpenerOverlay, useOpenerHotkey } from './OpenerOverlay';
 import type { ReviewViewerCommands } from './DiffsHubViewer';
 import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
@@ -416,6 +417,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
   // so a shortcut can never drift from what a click would do.
   const viewerCommandsRef = useRef<ReviewViewerCommands | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const { open: openerOpen, setOpen: setOpenerOpen } = useOpenerHotkey();
   const keyboardItemIds = useMemo(
     () => initialItems.map((item) => item.id),
     [initialItems]
@@ -490,7 +492,7 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         initialUrl={initialUrl}
         localTarget={isLocal ? describeLocalTarget(source.target) : undefined}
         localRepoRoot={source.kind === 'local' ? source.repoRoot : undefined}
-        localRepoId={source.kind === 'local' ? source.repoId : undefined}
+        onOpenSearch={() => setOpenerOpen(true)}
         lightThemeName={lightThemeName}
         lineNumbers={lineNumbers}
         overflow={overflow}
@@ -591,6 +593,11 @@ function ReviewUIInner({ source }: ReviewUIProps) {
         />
       )}
       <KeyboardHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <OpenerOverlay
+        open={openerOpen}
+        onClose={() => setOpenerOpen(false)}
+        repoId={source.kind === 'local' ? source.repoId : undefined}
+      />
     </ReviewGrid>
   );
 }

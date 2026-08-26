@@ -67,8 +67,8 @@ interface HeaderProps {
   // shows the repository and target instead of a URL box.
   localTarget?: string;
   localRepoRoot?: string;
-  // Which repository the switcher should offer targets from.
-  localRepoId?: string;
+  // Opens the opener over this review.
+  onOpenSearch(): void;
   lightThemeName: LightThemeName;
   lineNumbers: boolean;
   overflow: 'wrap' | 'scroll';
@@ -100,7 +100,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   initialUrl,
   localTarget,
   localRepoRoot,
-  localRepoId,
+  onOpenSearch,
   lightThemeName,
   lineNumbers,
   overflow,
@@ -154,12 +154,11 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
       </Link>
       <SourceSwitcher
         className="order-last md:order-none md:mr-auto"
-        dropdownStyle={dropdownThemeStyle}
         initialUrl={initialUrl}
-        localRepoId={localRepoId}
         localRepoRoot={localRepoRoot}
         localTarget={localTarget}
         onUrlChange={setCurrentUrl}
+        onOpenSearch={onOpenSearch}
       />
       <div className="flex w-full items-center justify-between gap-2 md:w-auto md:justify-end">
         <Button

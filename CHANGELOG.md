@@ -10,6 +10,15 @@ notes at that point, which is a thing that has already happened once.
 
 ## Unreleased
 
+### `⌘K` opens the opener
+
+It used to open a dropdown in the header that listed some of what the opener
+lists. Two surfaces answering "what do you want to review" is one too many, and
+the one in the header had less in it -- no folders, no commits, no tags, no
+fuzzy matching. `⌘K` now opens the field itself, over whatever you are reading,
+already narrowed to the repository you are in. On the opener, where the field is
+already the page, it puts the cursor in it.
+
 ### One field instead of three surfaces
 
 The opener was a URL box, a list of repositories and a folder browser, each with

@@ -41,12 +41,15 @@ interface OpenerBarProps {
   // so a scoped opener is a link like any other page.
   repoId?: string;
   onScope(repoId: string | undefined): void;
+  // Called once a row has taken you somewhere, so a host that is floating over
+  // something can get out of the way.
+  onNavigate?(): void;
 }
 
 // One field for everything the opener used to be: a URL box, a list of
 // repositories, and a folder browser, each with its own way in and its own way
 // back. Typing decides which of them you meant.
-export function OpenerBar({ repoId, onScope }: OpenerBarProps) {
+export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
   const router = useRouter();
   const { repos, home, open } = useRepos();
   const [query, setQuery] = useState('');
@@ -100,6 +103,7 @@ export function OpenerBar({ repoId, onScope }: OpenerBarProps) {
     switch (row.action.kind) {
       case 'navigate':
         router.push(row.action.href);
+        onNavigate?.();
         return;
       case 'browse':
         // Descending replaces what you typed rather than navigating, so the

@@ -146,7 +146,8 @@ and the results say which you meant: recents, folders under the path so far, or
 the pull request parsed without touching the network. Choose a repository and it
 becomes a chip -- everything after that searches inside it, across the working
 tree, the index, this branch against its base, branches, tags, recent commits,
-or any revision you type. `⌘K` reaches the same thing from inside a review.
+or any revision you type. `⌘K` opens that same field over whatever you are reading, already narrowed to
+the repository you are in.
 Pull requests stay paste-a-URL: no inbox, nothing fetched about you.
 
 **Reviews local work, not just pull requests.** A three-dot range is diffed
@@ -174,6 +175,7 @@ discard the rest of your progress. Display preferences persist too.
 | `n` `p` | between comment threads |
 | `v` | mark the current file viewed |
 | `c` | comment on the selected lines |
+| `⌘K` | open something else |
 | `⌘↵` | submit the review |
 | `?` | this list |
 | `F2` `F3` | diff stats, system monitor |
