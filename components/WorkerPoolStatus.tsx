@@ -197,7 +197,7 @@ function StatsDisplay({
         <button
           type="button"
           onClick={onToggle}
-          className="text-muted-foreground hover:text-foreground flex min-w-0 flex-1 cursor-pointer items-center gap-1 text-sm focus:outline-none"
+          className="text-muted-foreground hover:text-foreground flex min-w-0 flex-1 cursor-pointer items-center gap-1 text-sm outline-none focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:rounded-sm"
           aria-expanded={expanded}
         >
           <span className="truncate">System Monitor</span>

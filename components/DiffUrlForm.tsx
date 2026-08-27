@@ -129,8 +129,12 @@ export function DiffUrlForm({
     >
       <input
         ref={inputRef}
+        aria-label="Pull request, comparison, commit or patch URL"
         className={cn(
-          'focus:text-primary block field-sizing-content h-9 min-w-[24ch] rounded-md text-sm focus-visible:outline-none',
+          // No min-width floor: the form is overflow-hidden, so a field that
+          // cannot shrink pushes the clear button out of view rather than
+          // wrapping. And focus was signalled by colour alone.
+          'focus:text-primary block field-sizing-content h-9 min-w-0 rounded-md text-sm outline-none focus-visible:ring-ring/40 focus-visible:ring-2',
           inputClassName
         )}
         enterKeyHint="go"

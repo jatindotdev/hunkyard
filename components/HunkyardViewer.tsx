@@ -552,6 +552,9 @@ function ViewedCheckbox({ viewed, onToggle }: ViewedCheckboxProps) {
         aria-hidden="true"
         className={cn(
           'flex size-3.5 items-center justify-center rounded-[3px] border transition-colors',
+          // The input is sr-only, so this is the only thing that can show
+          // focus. `peer` was declared and nothing ever consumed it.
+          'peer-focus-visible:ring-ring/50 peer-focus-visible:ring-2 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-background',
           viewed
             ? 'border-transparent bg-[var(--color-primary,currentColor)] text-[var(--color-primary-foreground,white)]'
             : 'border-current'
