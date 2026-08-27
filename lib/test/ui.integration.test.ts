@@ -107,6 +107,30 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
     await new Promise((resolve) => setTimeout(resolve, 900));
 
     try {
+      // `aria-modal` is a claim; this is the part that makes it true. Focus
+      // has to land on the field, stay inside, and go back afterwards.
+      const focus = JSON.parse(
+        await browser.evaluate<string>(`(() => {
+          const overlay = document.querySelector('[data-opener-overlay]');
+          const active = document.activeElement;
+          return JSON.stringify({
+            onField: active && active.getAttribute('role') === 'combobox',
+            inside: overlay ? overlay.contains(active) : false,
+          });
+        })()`)
+      ) as { onField: boolean; inside: boolean };
+      expect(focus.onField).toBe(true);
+      expect(focus.inside).toBe(true);
+
+      for (let step = 0; step < 6; step += 1) await browser.press('Tab');
+      expect(
+        await browser.evaluate<boolean>(
+          `!!document
+            .querySelector('[data-opener-overlay]')
+            ?.contains(document.activeElement)`
+        )
+      ).toBe(true);
+
       const overlay = await browser.evaluate<string>(
         `document.querySelector('[data-opener-overlay]')?.innerText ?? ''`
       );
@@ -127,7 +151,10 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
         `document.querySelector('[data-opener-overlay]') ? 'open' : null`
       )
     ).toBeNull();
-  });
+    // Driving a dialog over CDP is a few dozen round trips; the default five
+    // seconds is not enough, and overrunning it kills the page session for
+    // every test after this one.
+  }, 30_000);
 
   test('opens the shortcut list on ?', async () => {
     await browser.press('?');

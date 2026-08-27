@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { Button } from './Button';
+import { useDialogFocus } from './useDialogFocus';
 import { cn } from '@/lib/cn';
 import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 
@@ -51,6 +52,9 @@ interface KeyboardHelpProps {
 }
 
 export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogFocus(open, panel);
+
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -71,7 +75,9 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
       onClick={onClose}
     >
       <div
-        className="bg-card text-card-foreground max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-xl border p-4 shadow-lg"
+        ref={panel}
+        tabIndex={-1}
+        className="bg-card text-card-foreground max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-xl border p-4 shadow-lg outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

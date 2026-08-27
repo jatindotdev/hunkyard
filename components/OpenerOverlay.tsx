@@ -1,7 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+import { useDialogFocus } from './useDialogFocus';
 
 import { OpenerBar } from '@/app/_open/OpenerBar';
 
@@ -28,6 +30,8 @@ export function OpenerOverlay({
   // Scope is local here rather than in the URL: the URL belongs to the review
   // underneath, which is still there when this closes.
   const [scoped, setScoped] = useState<string | undefined>(repoId);
+  const panel = useRef<HTMLDivElement>(null);
+  useDialogFocus(open, panel);
 
   useEffect(() => {
     if (open) setScoped(repoId);
@@ -66,7 +70,7 @@ export function OpenerOverlay({
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-2xl">
+      <div ref={panel} className="w-full max-w-2xl">
         <OpenerBar repoId={scoped} onScope={setScoped} onNavigate={onClose} />
       </div>
     </div>,
