@@ -4,7 +4,7 @@ import {
   type GitHubDiffSource,
   type GitHubRepo,
   parseGitHubDiffSource,
-} from '../../lib/githubDiffSource';
+} from '@/lib/github/diffSource';
 
 const CACHE_CONTROL = 'no-store';
 const EMPTY_PATCH_MESSAGE = 'GitHub returned an empty diff.';
@@ -16,8 +16,8 @@ const GITHUB_HOST = 'github.com';
 const GITHUB_RAW_DIFF_HOST = 'patch-diff.githubusercontent.com';
 const NON_DIFF_RESPONSE_MESSAGE = 'GitHub did not return a diff for this URL.';
 const NON_WHITESPACE_PATTERN = /\S/;
-import { HIDDEN_PATCH_DOMAINS } from '../../lib/patchDomains';
-import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
+import { HIDDEN_PATCH_DOMAINS } from '@/lib/github/domains';
+import { resolveServerGitHubToken } from '@/lib/github/token';
 
 const RAW_GITHUB_DIFF_PATH_PATTERN =
   /^\/raw\/[^/]+\/[^/]+\/pull\/[^/]+\.(?:diff|patch)$/;

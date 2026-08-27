@@ -15,7 +15,7 @@ import { useDirectoryListing } from '@/components/useDirectoryListing';
 import { useRepoSurvey } from '@/components/useRepoSurvey';
 import { useRepos } from '@/components/useRepos';
 import { cn } from '@/lib/cn';
-import { classifyQuery, baseName, splitPathQuery } from '@/lib/openerSearch';
+import { classifyQuery, baseName, splitPathQuery } from '@/lib/opener/search';
 import { useRouter } from '@/src/navigation';
 
 import {

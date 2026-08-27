@@ -1,6 +1,6 @@
-import { getGitHubPathFromURL } from './getGitHubPathFromURL';
-import { normalizeGitHubPath } from './normalizeGitHubPath';
-import { isSupportedPatchDomain } from './patchDomains';
+import { getGitHubPathFromURL } from '@/lib/github/pathFromURL';
+import { normalizeGitHubPath } from '@/lib/github/normalizePath';
+import { isSupportedPatchDomain } from '@/lib/github/domains';
 
 // Matches GitHub shorthand "owner/repo#123" -> /owner/repo/pull/123.
 const GITHUB_SHORTHAND_PATTERN = /^([^/\s]+)\/([^/\s#]+)#(\d+)$/;

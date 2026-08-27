@@ -5,7 +5,7 @@ import type {
   FileDiffMetadata,
 } from '@pierre/diffs';
 
-import { encodeLocalDiffPath } from './localDiffSource';
+import { encodeLocalDiffPath } from './diffSource';
 
 const DEFAULT_ENDPOINT = '/api/local-file';
 

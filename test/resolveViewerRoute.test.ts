@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { resolveViewerRoute } from '../lib/resolveViewerRoute';
+import { resolveViewerRoute } from '@/lib/route/resolveViewerRoute';
 
 describe('resolveViewerRoute', () => {
   describe('empty path', () => {

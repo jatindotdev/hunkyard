@@ -1,4 +1,4 @@
-import { getPatchViewerHref } from './getPatchViewerHref';
+import { getPatchViewerHref } from '@/lib/route/patchViewerHref';
 
 // What one input box can mean.
 //

@@ -1,7 +1,7 @@
 import type { DirectoryListing } from '@/lib/fs/browse';
 import type { RepositorySurvey } from '@/lib/git/survey';
-import { encodeLocalDiffPath } from '@/lib/localDiffSource';
-import { baseName, rankBy, shortenPath, type QueryKind } from '@/lib/openerSearch';
+import { encodeLocalDiffPath } from '@/lib/local/diffSource';
+import { baseName, rankBy, shortenPath, type QueryKind } from '@/lib/opener/search';
 import { suggestReviewTargets, validateRevspecInput } from '@/lib/local/repoSurvey';
 import type { KnownRepo } from '@/components/useRepos';
 

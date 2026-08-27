@@ -5,7 +5,7 @@ import type {
   FileDiffMetadata,
 } from '@pierre/diffs';
 
-import { parseGitHubDiffSource } from './githubDiffSource';
+import { parseGitHubDiffSource } from './diffSource';
 
 type GitHubFileLoaderFetch = (
   input: Parameters<typeof fetch>[0],

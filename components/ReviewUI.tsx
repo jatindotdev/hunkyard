@@ -34,13 +34,13 @@ import {
   docsThemeCatalog,
   themeController,
 } from '@/components/themeController';
-import { createGitHubDiffFileLoader } from '@/lib/githubDiffFileLoader';
-import { createLocalDiffFileLoader } from '@/lib/localDiffFileLoader';
+import { createGitHubDiffFileLoader } from '@/lib/github/diffFileLoader';
+import { createLocalDiffFileLoader } from '@/lib/local/diffFileLoader';
 import {
   describeLocalTarget,
   encodeLocalDiffPath,
-} from '@/lib/localDiffSource';
-import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
+} from '@/lib/local/diffSource';
+import type { DarkThemeName, LightThemeName } from '@/lib/theme/names';
 import type {
 } from '@/lib/types';
 

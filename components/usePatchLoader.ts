@@ -24,18 +24,18 @@ import {
   type HunkyardItemIdRename,
   snapshotHunkyardTreeSource,
   takePendingHunkyardItems,
-} from '@/lib/patchAccumulator';
-import { contentAddressedCacheKey } from '@/lib/diffCacheKey';
-import { getPatchTreePathPrefix } from '@/lib/gitPatchMetadata';
+} from '@/lib/diff/patchAccumulator';
+import { contentAddressedCacheKey } from '@/lib/diff/cacheKey';
+import { getPatchTreePathPrefix } from '@/lib/diff/gitPatchMetadata';
 import {
   type HunkyardLineHashTarget,
   formatHunkyardLineHash,
   parseHunkyardLineHash,
-} from '@/lib/lineHash';
+} from '@/lib/diff/lineHash';
 import {
   getStreamedPatchMetadata,
   streamGitPatchFiles,
-} from '@/lib/streamGitPatchFiles';
+} from '@/lib/diff/streamGitPatchFiles';
 import type {
   HunkyardFileByItemId,
   HunkyardDiffStats,

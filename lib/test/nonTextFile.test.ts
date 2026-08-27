@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { processFile } from '@pierre/diffs';
 
-import { classifyNonTextFile, describeNonTextFile } from '../nonTextFile';
+import { classifyNonTextFile, describeNonTextFile } from '@/lib/diff/nonTextFile';
 
 function classify(patch: string) {
   const fileDiff = processFile(patch, { isGitDiff: true });

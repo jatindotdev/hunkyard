@@ -46,8 +46,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/DropdownMenu';
 import { cn } from '@/lib/cn';
-import { filterFileTreeSource } from '@/lib/filterFileTreeSource';
-import { getFileTreeAvailableStatuses } from '@/lib/getFileTreeAvailableStatuses';
+import { filterFileTreeSource } from '@/lib/tree/filterSource';
+import { getFileTreeAvailableStatuses } from '@/lib/tree/availableStatuses';
 import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 import { gitStatusTokenOverrides } from '@/lib/theme/gitStatusTokens';

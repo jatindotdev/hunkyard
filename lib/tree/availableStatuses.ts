@@ -1,6 +1,6 @@
 import type { GitStatus } from '@pierre/trees';
 
-import type { FileTreeSource } from './types';
+import type { FileTreeSource } from '@/lib/types';
 
 // Returns the set of GitStatus values that are actually present in the source.
 // Paths not listed in gitStatus are treated as 'modified'.

@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { getPatchViewerHref } from '@/lib/getPatchViewerHref';
+import { getPatchViewerHref } from '@/lib/route/patchViewerHref';
 import {
   describeSupportedPatchDomains,
   HIDDEN_PATCH_DOMAINS,
   isSupportedPatchDomain,
-} from '@/lib/patchDomains';
+} from '@/lib/github/domains';
 
 describe('isSupportedPatchDomain', () => {
   test('accepts a listed host and its subdomains', () => {

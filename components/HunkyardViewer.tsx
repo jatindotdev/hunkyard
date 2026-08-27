@@ -28,7 +28,7 @@ import { useChromeThemeProps } from './useChromeThemeProps';
 import { buildAnnotationThemeStyle } from '@/lib/annotationThemeStyle';
 import { cn } from '@/lib/cn';
 import { CODE_VIEW_CUSTOM_CSS, CODE_VIEW_LAYOUT } from '@/lib/constants';
-import { isDiffItem } from '@/lib/isDiffItem';
+import { isDiffItem } from '@/lib/diff/isDiffItem';
 import { DraftCommentAnnotation } from './DraftCommentAnnotation';
 import { ThreadAnnotation } from './ThreadAnnotation';
 import type { DraftComment } from './useReviewThreads';
@@ -48,7 +48,7 @@ import {
   classifyNonTextFile,
   describeNonTextFile,
   type NonTextReason,
-} from '@/lib/nonTextFile';
+} from '@/lib/diff/nonTextFile';
 
 function getNextItemVersion(item: CodeViewItem<ReviewAnnotationMetadata>): number {
   return typeof item.version === 'number' ? item.version + 1 : 1;

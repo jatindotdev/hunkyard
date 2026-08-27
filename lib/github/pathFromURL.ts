@@ -1,4 +1,4 @@
-import { normalizeGitHubPath } from './normalizeGitHubPath';
+import { normalizeGitHubPath } from './normalizePath';
 
 const GITHUB_HOST = 'github.com';
 const GITHUB_RAW_DIFF_HOST = 'patch-diff.githubusercontent.com';

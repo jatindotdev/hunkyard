@@ -9,17 +9,17 @@ import type {
   GitStatusEntry,
 } from '@pierre/trees';
 
-import type { ReviewAnnotationMetadata } from './review/types';
-import { contentAddressedCacheKey } from './diffCacheKey';
+import type { ReviewAnnotationMetadata } from '@/lib/review/types';
+import { contentAddressedCacheKey } from './cacheKey';
 import { getPatchTreePathPrefix } from './gitPatchMetadata';
-import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
+import { mapChangeTypeToGitStatus } from '@/lib/tree/gitStatus';
 import type {
   HunkyardFileByItemId,
   HunkyardFileLineCounts,
   HunkyardViewerFile,
   HunkyardDiffStats,
   FileTreeSource,
-} from './types';
+} from '@/lib/types';
 
 export interface PatchAccumulator {
   diffStats: HunkyardDiffStats;

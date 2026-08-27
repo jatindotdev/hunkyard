@@ -1,7 +1,7 @@
 import type { ChangeTypes } from '@pierre/diffs';
-import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
+import { resolveServerGitHubToken } from '@/lib/github/token';
 
-import { loadGitHubDiffFiles } from '../../lib/githubDiffFileServer';
+import { loadGitHubDiffFiles } from '@/lib/github/diffFileServer';
 
 const CACHE_CONTROL = 'no-store';
 const CHANGE_TYPES = new Set<ChangeTypes>([

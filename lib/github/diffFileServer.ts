@@ -6,7 +6,7 @@ import {
   type GitHubDiffSource,
   type GitHubRepo,
   parseGitHubDiffSource,
-} from './githubDiffSource';
+} from './diffSource';
 
 const GITHUB_API_ROOT = 'https://api.github.com';
 const GITHUB_RAW_ROOT = 'https://raw.githubusercontent.com';

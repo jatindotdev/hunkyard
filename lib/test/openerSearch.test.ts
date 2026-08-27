@@ -7,7 +7,7 @@ import {
   rankBy,
   shortenPath,
   splitPathQuery,
-} from '@/lib/openerSearch';
+} from '@/lib/opener/search';
 
 const HOME = '/Users/jatin';
 

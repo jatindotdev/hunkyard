@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from 'react';
 
-import { detectGutterSize } from '@/lib/gutterDetector';
+import { detectGutterSize } from '@/lib/diff/gutterDetector';
 
 const SCROLLBARS_TO_MEASURE: string[] = ['cv', 'cv-mini'];
 

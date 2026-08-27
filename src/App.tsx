@@ -7,8 +7,8 @@ import { useLocation } from './useLocation';
 import { OpenPage } from '@/app/_open/OpenPage';
 import { ReviewUI, type ReviewSource } from '@/components/ReviewUI';
 import { useRepos } from '@/components/useRepos';
-import { encodeLocalDiffPath } from '@/lib/localDiffSource';
-import { resolveViewerRoute } from '@/lib/resolveViewerRoute';
+import { encodeLocalDiffPath } from '@/lib/local/diffSource';
+import { resolveViewerRoute } from '@/lib/route/resolveViewerRoute';
 import { SITE_NAME } from '@/lib/site';
 
 function toSegments(pathname: string): string[] {

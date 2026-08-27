@@ -1,6 +1,6 @@
 import type { GitStatus } from '@pierre/trees';
 
-import type { FileTreeSource } from './types';
+import type { FileTreeSource } from '@/lib/types';
 
 // Returns a filtered copy of the source keeping only paths whose effective git
 // status is in `selectedStatuses`. An empty selection means "no filter" and

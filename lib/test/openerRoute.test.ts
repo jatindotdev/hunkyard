@@ -4,7 +4,7 @@ import {
   encodeOpenerHref,
   isAbsoluteBrowsePath,
   resolveOpenerRoute,
-} from '@/lib/openerRoute';
+} from '@/lib/opener/route';
 
 describe('resolveOpenerRoute', () => {
   test('is the chooser with nothing in the query', () => {

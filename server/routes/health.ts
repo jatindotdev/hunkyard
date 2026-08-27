@@ -1,5 +1,5 @@
 import { listRepos } from '../../lib/repos/registry';
-import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
+import { resolveServerGitHubToken } from '@/lib/github/token';
 
 // When this process began serving. A long-lived server keeps running whatever
 // binary it started with, so a rebuilt or upgraded hunk on disk is not the hunk

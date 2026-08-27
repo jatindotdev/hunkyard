@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { processFile } from '@pierre/diffs';
 
-import { contentAddressedCacheKey } from '../diffCacheKey';
+import { contentAddressedCacheKey } from '@/lib/diff/cacheKey';
 
 function keyFor(patch: string, seed = 'seed'): string {
   const fileDiff = processFile(patch, { isGitDiff: true });

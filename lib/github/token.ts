@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { stateDir } from './repos/stateDir';
+import { stateDir } from '@/lib/repos/stateDir';
 
 // The GitHub token the local server holds on the user's behalf.
 //

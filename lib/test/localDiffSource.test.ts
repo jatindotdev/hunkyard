@@ -4,7 +4,7 @@ import {
   describeLocalTarget,
   encodeLocalDiffPath,
   parseLocalDiffSource,
-} from '../localDiffSource';
+} from '@/lib/local/diffSource';
 
 describe('parseLocalDiffSource', () => {
   test('ignores paths that are not local', () => {

@@ -3,13 +3,13 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import { runGit } from '../../lib/git/exec';
 import { resolveRequestRepoRoot } from '../../lib/git/repo';
-import { parseGitHubDiffSource } from '../../lib/githubDiffSource';
+import { parseGitHubDiffSource } from '@/lib/github/diffSource';
 import { getPullHeadSha } from '../../lib/review/github';
 import { GitHubThreadStore } from '../../lib/review/GitHubThreadStore';
 import { LocalThreadStore } from '../../lib/review/LocalThreadStore';
 import type { ThreadStore } from '../../lib/review/ThreadStore';
 import type { ThreadAnchor } from '../../lib/review/types';
-import { resolveServerGitHubToken } from '../../lib/serverGitHubToken';
+import { resolveServerGitHubToken } from '@/lib/github/token';
 
 // Who a local comment is attributed to. `git config user.name` is the identity
 // the repository already knows, and matching it means a review written here

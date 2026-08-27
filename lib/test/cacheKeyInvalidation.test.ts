@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { processFile } from '@pierre/diffs';
 
-import { contentAddressedCacheKey } from '../diffCacheKey';
+import { contentAddressedCacheKey } from '@/lib/diff/cacheKey';
 import { git } from '../git/exec';
 import { readPatch } from '../git/patchStream';
 import { resolveGitTarget } from '../git/targets';

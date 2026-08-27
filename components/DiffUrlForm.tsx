@@ -15,7 +15,7 @@ import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/Button';
 import { cn } from '@/lib/cn';
-import { getPatchViewerHref } from '@/lib/getPatchViewerHref';
+import { getPatchViewerHref } from '@/lib/route/patchViewerHref';
 
 interface DiffUrlFormProps {
   className?: string;

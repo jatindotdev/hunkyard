@@ -1,8 +1,8 @@
 import {
   encodeLocalDiffPath,
   parseLocalDiffSource,
-} from './localDiffSource';
-import { normalizeGitHubPath } from './normalizeGitHubPath';
+} from '@/lib/local/diffSource';
+import { normalizeGitHubPath } from '@/lib/github/normalizePath';
 
 const GITHUB_HOST = 'github.com';
 
