@@ -264,28 +264,41 @@
 
 /* Reduced motion means less movement, not less interface.
  *
- * Opacity and colour still carry meaning -- something appearing, something
- * becoming active -- so they keep their transitions, shortened. What goes is
- * travel: transforms, and the animations that spin or slide. Per-component
- * `motion-reduce:` hooks handle the cases that need something specific; this is
- * the floor under everything added later, which would otherwise arrive
- * unguarded. */
+ * The mechanism is the duration tokens rather than a blanket `*` rule: every
+ * transition in the app is written as `duration-(--duration-…)`, so collapsing
+ * the tokens here removes the movement without `!important` and without a
+ * selector guessing from class names which transforms are motion and which are
+ * layout. A component that needs an exception can still have one, which a
+ * blanket rule takes away.
+ *
+ * What is deliberately left running: the spinner and the pulse. Both turn in
+ * place rather than travelling, and both say "working" -- a frozen spinner is
+ * not calmer, it reads as broken. The trigger for motion sickness is travel and
+ * scale, which is what goes below. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 120ms !important;
-    scroll-behavior: auto !important;
+  :root {
+    --duration-press: 0ms;
+    --duration-popover: 0ms;
+    --duration-panel: 0ms;
+    --duration-drawer: 0ms;
   }
 
-  /* Anything whose transition is a movement loses the movement rather than
-     being sped up, since a fast jump reads worse than no jump. */
-  [class*='translate'],
-  [class*='scale'],
-  [class*='rotate'] {
-    transition-property: opacity, background-color, border-color, color !important;
+  /* Menus keep their fade and lose the slide and the zoom. These come from
+     keyframes rather than transitions, so the tokens above cannot reach them. */
+  [data-slot='dropdown-menu-content'],
+  [data-slot='dropdown-menu-sub-content'] {
+    animation-name: reduced-fade !important;
+    animation-duration: 100ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+@keyframes reduced-fade {
+  from {
+    opacity: 0;
   }
 }
 

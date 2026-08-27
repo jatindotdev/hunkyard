@@ -90,7 +90,7 @@ export function HunkyardStatusPanel({
         ) : !isError ? (
           <IconRefresh
             aria-hidden="true"
-            className="text-muted-foreground mx-auto mb-3 size-5 -scale-x-100 animate-spin [animation-direction:reverse] [animation-duration:0.7s] motion-reduce:animate-none"
+            className="text-muted-foreground mx-auto mb-3 size-5 -scale-x-100 animate-spin [animation-direction:reverse] [animation-duration:0.7s]"
           />
         ) : (
           <IconCiWarningFill className="text-muted-foreground mx-auto mb-3 size-5" />
