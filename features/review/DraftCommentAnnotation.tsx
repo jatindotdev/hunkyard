@@ -3,10 +3,10 @@
 import { IconArrow } from '@pierre/icons';
 import { useEffect, useRef, useState } from 'react';
 
-import { Button } from '@/components/Button';
-import { annotationCardBase } from '@/lib/annotation';
+import { Button } from '@/ui/Button';
+import { annotationCardBase } from './annotation';
 import { cn } from '@/lib/cn';
-import type { DraftComment } from '@/components/useReviewThreads';
+import type { DraftComment } from './useReviewThreads';
 
 interface DraftCommentAnnotationProps {
   draft: DraftComment;

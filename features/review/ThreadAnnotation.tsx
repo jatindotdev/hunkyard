@@ -3,9 +3,9 @@
 import { IconCheck, IconX } from '@pierre/icons';
 import { memo } from 'react';
 
-import { Button } from '@/components/Button';
-import { CommentAuthorAvatar } from '@/components/CommentAuthorAvatar';
-import { annotationCardBase } from '@/lib/annotation';
+import { Button } from '@/ui/Button';
+import { CommentAuthorAvatar } from './CommentAuthorAvatar';
+import { annotationCardBase } from './annotation';
 import { cn } from '@/lib/cn';
 import type { Thread } from '@/lib/review/types';
 

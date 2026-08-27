@@ -23,9 +23,9 @@ import {
   useState,
 } from 'react';
 
-import { ThemedCodeView } from './ThemedCodeView';
-import { useChromeThemeProps } from './useChromeThemeProps';
-import { buildAnnotationThemeStyle } from '@/lib/annotationThemeStyle';
+import { ThemedCodeView } from '@/features/theme/ThemedCodeView';
+import { useChromeThemeProps } from '@/features/theme/useChromeThemeProps';
+import { buildAnnotationThemeStyle } from './annotationThemeStyle';
 import { cn } from '@/lib/cn';
 import { CODE_VIEW_CUSTOM_CSS, CODE_VIEW_LAYOUT } from '@/lib/constants';
 import { isDiffItem } from '@/lib/diff/isDiffItem';

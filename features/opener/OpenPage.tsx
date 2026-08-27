@@ -2,9 +2,9 @@
 
 import { useEffect } from 'react';
 
-import { HunkyardLogo } from '@/components/HunkyardLogo';
-import { ThemedSurface } from '@/components/ThemedSurface';
-import { useServerInfo } from '@/components/useServerInfo';
+import { HunkyardLogo } from '@/ui/HunkyardLogo';
+import { ThemedSurface } from '@/features/theme/ThemedSurface';
+import { useServerInfo } from './useServerInfo';
 import { encodeOpenerHref, resolveOpenerRoute } from '@/lib/opener/route';
 import { useRouter } from '@/src/navigation';
 

@@ -3,8 +3,8 @@
 import { IconSymbolDiffstatFill } from '@pierre/icons';
 import { memo, useEffect } from 'react';
 
-import { StatItem } from './StatItem';
-import { StatusRow } from './StatusRow';
+import { StatItem } from '@/ui/StatItem';
+import { StatusRow } from '@/ui/StatusRow';
 import type { HunkyardDiffStats as HunkyardDiffStatsData } from '@/lib/types';
 
 interface HunkyardDiffStatsProps {

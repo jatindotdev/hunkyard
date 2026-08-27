@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isTypingTarget } from '@/components/useReviewKeyboard';
+import { isTypingTarget } from '@/features/review/useReviewKeyboard';
 
 // The real events carry a composedPath because the draft editor is slotted into
 // the diff's shadow DOM, which is exactly why event.target is not enough.

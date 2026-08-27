@@ -3,8 +3,8 @@
 import { IconBrandGithub } from '@pierre/icons';
 import { type FormEvent, memo, useState } from 'react';
 
-import { Button } from '@/components/Button';
-import { Input } from '@/components/Input';
+import { Button } from '@/ui/Button';
+import { Input } from '@/ui/Input';
 import { cn } from '@/lib/cn';
 
 export const CREATE_TOKEN_URL =

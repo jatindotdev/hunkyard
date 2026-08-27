@@ -1,14 +1,14 @@
 import '@fontsource-variable/geist';
-import '@/app/globals.css';
+import './globals.css';
 
 import { createRoot } from 'react-dom/client';
 
 import { App } from './App';
-import { PreloadHighlighter } from '@/components/PreloadHighlighter';
-import { ScrollbarGutterVariables } from '@/components/ScrollbarGutterVariables';
-import { ThemeProvider } from '@/components/ThemeProvider';
-import { Toaster } from '@/components/Toaster';
-import { WorkerPoolContext } from '@/components/WorkerPoolContext';
+import { PreloadHighlighter } from './PreloadHighlighter';
+import { ScrollbarGutterVariables } from './ScrollbarGutterVariables';
+import { ThemeProvider } from '@/features/theme/ThemeProvider';
+import { Toaster } from './Toaster';
+import { WorkerPoolContext } from './WorkerPoolContext';
 
 const container = document.getElementById('root');
 if (container == null) throw new Error('#root is missing from index.html');

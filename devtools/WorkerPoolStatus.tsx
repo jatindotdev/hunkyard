@@ -25,9 +25,9 @@ import {
   useState,
 } from 'react';
 
-import { StatItem } from './StatItem';
-import { StatusRow } from './StatusRow';
-import type { ThemeCycleControls } from './useThemeCycle';
+import { StatItem } from '@/ui/StatItem';
+import { StatusRow } from '@/ui/StatusRow';
+import type { ThemeCycleControls } from '@/features/theme/useThemeCycle';
 import { cn } from '@/lib/cn';
 import type { ReviewAnnotationMetadata } from '@/lib/review/types';
 

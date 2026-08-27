@@ -10,7 +10,7 @@ import { useThemeController } from '@pierre/theming/react';
 import { useContext, useMemo } from 'react';
 
 import { ThemeControllerContext } from './useThemeSource';
-import { docsThemeCatalog } from '@/components/themeCatalog';
+import { docsThemeCatalog } from './themeCatalog';
 
 export interface ThemeSelectionResult {
   // Current selection.

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 
-import { Button } from './Button';
-import { useDialogFocus } from './useDialogFocus';
+import { Button } from '@/ui/Button';
+import { useDialogFocus } from '@/ui/useDialogFocus';
 import { cn } from '@/lib/cn';
 import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 

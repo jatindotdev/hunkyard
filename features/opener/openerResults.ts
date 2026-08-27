@@ -3,7 +3,7 @@ import type { RepositorySurvey } from '@/lib/git/survey';
 import { encodeLocalDiffPath } from '@/lib/local/diffSource';
 import { baseName, rankBy, shortenPath, type QueryKind } from '@/lib/opener/search';
 import { suggestReviewTargets, validateRevspecInput } from '@/lib/local/repoSurvey';
-import type { KnownRepo } from '@/components/useRepos';
+import type { KnownRepo } from './useRepos';
 
 // What one row in the results does when you choose it.
 export type OpenerAction =

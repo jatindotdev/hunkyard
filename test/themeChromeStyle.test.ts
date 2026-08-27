@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { CSSProperties } from 'react';
 
-import { buildAnnotationThemeStyle } from '../lib/annotationThemeStyle';
+import { buildAnnotationThemeStyle } from '@/features/review/annotationThemeStyle';
 
 // The byte-for-byte chrome parity for the default Pierre soft themes now lives in
 // lib/test/chromeThemeProps.test.ts (same

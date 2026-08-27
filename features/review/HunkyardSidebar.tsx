@@ -23,19 +23,19 @@ import {
   useState,
 } from 'react';
 
-import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
+import { CHROME_ICON_BUTTON_CLASS } from '@/ui/chromeButtonStyles';
 import { ReviewSubmitPanel } from './ReviewSubmitPanel';
 import { ReviewThreadsList } from './ReviewThreadsList';
 import { HunkyardDiffStats } from './HunkyardDiffStats';
 import { HunkyardFileTree } from './HunkyardFileTree';
-import { useChromeThemeProps } from './useChromeThemeProps';
-import { useTreeThemeProps } from './useTreeThemeProps';
-import type { ThemeCycleControls } from './useThemeCycle';
-import { WorkerPoolStatus } from './WorkerPoolStatus';
+import { useChromeThemeProps } from '@/features/theme/useChromeThemeProps';
+import { useTreeThemeProps } from '@/features/theme/useTreeThemeProps';
+import type { ThemeCycleControls } from '@/features/theme/useThemeCycle';
+import { WorkerPoolStatus } from '@/devtools/WorkerPoolStatus';
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
 import { DEVTOOLS_ENABLED } from '@/lib/devtools';
-import { Button } from '@/components/Button';
-import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
+import { Button } from '@/ui/Button';
+import { ButtonGroup, ButtonGroupItem } from '@/ui/ButtonGroup';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -44,7 +44,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/DropdownMenu';
+} from '@/ui/DropdownMenu';
 import { cn } from '@/lib/cn';
 import { filterFileTreeSource } from '@/lib/tree/filterSource';
 import { getFileTreeAvailableStatuses } from '@/lib/tree/availableStatuses';

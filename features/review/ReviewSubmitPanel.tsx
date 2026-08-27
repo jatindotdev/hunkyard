@@ -3,7 +3,7 @@
 import { IconCheck, IconCiWarningFill, IconConvoFill } from '@pierre/icons';
 import { useState } from 'react';
 
-import { Button } from '@/components/Button';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 
 type ReviewEvent = 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES';

@@ -27,21 +27,21 @@ import {
   useState,
 } from 'react';
 
-import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { HunkyardLogo } from './HunkyardLogo';
+import { CHROME_ICON_BUTTON_CLASS } from '@/ui/chromeButtonStyles';
+import { HunkyardLogo } from '@/ui/HunkyardLogo';
 import { SourceSwitcher } from './SourceSwitcher';
-import { useChromeThemeProps } from './useChromeThemeProps';
-import { Button } from '@/components/Button';
-import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
+import { useChromeThemeProps } from '@/features/theme/useChromeThemeProps';
+import { Button } from '@/ui/Button';
+import { ButtonGroup, ButtonGroupItem } from '@/ui/ButtonGroup';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/DropdownMenu';
-import { GitHubTokenControl } from '@/components/GitHubTokenControl';
-import { Switch } from '@/components/Switch';
-import { docsThemeCatalog } from '@/components/themeCatalog';
+} from '@/ui/DropdownMenu';
+import { GitHubTokenControl } from '@/features/github/GitHubTokenControl';
+import { Switch } from '@/ui/Switch';
+import { docsThemeCatalog } from '@/features/theme/themeCatalog';
 import { cn } from '@/lib/cn';
 import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';

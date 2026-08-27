@@ -11,9 +11,9 @@ import {
 } from '@pierre/icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { useDirectoryListing } from '@/components/useDirectoryListing';
-import { useRepoSurvey } from '@/components/useRepoSurvey';
-import { useRepos } from '@/components/useRepos';
+import { useDirectoryListing } from './useDirectoryListing';
+import { useRepoSurvey } from './useRepoSurvey';
+import { useRepos } from './useRepos';
 import { cn } from '@/lib/cn';
 import { classifyQuery, baseName, splitPathQuery } from '@/lib/opener/search';
 import { useRouter } from '@/src/navigation';

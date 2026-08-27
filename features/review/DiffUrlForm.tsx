@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 
-import { Button } from '@/components/Button';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 import { getPatchViewerHref } from '@/lib/route/patchViewerHref';
 

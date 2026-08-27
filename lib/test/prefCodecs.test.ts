@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { boolPref, oneOf } from '@/components/usePersistedState';
+import { boolPref, oneOf } from '@/ui/usePersistedState';
 
 describe('oneOf', () => {
   const decode = oneOf(['split', 'unified'] as const);

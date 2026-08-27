@@ -3,7 +3,7 @@
 import { type ColorMode } from '@pierre/theming';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { docsThemeCatalog } from '@/components/themeCatalog';
+import { docsThemeCatalog } from './themeCatalog';
 import type { DarkThemeName, LightThemeName } from '@/lib/theme/names';
 
 // Step durations available on the System Monitor's theme-cycle button.

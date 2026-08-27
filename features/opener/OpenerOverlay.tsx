@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useDialogFocus } from './useDialogFocus';
+import { useDialogFocus } from '@/ui/useDialogFocus';
 
-import { OpenerBar } from '@/app/_open/OpenerBar';
+import { OpenerBar } from './OpenerBar';
 
 // The opener, over whatever you are already looking at.
 //

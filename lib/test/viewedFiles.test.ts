@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { blobKey, pruneChangedFiles } from '@/components/useViewedFiles';
+import { blobKey, pruneChangedFiles } from '@/features/review/useViewedFiles';
 
 describe('pruneChangedFiles', () => {
   test('keeps a file whose contents are unchanged', () => {

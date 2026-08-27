@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { ThemedCodeView as ReactThemedCodeView } from '../../components/ThemedCodeView';
-import { ThemedFile as ReactThemedFile } from '../../components/ThemedFile';
-import { ThemedFileDiff as ReactThemedFileDiff } from '../../components/ThemedFileDiff';
+import { ThemedCodeView as ReactThemedCodeView } from '@/features/theme/ThemedCodeView';
+import { ThemedFile as ReactThemedFile } from '@/features/theme/ThemedFile';
+import { ThemedFileDiff as ReactThemedFileDiff } from '@/features/theme/ThemedFileDiff';
 
 describe('themed diffs surfaces', () => {
   test('exports React diff surface components', () => {

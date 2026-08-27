@@ -11,7 +11,7 @@ import type {
 import { useFileTree } from '@pierre/trees/react';
 import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
 
-import { ThemedFileTree } from './ThemedFileTree';
+import { ThemedFileTree } from '@/features/theme/ThemedFileTree';
 import {
   BASE_FILE_TREE_OPTIONS,
   CODE_VIEW_FILE_TREE_ITEM_HEIGHT,

@@ -1,7 +1,7 @@
 import { IconCheck, IconCiWarningFill, IconRefresh } from '@pierre/icons';
 
-import { useChromeThemeProps } from './useChromeThemeProps';
-import { Button } from '@/components/Button';
+import { useChromeThemeProps } from '@/features/theme/useChromeThemeProps';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import type { ViewerLoadState } from '@/lib/types';

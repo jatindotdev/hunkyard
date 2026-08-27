@@ -14,26 +14,26 @@ import {
 } from 'react';
 
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
-import { boolPref, oneOf, usePersistedState } from './usePersistedState';
+import { boolPref, oneOf, usePersistedState } from '@/ui/usePersistedState';
 import { useViewedFiles } from './useViewedFiles';
 import { useReviewKeyboard } from './useReviewKeyboard';
 import { KeyboardHelp } from './KeyboardHelp';
-import { OpenerOverlay, useOpenerHotkey } from './OpenerOverlay';
+import { OpenerOverlay, useOpenerHotkey } from '@/features/opener/OpenerOverlay';
 import type { ReviewViewerCommands } from './HunkyardViewer';
 import { HunkyardHeader } from './HunkyardHeader';
 import { HunkyardSidebar } from './HunkyardSidebar';
 import { HunkyardStatusPanel } from './HunkyardStatusPanel';
 import { HunkyardViewer } from './HunkyardViewer';
-import { ThemeSourceProvider } from './ThemeSourceProvider';
-import { useGitHubToken } from './useGitHubToken';
+import { ThemeSourceProvider } from '@/features/theme/ThemeSourceProvider';
+import { useGitHubToken } from '@/features/github/useGitHubToken';
 import { useLocalDiffWatch } from './useLocalDiffWatch';
 import { useReviewThreads } from './useReviewThreads';
 import { usePatchLoader } from './usePatchLoader';
-import { useThemeCycle } from './useThemeCycle';
+import { useThemeCycle } from '@/features/theme/useThemeCycle';
 import {
   docsThemeCatalog,
   themeController,
-} from '@/components/themeController';
+} from '@/features/theme/themeController';
 import { createGitHubDiffFileLoader } from '@/lib/github/diffFileLoader';
 import { createLocalDiffFileLoader } from '@/lib/local/diffFileLoader';
 import {

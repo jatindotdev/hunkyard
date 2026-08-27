@@ -2,8 +2,8 @@
 
 import { memo } from 'react';
 
-import { GitHubTokenControl } from '@/components/GitHubTokenControl';
-import { useGitHubToken } from '@/components/useGitHubToken';
+import { GitHubTokenControl } from '@/features/github/GitHubTokenControl';
+import { useGitHubToken } from '@/features/github/useGitHubToken';
 
 export const OpenGitHubTokenForm = memo(function OpenGitHubTokenForm() {
   const { clearToken, hasToken, setToken } = useGitHubToken();

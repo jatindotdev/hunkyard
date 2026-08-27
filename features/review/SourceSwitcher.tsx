@@ -2,10 +2,10 @@
 
 import { IconChevronSm } from '@pierre/icons';
 
-import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
+import { CHROME_ICON_BUTTON_CLASS } from '@/ui/chromeButtonStyles';
 import { DiffUrlForm } from './DiffUrlForm';
 import { LocalTargetLabel } from './LocalTargetLabel';
-import { Button } from '@/components/Button';
+import { Button } from '@/ui/Button';
 import { cn } from '@/lib/cn';
 
 interface SourceSwitcherProps {
