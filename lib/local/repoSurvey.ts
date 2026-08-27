@@ -25,13 +25,20 @@ const UNCOMMITTED_DETAIL = {
 
 // The base this branch is most likely to be reviewed against.
 //
-// Its own upstream first, which is what a pushed branch is compared with.
-// Then the remote's default branch, then a local branch of that name. A
-// repository with neither still has a previous commit.
+// Its own upstream while the branch is ahead of it: that is the narrowest true
+// statement of what the branch adds. Once everything is pushed the upstream has
+// nothing left to say -- the spec is a merge-base range, so a branch level with
+// its upstream, or behind it, compares empty -- and what is worth reading is the
+// branch against the default branch, which is what its eventual pull request is
+// anchored to anyway. Then a local branch of that name. A branch that was never
+// pushed still has its own history to sit against.
 export function likelyBaseRef(survey: RepositorySurvey): string | null {
-  const branch = survey.status?.branch ?? null;
-  const upstream = survey.status?.upstream ?? null;
-  if (upstream != null && upstream !== branch) return upstream;
+  const status = survey.status;
+  const branch = status?.branch ?? null;
+  const upstream = status?.upstream ?? null;
+  if (upstream != null && upstream !== branch && (status?.ahead ?? 0) > 0) {
+    return upstream;
+  }
 
   const known = new Set(
     [...survey.branches, ...survey.remoteBranches].map((ref) => ref.name)
@@ -39,12 +46,16 @@ export function likelyBaseRef(survey: RepositorySurvey): string | null {
   for (const candidate of survey.defaultBranch == null
     ? []
     : [`origin/${survey.defaultBranch}`, survey.defaultBranch]) {
-    // Comparing a branch with itself is an empty diff, which is what naming
-    // the default branch while standing on it would produce.
-    if (candidate === branch) continue;
+    // Two ways to name an empty diff: the branch against itself, and the branch
+    // against an upstream it has nothing on top of.
+    if (candidate === branch || candidate === upstream) continue;
     if (known.has(candidate)) return candidate;
   }
 
+  // A branch that tracks nothing has no base anywhere but its own history. One
+  // that is fully pushed with no default branch to sit under has none at all,
+  // and its previous commit is not what "this branch" means.
+  if (upstream != null) return null;
   return survey.commits.length > 1 ? 'HEAD~1' : null;
 }
 
@@ -92,16 +103,7 @@ export function suggestReviewTargets(
 
   const base = likelyBaseRef(survey);
   const head = survey.status?.branch;
-  // A branch level with its upstream, or behind it, has nothing of its own to
-  // show: the spec is git's merge-base form, so the range is empty and the row
-  // leads to a review with no files in it.
-  //
-  // Only when the base *is* the upstream. `ahead` describes that relationship
-  // and is zero for a branch that has no upstream at all -- there the base is
-  // the default branch instead, against which the range is usually not empty.
-  const nothingOfItsOwn =
-    base === status?.upstream && (status?.ahead ?? 0) === 0;
-  if (base != null && head != null && !nothingOfItsOwn) {
+  if (base != null && head != null) {
     const spec = buildCompareSpec(base, head);
     targets.push({
       kind: 'range',

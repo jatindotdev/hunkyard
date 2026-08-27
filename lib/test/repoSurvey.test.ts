@@ -43,16 +43,57 @@ function status(overrides: Partial<WorktreeStatus> = {}): WorktreeStatus {
 }
 
 describe('likelyBaseRef', () => {
-  test('prefers the branch its own upstream', () => {
+  test('prefers its own upstream while the branch is ahead of it', () => {
     expect(
       likelyBaseRef(
         survey({
-          status: status({ branch: 'feature', upstream: 'origin/feature' }),
+          status: status({
+            branch: 'feature',
+            upstream: 'origin/feature',
+            ahead: 2,
+          }),
           defaultBranch: 'main',
           remoteBranches: [ref('origin/main')],
         })
       )
     ).toBe('origin/feature');
+  });
+
+  // Fully pushed: the upstream is the same commit, so it describes nothing.
+  // What the branch is worth reading against is where it will be merged.
+  test('moves to the default branch once the upstream has nothing to say', () => {
+    expect(
+      likelyBaseRef(
+        survey({
+          status: status({
+            branch: 'feature',
+            upstream: 'origin/feature',
+            ahead: 0,
+          }),
+          defaultBranch: 'main',
+          remoteBranches: [ref('origin/feature'), ref('origin/main')],
+        })
+      )
+    ).toBe('origin/main');
+  });
+
+  // Standing on the default branch with everything pushed, both candidates name
+  // an empty diff -- and the previous commit is not what "this branch" means.
+  test('has nothing for the default branch itself when it is pushed', () => {
+    expect(
+      likelyBaseRef(
+        survey({
+          status: status({ branch: 'main', upstream: 'origin/main', ahead: 0 }),
+          defaultBranch: 'main',
+          branches: [ref('main', true)],
+          remoteBranches: [ref('origin/main')],
+          commits: [
+            { oid: 'b', shortOid: 'b', date: '', author: '', subject: '' },
+            { oid: 'a', shortOid: 'a', date: '', author: '', subject: '' },
+          ],
+        })
+      )
+    ).toBeNull();
   });
 
   test('falls back to the remote default branch', () => {
@@ -169,7 +210,7 @@ describe('suggestReviewTargets', () => {
     });
   });
 
-  test('leaves it out when the branch is level with its upstream', () => {
+  test('compares with the default branch once the branch is fully pushed', () => {
     const targets = suggestReviewTargets(
       survey({
         status: status({
@@ -181,10 +222,13 @@ describe('suggestReviewTargets', () => {
         remoteBranches: [ref('origin/feature'), ref('origin/main')],
       })
     );
-    expect(targets.some((target) => target.kind === 'range')).toBe(false);
+    expect(targets.at(-1)).toMatchObject({
+      kind: 'range',
+      spec: 'origin/main...feature',
+    });
   });
 
-  test('leaves it out when the branch is only behind its upstream', () => {
+  test('does the same when the branch is only behind its upstream', () => {
     const targets = suggestReviewTargets(
       survey({
         status: status({
@@ -193,15 +237,33 @@ describe('suggestReviewTargets', () => {
           ahead: 0,
           behind: 3,
         }),
+        defaultBranch: 'main',
+        remoteBranches: [ref('origin/feature'), ref('origin/main')],
+      })
+    );
+    // Three dots: what the upstream has and this branch does not is outside the
+    // range either way, so being behind is not something of its own to show.
+    expect(targets.at(-1)).toMatchObject({
+      kind: 'range',
+      spec: 'origin/main...feature',
+    });
+  });
+
+  test('leaves it out when a pushed branch has no default branch to sit under', () => {
+    const targets = suggestReviewTargets(
+      survey({
+        status: status({
+          branch: 'feature',
+          upstream: 'origin/feature',
+          ahead: 0,
+        }),
         remoteBranches: [ref('origin/feature')],
       })
     );
-    // Three dots: what the upstream has and this branch does not is not part of
-    // the range either way.
     expect(targets.some((target) => target.kind === 'range')).toBe(false);
   });
 
-  test('keeps it while the branch is ahead of its upstream', () => {
+  test('keeps the upstream while the branch is ahead of it', () => {
     const targets = suggestReviewTargets(
       survey({
         status: status({
@@ -209,7 +271,8 @@ describe('suggestReviewTargets', () => {
           upstream: 'origin/feature',
           ahead: 2,
         }),
-        remoteBranches: [ref('origin/feature')],
+        defaultBranch: 'main',
+        remoteBranches: [ref('origin/feature'), ref('origin/main')],
       })
     );
     expect(targets.at(-1)).toMatchObject({
