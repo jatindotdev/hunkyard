@@ -597,7 +597,7 @@ function CollapseDiffButton({
       <IconChevronSm
         aria-hidden="true"
         className={cn(
-          'size-4 transition-transform',
+          'size-4 transition-transform duration-(--duration-press) ease-out',
           (disabled || collapsed) && '-rotate-90'
         )}
       />

@@ -156,6 +156,59 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
     // every test after this one.
   }, 30_000);
 
+  // The panel and its results are what the entrance was written for: the rows
+  // arrive with the survey behind them, a few frames after the panel, and they
+  // are most of its height. Sampling per frame, because a jump and a transition
+  // look identical once either has finished.
+  test('brings the opener and its results in rather than snapping them on', async () => {
+    await browser.evaluate(`(() => {
+      globalThis.__entrance = [];
+      const started = performance.now();
+      const tick = () => {
+        const panel = document.querySelector('.hunkyard-palette-enter');
+        // Scoped to the overlay: the sidebar's diff stats use the same class.
+        const reveal = document.querySelector('[data-opener-overlay] .hunkyard-reveal');
+        globalThis.__entrance.push({
+          t: Math.round(performance.now() - started),
+          panelOpacity: panel == null ? null : Number(getComputedStyle(panel).opacity),
+          revealHeight: reveal == null ? null : Math.round(reveal.getBoundingClientRect().height),
+        });
+        if (globalThis.__entrance.length < 60) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    })()`);
+    await browser.press('Meta+k');
+
+    try {
+      const frames = JSON.parse(
+        await browser.evaluate<string>('JSON.stringify(globalThis.__entrance)')
+      ) as { panelOpacity: number | null; revealHeight: number | null }[];
+
+      // Partly faded frames: a panel that is simply inserted has none.
+      const fading = frames.filter(
+        (frame) =>
+          frame.panelOpacity != null &&
+          frame.panelOpacity > 0.02 &&
+          frame.panelOpacity < 0.98
+      );
+      expect(fading.length).toBeGreaterThan(2);
+
+      // And the results region passes through heights on its way to its full
+      // one instead of arriving at it.
+      const heights = [
+        ...new Set(
+          frames
+            .map((frame) => frame.revealHeight)
+            .filter((height): height is number => height != null)
+        ),
+      ];
+      expect(heights.length).toBeGreaterThan(3);
+    } finally {
+      await browser.press('Escape');
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  }, 30_000);
+
   test('opens the shortcut list on ?', async () => {
     await browser.press('?');
     expect(

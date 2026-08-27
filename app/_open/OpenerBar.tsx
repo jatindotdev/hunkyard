@@ -270,19 +270,23 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
       )}
 
       {sections.length > 0 && (
-        <div
-          id={LIST_ID}
-          role="listbox"
-          aria-label="Results"
-          className="max-h-[52vh] overflow-y-auto border-t py-1"
-        >
-          <Results
-            sections={sections}
-            rows={rows}
-            active={active}
-            onHover={setActive}
-            onChoose={choose}
-          />
+        // The rows arrive with the survey that describes them, a few frames
+        // after the panel itself, and they are most of its height.
+        <div className="hunkyard-reveal">
+          <div
+            id={LIST_ID}
+            role="listbox"
+            aria-label="Results"
+            className="max-h-[52vh] overflow-y-auto border-t py-1"
+          >
+            <Results
+              sections={sections}
+              rows={rows}
+              active={active}
+              onHover={setActive}
+              onChoose={choose}
+            />
+          </div>
         </div>
       )}
 

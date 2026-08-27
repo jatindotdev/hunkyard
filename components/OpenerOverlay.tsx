@@ -63,14 +63,14 @@ export function OpenerOverlay({
       role="dialog"
       aria-modal="true"
       aria-label="Open something to review"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-5 pt-[12vh] backdrop-blur-[2px]"
+      className="hunkyard-scrim fixed inset-0 z-50 flex items-start justify-center bg-black/60 px-5 pt-[12vh] backdrop-blur-[2px]"
       onMouseDown={(event) => {
         // Only the backdrop, so a drag that ends outside the panel does not
         // close it mid-selection.
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div ref={panel} className="w-full max-w-2xl">
+      <div ref={panel} className="hunkyard-palette-enter w-full max-w-2xl">
         <OpenerBar repoId={scoped} onScope={setScoped} onNavigate={onClose} />
       </div>
     </div>,

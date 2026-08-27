@@ -76,7 +76,7 @@ export const ThreadAnnotation = memo(function ThreadAnnotation({
                 type="button"
                 aria-label="Delete comment"
                 title="Delete comment"
-                className="text-muted-foreground hover:text-foreground ml-auto opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
+                className="text-muted-foreground hover:text-foreground ml-auto opacity-0 transition-opacity duration-(--duration-press) ease-out group-hover:opacity-100 focus-visible:opacity-100"
                 onClick={() => onRemove(thread.id, comment.id)}
               >
                 <IconX className="size-3" />

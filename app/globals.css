@@ -547,6 +547,85 @@
   border-radius: 4px 0 0 4px;
 }
 
+/* Surfaces that arrive over what you were already looking at.
+ *
+ * Entry only, deliberately. Each of these is unmounted when it closes, and the
+ * machinery to hold one mounted long enough to animate out buys a palette that
+ * lingers after you have decided to leave -- closing should be the fastest thing
+ * it does. `@starting-style` gives the entry with no state to keep: it applies
+ * only to the first style change after an element is inserted, so a surface
+ * whose contents keep changing afterwards does not re-animate on every change.
+ *
+ * A browser without `@starting-style` gets the surface immediately, which is
+ * what every browser did before this existed. */
+.hunkyard-scrim {
+  opacity: 1;
+  transition: opacity var(--duration-popover) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+/* Centered on the viewport, so it grows in place: a modal that also travels
+   reads as coming from a direction it did not come from. */
+.hunkyard-modal-enter {
+  opacity: 1;
+  transform: scale(1);
+  transition:
+    opacity var(--duration-panel) var(--ease-out),
+    transform var(--duration-panel) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+/* Anchored near the top of the viewport rather than centered, so it settles
+   downward from where it is pinned. Faster than the modal: this one is on the
+   way to typing. */
+.hunkyard-palette-enter {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity var(--duration-popover) var(--ease-out),
+    transform var(--duration-popover) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+}
+
+/* A region that appears once the data behind it does, inside a surface small
+ * enough that its growth reads as the whole surface jumping.
+ *
+ * `grid-template-rows` between `0fr` and `1fr` is how a region of unknown height
+ * is bridged without measuring it. Only the first appearance is bridged, which
+ * is the point of doing it in `@starting-style`: the same region is re-filtered
+ * on every keystroke, and a height that animated each time would rubber-band
+ * under typing. */
+.hunkyard-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--duration-panel) var(--ease-out),
+    opacity var(--duration-panel) var(--ease-out);
+
+  /* Without this the child refuses to be shorter than its content, and the row
+     has nothing to interpolate to. */
+  & > * {
+    min-height: 0;
+  }
+
+  @starting-style {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+
 /* Docs sidebar: shares mobile popover styles, adds desktop sticky overrides */
 .docs-sidebar {
   /* Desktop sticky sidebar */

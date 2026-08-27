@@ -52,27 +52,29 @@ export const HunkyardDiffStats = memo(function HunkyardDiffStats({
         </button>
       </StatusRow>
       {expanded && (
-        <div className="ml-10 md:mr-3">
-          <StatItem
-            label="Files"
-            value={stats.fileCount}
-            valueClassName="text-foreground font-semibold"
-          />
-          <StatItem
-            label="Additions"
-            value={stats.addedLines}
-            valueClassName="text-green-600 dark:text-green-400 font-semibold"
-          />
-          <StatItem
-            label="Deletions"
-            value={stats.deletedLines}
-            valueClassName="text-red-600 dark:text-red-400 font-semibold"
-          />
-          <StatItem
-            label="Lines"
-            value={stats.totalLinesOfCode}
-            valueClassName="text-foreground font-semibold"
-          />
+        <div className="hunkyard-reveal ml-10 md:mr-3">
+          <div>
+            <StatItem
+              label="Files"
+              value={stats.fileCount}
+              valueClassName="text-foreground font-semibold"
+            />
+            <StatItem
+              label="Additions"
+              value={stats.addedLines}
+              valueClassName="text-green-600 dark:text-green-400 font-semibold"
+            />
+            <StatItem
+              label="Deletions"
+              value={stats.deletedLines}
+              valueClassName="text-red-600 dark:text-red-400 font-semibold"
+            />
+            <StatItem
+              label="Lines"
+              value={stats.totalLinesOfCode}
+              valueClassName="text-foreground font-semibold"
+            />
+          </div>
         </div>
       )}
     </>

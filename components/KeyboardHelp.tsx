@@ -71,13 +71,13 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Keyboard shortcuts"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgb(0_0_0_/_0.4)] p-4 font-sans"
+      className="hunkyard-scrim fixed inset-0 z-50 flex items-center justify-center bg-[rgb(0_0_0_/_0.4)] p-4 font-sans"
       onClick={onClose}
     >
       <div
         ref={panel}
         tabIndex={-1}
-        className="bg-card text-card-foreground max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-xl border p-4 shadow-lg outline-none"
+        className="hunkyard-modal-enter bg-card text-card-foreground max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-xl border p-4 shadow-lg outline-none"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

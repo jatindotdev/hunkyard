@@ -235,7 +235,9 @@ export const HunkyardSidebar = memo(function HunkyardSidebar({
         aria-label="Close file tree"
         tabIndex={mobileOverlayOpen ? 0 : -1}
         className={cn(
-          'z-20 cursor-default bg-background/60 backdrop-blur-xs transition-opacity [grid-column:1/-1] [grid-row:1/-1] md:hidden',
+          // Timed with the drawer rather than on Tailwind's default, so the
+          // two arrive together instead of the scrim finishing first.
+          'z-20 cursor-default bg-background/60 backdrop-blur-xs transition-opacity duration-(--duration-drawer) ease-(--ease-drawer) motion-reduce:transition-none [grid-column:1/-1] [grid-row:1/-1] md:hidden',
           mobileOverlayOpen
             ? 'pointer-events-auto opacity-100'
             : 'pointer-events-none opacity-0'
