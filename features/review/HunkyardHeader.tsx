@@ -1,5 +1,6 @@
 import type { DiffIndicators } from '@pierre/diffs';
 import {
+  IconArrow,
   IconCheck,
   IconChevronSm,
   IconCodeStyleBars,
@@ -148,11 +149,27 @@ export const HunkyardHeader = memo(function HunkyardHeader({
     >
       <Link
         href="/"
-        // Gated on a real pointer: on touch, a tap fires hover and the mark
-        // swells under the finger that is pressing it.
-        className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-(--duration-popover) ease-out [@media(hover:hover)and(pointer:fine)]:hover:scale-105 motion-reduce:transition-none md:static md:translate-x-0"
+        aria-label="Back to the opener"
+        className="group absolute top-4 left-[50%] inline-flex -translate-x-1/2 md:static md:translate-x-0"
       >
-        <HunkyardLogo />
+        {/* The mark says which application this is; reach for it and it says
+            what clicking it does instead. Both glyphs occupy the one grid cell,
+            so the swap cannot shift the header around it, and focus gets the
+            same answer as hover since a keyboard is not a pointer.
+            
+            Plain `hover:` rather than a hand-written pointer query: Tailwind
+            wraps every hover variant in `@media (hover: hover)` already, so a
+            tap does not leave a touch device holding the swapped state. */}
+        <span className="grid size-6 place-items-center">
+          <HunkyardLogo
+            decorative
+            className="col-start-1 row-start-1 transition-opacity duration-(--duration-press) ease-out group-hover:opacity-0 group-focus-visible:opacity-0"
+          />
+          <IconArrow
+            aria-hidden="true"
+            className="col-start-1 row-start-1 size-5 opacity-0 transition-opacity duration-(--duration-press) ease-out group-hover:opacity-100 group-focus-visible:opacity-100"
+          />
+        </span>
       </Link>
       <SourceSwitcher
         className="order-last md:order-none md:mr-auto"

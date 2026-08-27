@@ -209,6 +209,55 @@ describe.skipIf(!available)('the viewer in a real browser', () => {
     }
   }, 30_000);
 
+  // The mark answers with what it does when you reach for it. Checked in a
+  // browser because the whole thing is a hover variant and a compiled media
+  // query: a class Tailwind quietly failed to emit looks exactly like a class
+  // that is simply never triggered.
+  test('turns the mark into a back arrow under the pointer', async () => {
+    const read = `(() => {
+      const link = document.querySelector('a[aria-label="Back to the opener"]');
+      if (link == null) return 'null';
+      const [mark, arrow] = link.querySelectorAll('svg');
+      const box = link.getBoundingClientRect();
+      return JSON.stringify({
+        href: link.getAttribute('href'),
+        mark: Number(getComputedStyle(mark).opacity),
+        arrow: Number(getComputedStyle(arrow).opacity),
+        // The layout box, which a transform would not change.
+        width: link.offsetWidth,
+        centre: { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+      });
+    })()`;
+
+    const idle = JSON.parse(await browser.evaluate<string>(read)) as {
+      href: string;
+      mark: number;
+      arrow: number;
+      width: number;
+      centre: { x: number; y: number };
+    };
+    expect(idle.href).toBe('/');
+    expect(idle.mark).toBe(1);
+    expect(idle.arrow).toBe(0);
+
+    await browser.hover(idle.centre.x, idle.centre.y);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const hovered = JSON.parse(await browser.evaluate<string>(read)) as typeof idle;
+
+    expect(hovered.mark).toBe(0);
+    expect(hovered.arrow).toBe(1);
+    // Same destination, same footprint: the swap is a swap, not a relayout.
+    expect(hovered.href).toBe('/');
+    expect(hovered.width).toBe(idle.width);
+
+    // And it goes back, so the tests after this one do not inherit a hover.
+    await browser.hover(idle.centre.x, idle.centre.y + 400);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(
+      (JSON.parse(await browser.evaluate<string>(read)) as typeof idle).mark
+    ).toBe(1);
+  }, 30_000);
+
   test('opens the shortcut list on ?', async () => {
     await browser.press('?');
     expect(

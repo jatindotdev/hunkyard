@@ -6,14 +6,23 @@ import { cn } from '@/lib/cn';
 // on what this application is. It carries no plate of its own -- the favicon
 // needs one to sit on an unknown tab bar, and everywhere else it sits on the
 // app's own chrome, which supplies its own background.
-export function HunkyardLogo({ className }: { className?: string }) {
+export function HunkyardLogo({
+  className,
+  // Set where the mark is inside something that already says what it is, so a
+  // reader hears the control rather than the mark and the control.
+  decorative = false,
+}: {
+  className?: string;
+  decorative?: boolean;
+}) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 32 32"
       className={cn('size-6 shrink-0', className)}
-      role="img"
-      aria-label="Hunkyard"
+      role={decorative ? 'presentation' : 'img'}
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : 'Hunkyard'}
     >
       <rect x="3" y="6" width="15" height="5.5" rx="2.75" fill="#3fb950" />
       <rect

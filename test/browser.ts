@@ -235,6 +235,26 @@ export class Browser {
     await Bun.sleep(400);
   }
 
+  // A real pointer at a real coordinate, which is the only way to exercise a
+  // hover gated behind `(hover: hover) and (pointer: fine)`: dispatching a
+  // `mouseover` event from script does not make the media query match, and
+  // CSS :hover does not respond to synthetic events at all.
+  async hover(x: number, y: number): Promise<void> {
+    // Two moves: the first arrives with no previous position for Blink to
+    // compare against, which is not the gesture a pointer entering an element
+    // makes.
+    for (const point of [{ x: x - 4, y: y - 4 }, { x, y }]) {
+      await this.call('Input.dispatchMouseEvent', {
+        type: 'mouseMoved',
+        x: point.x,
+        y: point.y,
+        button: 'none',
+        buttons: 0,
+        clickCount: 0,
+      });
+    }
+  }
+
   // Selecting lines means a real drag: the diff lives in shadow DOM, so there is
   // nothing to click by selector.
   async drag(from: { x: number; y: number }, to: { x: number; y: number }): Promise<void> {
