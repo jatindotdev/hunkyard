@@ -71,7 +71,10 @@ scored subsequence in `lib/openerSearch.ts`, deliberately not a library.
 - **Motion** goes through the tokens in `app/globals.css` (`--ease-out`,
   `--duration-press|popover|panel|drawer`). Do not write a bare duration or
   curve; reduced motion works by collapsing those tokens, so anything bypassing
-  them bypasses that too.
+  them bypasses that too. A surface that arrives over another one uses the
+  entrance classes there (`.hunkyard-scrim`, `.hunkyard-modal-enter`,
+  `.hunkyard-palette-enter`, `.hunkyard-reveal`) -- see below for why they are
+  entry-only.
 - **Verification**: `bun test` (unit + real-Chrome integration), `bun run
   typecheck`, `bun run smoke` (drives the compiled binary end to end). All three
   before claiming something works.
@@ -127,6 +130,48 @@ Remember to `launchctl bootout` and delete the plist afterwards.
 
 Note it writes `daemon-80.pid` into the shared state directory regardless of
 which port it is behind, so it will stand on the real server's record.
+
+## Entrances are entry-only, and `@starting-style` is why
+
+The opener, the shortcuts modal and the regions that appear inside them animate
+in and vanish out. That asymmetry is deliberate and load-bearing:
+
+- Each of these is **unmounted when it closes**. Holding one mounted long enough
+  to animate out means a palette that lingers after you have decided to leave,
+  plus timing state in JS that the duration tokens cannot reach.
+- `@starting-style` applies only to the **first style change after an element is
+  inserted**, which is exactly the property that makes it safe on a region whose
+  contents keep changing. `.hunkyard-reveal` bridges the results list growing
+  from nothing to full height once; it does not re-animate that height on every
+  keystroke as the list is re-filtered, which would rubber-band under typing.
+
+Two things to know before using them:
+
+- **`.hunkyard-reveal` takes exactly one element child.** It animates
+  `grid-template-rows` from `0fr`, which only reaches the first row -- a second
+  child lands in an implicit row and does not collapse. Wrap the contents.
+- A browser without `@starting-style` shows the surface immediately, which is
+  what every browser did before it existed. Nothing needs a fallback.
+
+## A `:root` custom property resolves its `var()` at `:root`
+
+A custom property is substituted **where it is declared**, not where it is used.
+So this does not do what it reads as:
+
+```css
+:root {
+  /* the theme sets --trees-theme-git-added-fg on the tree host, further down */
+  --hunkyard-status-added: var(--trees-theme-git-added-fg, #00cab1);
+}
+```
+
+The fallback is baked in once, at `:root`, and every element inherits that dead
+value -- including the ones where the theme variable is genuinely in scope. This
+cost a full cycle of "the token is right, the colour is wrong".
+
+The fix is to resolve the indirection in TS and apply the result to the surface
+that needs it (`lib/theme/gitStatusTokens.ts` does this for Git status colours),
+leaving `:root` holding only the literal fallback.
 
 ## The diff surface's theme is not the app's theme
 
