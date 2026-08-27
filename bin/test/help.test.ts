@@ -2,9 +2,16 @@ import { describe, expect, test } from 'bun:test';
 
 import { isHelpCommand, topLevelHelp, wantsTopLevelHelp } from '../help';
 
-// Test output is not a TTY, so style.ts leaves the text uncoloured and these
-// can match on it directly.
-const help = topLevelHelp('9.9.9');
+// Read without the styling, so the assertions below can match on the text.
+// style.ts colours on FORCE_COLOR as well as on a TTY -- deliberately, since
+// that is how CI asks for colour -- so "the test output is not a terminal" is
+// not enough to make this plain text.
+const help = plain(topLevelHelp('9.9.9'));
+
+// The escapes style.ts emits: SGR sequences, nothing else.
+function plain(text: string): string {
+  return text.replace(/\u001b\[\d+m/g, '');
+}
 
 // The command column, rather than the whole line: a description is prose and
 // "what it serves" would match a search for `serve`.
