@@ -169,6 +169,71 @@ describe('suggestReviewTargets', () => {
     });
   });
 
+  test('leaves it out when the branch is level with its upstream', () => {
+    const targets = suggestReviewTargets(
+      survey({
+        status: status({
+          branch: 'feature',
+          upstream: 'origin/feature',
+          ahead: 0,
+        }),
+        defaultBranch: 'main',
+        remoteBranches: [ref('origin/feature'), ref('origin/main')],
+      })
+    );
+    expect(targets.some((target) => target.kind === 'range')).toBe(false);
+  });
+
+  test('leaves it out when the branch is only behind its upstream', () => {
+    const targets = suggestReviewTargets(
+      survey({
+        status: status({
+          branch: 'feature',
+          upstream: 'origin/feature',
+          ahead: 0,
+          behind: 3,
+        }),
+        remoteBranches: [ref('origin/feature')],
+      })
+    );
+    // Three dots: what the upstream has and this branch does not is not part of
+    // the range either way.
+    expect(targets.some((target) => target.kind === 'range')).toBe(false);
+  });
+
+  test('keeps it while the branch is ahead of its upstream', () => {
+    const targets = suggestReviewTargets(
+      survey({
+        status: status({
+          branch: 'feature',
+          upstream: 'origin/feature',
+          ahead: 2,
+        }),
+        remoteBranches: [ref('origin/feature')],
+      })
+    );
+    expect(targets.at(-1)).toMatchObject({
+      kind: 'range',
+      spec: 'origin/feature...feature',
+    });
+  });
+
+  test('keeps it for a branch with no upstream, where ahead means nothing', () => {
+    // `git status` reports no ahead/behind for a branch that tracks nothing, so
+    // the count is zero for a branch that may well have commits of its own.
+    const targets = suggestReviewTargets(
+      survey({
+        status: status({ branch: 'feature', upstream: null, ahead: 0 }),
+        defaultBranch: 'main',
+        remoteBranches: [ref('origin/main')],
+      })
+    );
+    expect(targets.at(-1)).toMatchObject({
+      kind: 'range',
+      spec: 'origin/main...feature',
+    });
+  });
+
   test('leaves the comparison out on a detached HEAD', () => {
     const targets = suggestReviewTargets(
       survey({

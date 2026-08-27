@@ -92,7 +92,16 @@ export function suggestReviewTargets(
 
   const base = likelyBaseRef(survey);
   const head = survey.status?.branch;
-  if (base != null && head != null) {
+  // A branch level with its upstream, or behind it, has nothing of its own to
+  // show: the spec is git's merge-base form, so the range is empty and the row
+  // leads to a review with no files in it.
+  //
+  // Only when the base *is* the upstream. `ahead` describes that relationship
+  // and is zero for a branch that has no upstream at all -- there the base is
+  // the default branch instead, against which the range is usually not empty.
+  const nothingOfItsOwn =
+    base === status?.upstream && (status?.ahead ?? 0) === 0;
+  if (base != null && head != null && !nothingOfItsOwn) {
     const spec = buildCompareSpec(base, head);
     targets.push({
       kind: 'range',
