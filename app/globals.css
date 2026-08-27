@@ -41,6 +41,27 @@
 @custom-variant dark (&:is(.dark *, .dark));
 
 @theme {
+  /* Motion.
+   *
+   * Tailwind's own easings are the weak built-ins -- `--ease-out` ships as
+   * cubic-bezier(0, 0, 0.2, 1), which barely leaves the start. These are the
+   * stronger variants, and overriding the names means every existing
+   * `ease-out` in the app picks them up rather than needing a rewrite.
+   *
+   * Durations are named for what they are attached to, because "how long
+   * should this be" is answered by what is moving, not by a number: a press is
+   * felt, a menu is watched, a drawer is followed. Everything here stays under
+   * 300ms except the drawer, which is a large surface travelling a long way. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* From Ionic, by way of Vaul: the curve iOS sheets use. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-press: 150ms;
+  --duration-popover: 180ms;
+  --duration-panel: 220ms;
+  --duration-drawer: 300ms;
+
   --font-geist: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -241,6 +262,33 @@
   color-scheme: light;
 }
 
+/* Reduced motion means less movement, not less interface.
+ *
+ * Opacity and colour still carry meaning -- something appearing, something
+ * becoming active -- so they keep their transitions, shortened. What goes is
+ * travel: transforms, and the animations that spin or slide. Per-component
+ * `motion-reduce:` hooks handle the cases that need something specific; this is
+ * the floor under everything added later, which would otherwise arrive
+ * unguarded. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Anything whose transition is a movement loses the movement rather than
+     being sped up, since a fast jump reads worse than no jump. */
+  [class*='translate'],
+  [class*='scale'],
+  [class*='rotate'] {
+    transition-property: opacity, background-color, border-color, color !important;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -418,7 +466,8 @@
   @apply opacity-0 shadow-2xl;
   /* Named rather than `all`: this element also owns a max-height, and
      animating that would animate its own reflow. */
-  @apply pointer-events-none transition-[opacity,transform] duration-200 ease-out;
+  @apply pointer-events-none transition-[opacity,transform] ease-out;
+  transition-duration: var(--duration-panel);
   @apply motion-reduce:transition-[opacity];
   @apply [scrollbar-color:transparent_transparent] [scrollbar-gutter:stable] [scrollbar-width:thin];
   @apply hover:[scrollbar-color:auto];
