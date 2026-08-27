@@ -34,11 +34,13 @@ const PRESERVE_INPUT_ORDER_SORT: FileTreeSortComparator = () => 0;
 // (via themeToTreeStyles) so the sidebar matches the diff theme, but the
 // density and padding stay tuned for the hunkyard layout regardless of
 // which theme the user picks. `--trees-git-renamed-color-override` is kept
-// because most Shiki themes don't define a "renamed" decoration color.
+// because most Shiki themes don't define a "renamed" decoration color; it
+// points at the app token so the tree row and the status filter menu's swatch
+// come from one place.
 const DENSITY_OVERRIDE_STYLES = {
   '--trees-density-override': 0.8,
   '--trees-padding-inline-override': 8,
-  '--trees-git-renamed-color-override': 'light-dark(#007aff, #007aff)',
+  '--trees-git-renamed-color-override': 'var(--hunkyard-status-renamed)',
 } as CSSProperties;
 
 interface HunkyardFileTreeProps {

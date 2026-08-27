@@ -29,6 +29,7 @@ import { ReviewThreadsList } from './ReviewThreadsList';
 import { HunkyardDiffStats } from './HunkyardDiffStats';
 import { HunkyardFileTree } from './HunkyardFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
+import { useTreeThemeProps } from './useTreeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
 import type { ReviewAnnotationMetadata, Thread } from '@/lib/review/types';
@@ -49,6 +50,7 @@ import { filterFileTreeSource } from '@/lib/filterFileTreeSource';
 import { getFileTreeAvailableStatuses } from '@/lib/getFileTreeAvailableStatuses';
 import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
+import { gitStatusTokenOverrides } from '@/lib/theme/gitStatusTokens';
 import type {
   HunkyardDiffStats as HunkyardDiffStatsData,
   FileTreeSource,
@@ -123,10 +125,15 @@ export const HunkyardSidebar = memo(function HunkyardSidebar({
   // Portaled dropdowns (the Git-status filter) render outside the sidebar
   // wrapper, so the chrome variables set on it don't cascade. Re-apply the
   // resolved chrome on the menu surface itself, mirroring the header dropdowns.
-  const dropdownThemeStyle = useMemo(
-    () => getDropdownThemeStyle(sidebarStyle),
-    [sidebarStyle]
-  );
+  // The status swatches in that menu read `--hunkyard-status-*`, which the
+  // active theme can override; the resolved values are applied here because the
+  // menu is portaled out of the sidebar and inherits nothing from it.
+  const { style: treeThemeStyle } = useTreeThemeProps();
+  const dropdownThemeStyle = useMemo(() => {
+    const base = getDropdownThemeStyle(sidebarStyle);
+    if (base == null) return undefined;
+    return { ...base, ...gitStatusTokenOverrides(treeThemeStyle) };
+  }, [sidebarStyle, treeThemeStyle]);
   const [activeStatusPanel, setActiveStatusPanel] =
     useState<SidebarStatusPanel | null>('diffStats');
   const [fileTreeModel, setFileTreeModel] = useState<FileTree | null>(null);
@@ -406,8 +413,8 @@ function SidebarWrapper({
 }
 
 // Statuses that can appear in a diff, in the order they should appear in the
-// filter dropdown. Colors mirror the exact light-dark() values from the tree's
-// style.css so the badges match what the tree rows show.
+// filter dropdown. Each swatch reads the same token the tree's own row glyph
+// resolves, so the menu cannot show a colour the rows behind it are not using.
 const DIFF_STATUS_ITEMS: {
   status: GitStatus;
   label: string;
@@ -418,25 +425,25 @@ const DIFF_STATUS_ITEMS: {
     status: 'added',
     label: 'Added',
     short: 'A',
-    color: 'light-dark(#16a994, #00cab1)',
+    color: 'var(--hunkyard-status-added)',
   },
   {
     status: 'modified',
     label: 'Modified',
     short: 'M',
-    color: 'light-dark(#1ca1c7, #08c0ef)',
+    color: 'var(--hunkyard-status-modified)',
   },
   {
     status: 'renamed',
     label: 'Renamed',
     short: 'R',
-    color: 'light-dark(#d5a910, #ffd452)',
+    color: 'var(--hunkyard-status-renamed)',
   },
   {
     status: 'deleted',
     label: 'Deleted',
     short: 'D',
-    color: 'light-dark(#ff2e3f, #ff6762)',
+    color: 'var(--hunkyard-status-deleted)',
   },
 ];
 
@@ -480,7 +487,7 @@ function FileTreeFilterButton({
         >
           <IconFilter className="size-4 md:size-3" />
           {isFiltered && (
-            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--hunkyard-sidebar-bg)] bg-blue-500 dark:bg-blue-400" />
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--hunkyard-sidebar-bg)] bg-current" />
           )}
         </Button>
       </DropdownMenuTrigger>
