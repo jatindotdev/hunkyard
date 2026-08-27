@@ -17,6 +17,34 @@ NOTICE and README credit the origin, which the licence requires and which is
 true; the identifiers no longer do, because the licence does not cover marks and
 a codebase reading as somebody else's is harder to reason about.
 
+## Where things live
+
+```
+src/         the shell: entry, router, and the providers main.tsx mounts
+ui/          the framework kit -- primitives and the generic behaviours they
+             rely on. Knows nothing about any feature.
+features/    review/ opener/ theme/ github/ -- each holds its own components,
+             hooks and presentation logic
+devtools/    the panels that exist only under DEVTOOLS_ENABLED
+lib/         platform code, no React: git/ diff/ github/ local/ tree/ route/
+             opener/ theme/ review/ repos/ proxy/ service/ fs/
+server/      the HTTP app and its routes
+bin/         the CLI and the service manager
+test/        the Chrome harness and the suites that drive the whole app
+```
+
+Two rules hold this together, and both are checkable:
+
+- **Imports point one way**: `features/` and `ui/` may read `lib/`; `lib/` never
+  reads upward, and never imports React. A hook belongs above `lib/`.
+- **A feature is a folder.** Something two features both need does not become a
+  shared bucket -- it becomes its own feature (`features/github/` exists because
+  the token control has callers in two of them) or, if it is generic and
+  feature-blind, it goes in `ui/`.
+
+Tests sit in a `test/` folder beside what they cover. Root `test/` is for the
+browser harness and the suites that span the app.
+
 ## Nothing runs until someone asks for something
 
 The single most surprising thing about this app, and the thing to understand
@@ -59,7 +87,7 @@ repository turns it into a chip and everything after that searches inside it.
 
 Descending into a folder **rewrites the field rather than navigating**, which is
 why there is no back button -- the field is the whole state. Matching is a
-scored subsequence in `lib/openerSearch.ts`, deliberately not a library.
+scored subsequence in `lib/opener/search.ts`, deliberately not a library.
 
 ## Conventions
 
@@ -68,7 +96,7 @@ scored subsequence in `lib/openerSearch.ts`, deliberately not a library.
 - **Comments** say what the code does or why it is shaped that way, never the
   history of how it got there. A durable constraint is worth keeping; a
   narrated bug fix is not.
-- **Motion** goes through the tokens in `app/globals.css` (`--ease-out`,
+- **Motion** goes through the tokens in `src/globals.css` (`--ease-out`,
   `--duration-press|popover|panel|drawer`). Do not write a bare duration or
   curve; reduced motion works by collapsing those tokens, so anything bypassing
   them bypasses that too. A surface that arrives over another one uses the
@@ -182,7 +210,7 @@ surfaces; anything else uses the app's own tokens.
 
 ## Verifying the UI
 
-`lib/test/browser.ts` drives real Chrome over CDP. Two things about it:
+`test/browser.ts` drives real Chrome over CDP. Two things about it:
 
 - `browser.press` cannot type characters needing a modifier, `#` included. Set
   the value through the input's native setter and dispatch an `input` event.

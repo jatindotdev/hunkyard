@@ -244,7 +244,7 @@ Pushing a `v*` tag builds every target and publishes the release. `bun build
 produced and nothing else.
 
 `bun test` includes browser tests that drive real Chrome over the DevTools
-Protocol (`lib/test/ui.integration.test.ts`). Bun recommends happy-dom for DOM
+Protocol (`test/ui.integration.test.ts`). Bun recommends happy-dom for DOM
 testing and it is right for a component in isolation, but it has no layout
 engine, so `getBoundingClientRect` returns 0x0. The diff surface is virtualized
 and measures item heights, and selecting lines means dragging over a gutter at a
