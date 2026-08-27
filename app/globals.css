@@ -559,8 +559,12 @@
  * A browser without `@starting-style` gets the surface immediately, which is
  * what every browser did before this existed. */
 .hunkyard-scrim {
+  /* Paired with whatever it is dimming for, so the two settle together rather
+     than the scrim finishing first. */
+  --hunkyard-scrim-duration: var(--duration-press);
+
   opacity: 1;
-  transition: opacity var(--duration-popover) var(--ease-out);
+  transition: opacity var(--hunkyard-scrim-duration) var(--ease-out);
 
   @starting-style {
     opacity: 0;
@@ -582,19 +586,19 @@
   }
 }
 
-/* Anchored near the top of the viewport rather than centered, so it settles
-   downward from where it is pinned. Faster than the modal: this one is on the
-   way to typing. */
+/* Fades without moving, and on the shortest duration there is.
+ *
+ * This one is opened from the keyboard many times a day, which is the frequency
+ * at which travel stops reading as polish and starts reading as a delay before
+ * you can type. What earns a transition here is not the panel, it is the scrim:
+ * a full-viewport dimming that simply appears is the jarring part. The panel
+ * only has to not blink into place while that happens. */
 .hunkyard-palette-enter {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  transition:
-    opacity var(--duration-popover) var(--ease-out),
-    transform var(--duration-popover) var(--ease-out);
+  transition: opacity var(--duration-press) var(--ease-out);
 
   @starting-style {
     opacity: 0;
-    transform: translateY(-6px) scale(0.985);
   }
 }
 

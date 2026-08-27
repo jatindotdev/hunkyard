@@ -71,7 +71,8 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
       role="dialog"
       aria-modal="true"
       aria-label="Keyboard shortcuts"
-      className="hunkyard-scrim fixed inset-0 z-50 flex items-center justify-center bg-[rgb(0_0_0_/_0.4)] p-4 font-sans"
+      // Paced with the panel it dims for, which is slower than the palette's.
+        className="hunkyard-scrim [--hunkyard-scrim-duration:var(--duration-panel)] fixed inset-0 z-50 flex items-center justify-center bg-[rgb(0_0_0_/_0.4)] p-4 font-sans"
       onClick={onClose}
     >
       <div
