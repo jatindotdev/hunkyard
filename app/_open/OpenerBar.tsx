@@ -26,6 +26,15 @@ import {
   type OpenerSection,
 } from './openerResults';
 
+// Fixed rather than generated: there is one opener on screen at a time, and a
+// stable id is what `aria-activedescendant` needs to point at.
+const LIST_ID = 'opener-results';
+const ERROR_ID = 'opener-error';
+
+function rowId(index: number): string {
+  return `opener-row-${index}`;
+}
+
 const ICONS = {
   repo: IconFolder,
   folder: IconFolder,
@@ -65,11 +74,15 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
 
   // Only fetched while a path is being typed, so an empty box costs nothing.
   const pathQuery = classified.kind === 'path' ? splitPathQuery(classified.path) : null;
-  const { listing } = useDirectoryListing(pathQuery?.dir, {
-    filter: pathQuery?.filter ?? '',
-  });
+  const { listing, loading: listingLoading, error: listingError } =
+    useDirectoryListing(pathQuery?.dir, { filter: pathQuery?.filter ?? '' });
 
-  const { survey } = useRepoSurvey(repoId, ['refs', 'status', 'commits']);
+  const {
+    survey,
+    loading: surveyLoading,
+    error: surveyError,
+    unknownRepo,
+  } = useRepoSurvey(repoId, ['refs', 'status', 'commits']);
   const scopedRepo = repos.find((repo) => repo.id === repoId);
 
   const sections: OpenerSection[] = useMemo(() => {
@@ -90,6 +103,18 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
   }, [repoId, survey, classified, query, repos, listing, pathQuery?.filter, home]);
 
   const rows = useMemo(() => flattenRows(sections), [sections]);
+
+  // Every one of these was being discarded, so a repository that had not
+  // finished being read looked like a repository with nothing in it, and a
+  // browse that failed outright looked the same.
+  const status: string | null = unknownRepo
+    ? 'That repository is not on your list any more.'
+    : (surveyError ?? listingError ?? null);
+  const busy =
+    status == null &&
+    sections.length === 0 &&
+    ((repoId != null && surveyLoading) ||
+      (classified.kind === 'path' && listingLoading));
 
   useEffect(() => {
     setActive(0);
@@ -204,6 +229,10 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
             <IconX className="size-3 opacity-50" />
           </button>
         )}
+        {/* A combobox in behaviour since it was written; this is it saying so.
+            Without the wiring a screen reader hears a bare text field, is never
+            told a list of results exists, and hears nothing at all as the arrow
+            keys move through it. */}
         <input
           ref={inputRef}
           autoFocus
@@ -213,7 +242,17 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
           placeholder={placeholder}
           spellCheck={false}
           autoComplete="off"
-          className="text-foreground placeholder:text-muted-foreground/60 min-w-0 flex-1 bg-transparent text-[15px] outline-none"
+          role="combobox"
+          aria-label={placeholder}
+          aria-expanded={rows.length > 0}
+          aria-controls={LIST_ID}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            rows.length > 0 ? rowId(active) : undefined
+          }
+          aria-describedby={error != null ? ERROR_ID : undefined}
+          aria-invalid={error != null || undefined}
+          className="text-foreground placeholder:text-muted-foreground/70 min-w-0 flex-1 bg-transparent text-[15px] outline-none"
         />
         {opening && (
           <span className="text-muted-foreground text-xs">opening…</span>
@@ -221,11 +260,22 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
       </div>
 
       {error != null && (
-        <p className="text-destructive border-t px-4 py-2 text-xs">{error}</p>
+        <p
+          id={ERROR_ID}
+          role="alert"
+          className="text-destructive border-t px-4 py-2 text-xs"
+        >
+          {error}
+        </p>
       )}
 
       {sections.length > 0 && (
-        <div className="max-h-[52vh] overflow-y-auto border-t py-1">
+        <div
+          id={LIST_ID}
+          role="listbox"
+          aria-label="Results"
+          className="max-h-[52vh] overflow-y-auto border-t py-1"
+        >
           <Results
             sections={sections}
             rows={rows}
@@ -236,14 +286,40 @@ export function OpenerBar({ repoId, onScope, onNavigate }: OpenerBarProps) {
         </div>
       )}
 
-      {sections.length === 0 && query.trim() !== '' && (
+      {sections.length === 0 && status == null && !busy && (
         <p className="text-muted-foreground border-t px-4 py-3 text-sm">
-          Nothing matches. Paths start with <code>/</code> or <code>~</code>;
-          pull requests look like <code>owner/repo#123</code>.
+          {query.trim() !== '' ? (
+            <>
+              Nothing matches. Paths start with <code>/</code> or{' '}
+              <code>~</code>; pull requests look like{' '}
+              <code>owner/repo#123</code>.
+            </>
+          ) : repoId != null ? (
+            <>Nothing to review in this repository yet.</>
+          ) : (
+            // First run: nothing opened, nothing typed. Previously a bare box
+            // with no rows and no way to know what it wanted.
+            <>
+              Nothing opened yet. Type a path like <code>~/dev</code> to find a
+              repository, or paste a pull request.
+            </>
+          )}
         </p>
       )}
 
-      <div className="text-muted-foreground/70 flex items-center gap-3 border-t px-4 py-2 text-[11px]">
+      {busy && (
+        <p className="text-muted-foreground border-t px-4 py-3 text-sm">
+          Reading the repository…
+        </p>
+      )}
+
+      {status != null && (
+        <p role="status" className="text-muted-foreground border-t px-4 py-3 text-sm">
+          {status}
+        </p>
+      )}
+
+      <div className="text-muted-foreground flex items-center gap-3 border-t px-4 py-2 text-[11px]">
         <Hint keys="↑↓" label="move" />
         <Hint keys="↵" label={enterLabel(rows[active])} />
         {/* Whichever gesture is actually available: backspace only removes the
@@ -319,7 +395,14 @@ function Results({
             return (
               <button
                 key={row.id}
+                id={rowId(at)}
                 type="button"
+                role="option"
+                aria-selected={at === active}
+                // Out of the tab order: the field keeps focus and moves the
+                // selection with the arrow keys, so a Tab stop per row would be
+                // ten invisible stops fighting that.
+                tabIndex={-1}
                 data-opener-row={at}
                 onMouseEnter={() => onHover(at)}
                 onClick={() => onChoose(row)}
@@ -331,7 +414,7 @@ function Results({
                 <Icon
                   className={cn(
                     'size-4 shrink-0',
-                    at === active ? 'opacity-80' : 'opacity-45'
+                    at === active ? 'opacity-90' : 'opacity-60'
                   )}
                 />
                 <span className="min-w-0 flex-1">

@@ -84,6 +84,41 @@ describe.skipIf(!available)('the opener in a real browser', () => {
     expect(text.toLowerCase()).toContain('git');
   });
 
+  // A combobox in behaviour since it was written. Without the wiring a screen
+  // reader hears a bare text field and nothing at all as the arrows move.
+  test('is wired as a combobox over a listbox', async () => {
+    await type(`${base}/`);
+    const state = JSON.parse(
+      await browser.evaluate<string>(`(() => {
+        const input = document.querySelector('input[role=combobox]');
+        const options = [...document.querySelectorAll('[role=option]')];
+        const selected = options.filter(
+          (o) => o.getAttribute('aria-selected') === 'true'
+        );
+        return JSON.stringify({
+          expanded: input && input.getAttribute('aria-expanded'),
+          listbox: !!document.querySelector('#opener-results[role=listbox]'),
+          options: options.length,
+          selected: selected.length,
+          pointsAtSelected:
+            !!selected[0] &&
+            selected[0].id === input.getAttribute('aria-activedescendant'),
+          inTabOrder: options.filter((o) => o.tabIndex !== -1).length,
+        });
+      })()`)
+    ) as Record<string, unknown>;
+
+    expect(state.expanded).toBe('true');
+    expect(state.listbox).toBe(true);
+    expect(state.options).toBeGreaterThan(0);
+    // Exactly one option is selected, and it is the one the field points at.
+    expect(state.selected).toBe(1);
+    expect(state.pointsAtSelected).toBe(true);
+    // The field keeps focus and the arrows move the selection, so a Tab stop
+    // per row would be a row of invisible stops fighting that.
+    expect(state.inTabOrder).toBe(0);
+  });
+
   test('a pull request is recognised without any network', async () => {
     await type('oven-sh/bun#30412');
     const text = await browser.evaluate<string>(BODY);
