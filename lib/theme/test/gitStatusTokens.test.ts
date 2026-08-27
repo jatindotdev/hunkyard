@@ -1,8 +1,8 @@
 import type { ThemeLike } from '@pierre/theming';
 import { describe, expect, test } from 'bun:test';
 
-import { gitStatusTokenOverrides } from '../theme/gitStatusTokens';
-import { treeThemeProps } from '../theme/treeThemeProps';
+import { gitStatusTokenOverrides } from '@/lib/theme/gitStatusTokens';
+import { treeThemeProps } from '@/lib/theme/treeThemeProps';
 
 // A theme that names its Git decoration colours, which is what makes the tree's
 // row glyphs diverge from the stylesheet palette.

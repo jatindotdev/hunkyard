@@ -9,7 +9,7 @@ import {
   type ActiveThemeSnapshot,
   controllerSource,
   fixedSource,
-} from '../theme/ThemeSource';
+} from '@/lib/theme/ThemeSource';
 
 // A minimal resolver fake. Themes are plain objects keyed by name. `resolveTheme`
 // is async (a microtask) to mirror the real lazy load; `getResolvedTheme` only

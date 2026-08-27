@@ -3,8 +3,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { runGit } from '../git/exec';
-import { startServer } from '../../server/index';
+import { runGit } from '@/lib/git/exec';
+import { startServer } from '@/server/index';
 import { Browser, chromeAvailable } from './browser';
 
 // The opener in a real browser. One page load, because Browser.open settles for

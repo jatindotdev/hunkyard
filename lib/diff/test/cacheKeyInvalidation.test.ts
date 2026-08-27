@@ -5,9 +5,9 @@ import { join } from 'node:path';
 import { processFile } from '@pierre/diffs';
 
 import { contentAddressedCacheKey } from '@/lib/diff/cacheKey';
-import { git } from '../git/exec';
-import { readPatch } from '../git/patchStream';
-import { resolveGitTarget } from '../git/targets';
+import { git } from '@/lib/git/exec';
+import { readPatch } from '@/lib/git/patchStream';
+import { resolveGitTarget } from '@/lib/git/targets';
 
 // End-to-end proof of the invalidation this exists for: the same working-tree
 // target, at the same URL, must produce different highlight cache keys once the

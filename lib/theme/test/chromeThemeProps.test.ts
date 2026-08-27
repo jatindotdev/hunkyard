@@ -4,8 +4,8 @@ import type { ThemeLike } from '@pierre/theming';
 import { describe, expect, test } from 'bun:test';
 import type { CSSProperties } from 'react';
 
-import { chromeThemeProps } from '../theme/chromeThemeProps';
-import { hunkyardChromeMapping } from '../theme/hunkyardChromeMapping';
+import { chromeThemeProps } from '@/lib/theme/chromeThemeProps';
+import { hunkyardChromeMapping } from '@/lib/theme/hunkyardChromeMapping';
 
 // Golden chrome styles captured from the pre-theming buildThemeChromeStyle for
 // the two default Pierre soft themes. These are identical to the fixtures in

@@ -2,8 +2,8 @@ import type { ThemeLike } from '@pierre/theming';
 import { themeToTreeStyles } from '@pierre/trees';
 import { describe, expect, test } from 'bun:test';
 
-import { deriveChromeTokens } from '../theme/deriveChromeTokens';
-import { treeThemeProps } from '../theme/treeThemeProps';
+import { deriveChromeTokens } from '@/lib/theme/deriveChromeTokens';
+import { treeThemeProps } from '@/lib/theme/treeThemeProps';
 
 // A theme with a deliberately dim sideBar.foreground on a dark sidebar, so the
 // contrast-based pick in deriveChromeTokens upgrades the tree foreground. This

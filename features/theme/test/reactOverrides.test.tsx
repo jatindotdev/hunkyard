@@ -11,7 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ThemedCodeView } from '@/features/theme/ThemedCodeView';
 import { ThemedSurface } from '@/features/theme/ThemedSurface';
 import { ThemeSourceProvider } from '@/features/theme/ThemeSourceProvider';
-import type { ChromeMapping } from '../theme/chromeThemeProps';
+import type { ChromeMapping } from '@/lib/theme/chromeThemeProps';
 
 const originalGlobals = {
   document: Reflect.get(globalThis, 'document'),

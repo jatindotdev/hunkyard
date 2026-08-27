@@ -5,7 +5,7 @@ import {
   type DiffThemeInput,
   diffThemeProps,
   diffThemeSelectionFromInput,
-} from '../theme/diffThemeProps';
+} from '@/lib/theme/diffThemeProps';
 
 const loadedLightTheme = {
   name: 'loaded-light-test',

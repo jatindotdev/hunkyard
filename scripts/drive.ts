@@ -6,7 +6,7 @@
 //   bun scripts/drive.ts http://hunkyard.localhost:4865/local eval:location.href
 //
 // Steps: eval:<expr>, key:<key>, drag:x1,y1,x2,y2, wait:<ms>, shot:<path>
-import { Browser, findChrome } from '../lib/test/browser';
+import { Browser, findChrome } from '@/test/browser';
 
 const [url, ...steps] = process.argv.slice(2);
 if (url == null) {
