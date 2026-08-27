@@ -308,17 +308,15 @@ export const HunkyardSidebar = memo(function HunkyardSidebar({
               dropdownThemeStyle={dropdownThemeStyle}
             />
           )}
-          {onMobileClose != null && (
-            <Button
-              variant="ghost"
-              size="icon-only"
-              className={cn(CHROME_ICON_BUTTON_CLASS, 'md:hidden')}
-              aria-label="Close file tree"
-              onClick={onMobileClose}
-            >
-              <IconXSquircle className="size-4 md:size-3" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon-only"
+            className={cn(CHROME_ICON_BUTTON_CLASS, 'md:hidden')}
+            aria-label="Close file tree"
+            onClick={onMobileClose}
+          >
+            <IconXSquircle className="size-4 md:size-3" />
+          </Button>
         </div>
         <div className="mt-3 min-h-0 flex-1">
           <div

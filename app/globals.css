@@ -206,6 +206,13 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* Kept in step with `.dark` above. This block is what a system-dark user
+       gets if the pre-paint script in index.html throws -- its catch says to
+       let the CSS defaults apply -- so a value missing here is a light surface
+       under a dark theme rather than nothing at all. */
+    --hunkyard-sidebar-bg: #101010;
+
     color-scheme: dark;
   }
 }
@@ -222,8 +229,16 @@
   --cv-gutter-horizontal: 0px;
   --cv-mini-gutter-vertical: 0px;
   --cv-mini-gutter-horizontal: 0px;
-  color-scheme: light;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Not on the bare `:root` above. `.dark` and `:root` have the same
+   specificity, so whichever is written last wins -- and this one is, which
+   left `<html class="dark">` resolving to a light colour-scheme. Native
+   scrollbars and form controls went light with it whenever the inline style
+   write did not happen. */
+:root:not(.dark) {
+  color-scheme: light;
 }
 
 @layer base {

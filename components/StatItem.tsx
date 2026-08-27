@@ -17,8 +17,11 @@ export function StatItem({ label, value, valueClassName }: StatItemProps) {
       <div className="text-muted-foreground">{label}</div>
       <span
         className={cn('pl-[1ch] text-right tabular-nums', valueClassName)}
+        // The mono face the diff itself is set in. This asked for a Berkeley
+        // Mono token that is defined nowhere, so the numbers quietly rendered
+        // in the inherited sans.
         style={{
-          fontFamily: 'var(--font-berkeley-mono)',
+          fontFamily: 'var(--diffs-font-family)',
           opacity: isZero ? 0.5 : 1,
         }}
       >

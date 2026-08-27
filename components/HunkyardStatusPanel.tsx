@@ -1,4 +1,4 @@
-import { IconCiWarningFill, IconRefresh } from '@pierre/icons';
+import { IconCheck, IconCiWarningFill, IconRefresh } from '@pierre/icons';
 
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
@@ -35,27 +35,38 @@ export function HunkyardStatusPanel({
   const themeChromeStyle =
     Object.keys(chromeStyle).length > 0 ? chromeStyle : undefined;
   const isError = state === 'error';
+  // Reaching this panel having finished means the patch was read and had
+  // nothing in it. It had no branch of its own, so it fell through to the
+  // streaming one and sat there spinning at a diff that had already arrived.
+  const isEmpty = !isError && state === 'ready';
+
   const title = isError
     ? 'Couldn’t load diff'
-    : awaitingHighlighter
-      ? 'Starting the highlighter'
-      : state === 'parsing'
-        ? 'Preparing diff'
-        : state === 'fetching'
-          ? 'Reading diff'
-          : 'Streaming diff';
+    : isEmpty
+      ? 'Nothing to review'
+      : awaitingHighlighter
+        ? 'Starting the highlighter'
+        : state === 'parsing'
+          ? 'Preparing diff'
+          : state === 'fetching'
+            ? 'Reading diff'
+            : 'Streaming diff';
 
   const message = isError
     ? (errorMessage ?? 'Failed to fetch the diff, please try again.')
-    : awaitingHighlighter
-      ? 'Warming up syntax highlighting…'
-      : state === 'parsing'
-        ? 'Parsing the patch and building the file tree…'
-        : state === 'fetching'
-          ? isLocal
-            ? 'Reading the diff from your repository…'
-            : 'Fetching the patch from GitHub…'
-          : 'Reading the patch and showing files as they arrive…';
+    : isEmpty
+      ? isLocal
+        ? 'This target has no changes. Pick another from the opener, or ⌘K.'
+        : 'This diff has no files in it.'
+      : awaitingHighlighter
+        ? 'Warming up syntax highlighting…'
+        : state === 'parsing'
+          ? 'Parsing the patch and building the file tree…'
+          : state === 'fetching'
+            ? isLocal
+              ? 'Reading the diff from your repository…'
+              : 'Fetching the patch from GitHub…'
+            : 'Reading the patch and showing files as they arrive…';
 
   return (
     <div
@@ -68,13 +79,18 @@ export function HunkyardStatusPanel({
       <section
         role={isError ? 'alert' : 'status'}
         aria-live="polite"
-        aria-busy={!isError || undefined}
+        aria-busy={(!isError && !isEmpty) || undefined}
         className="w-full max-w-md p-5 text-center"
       >
-        {!isError ? (
+        {isEmpty ? (
+          <IconCheck
+            aria-hidden="true"
+            className="text-muted-foreground mx-auto mb-3 size-5"
+          />
+        ) : !isError ? (
           <IconRefresh
             aria-hidden="true"
-            className="text-muted-foreground mx-auto mb-3 size-5 -scale-x-100 animate-spin [animation-direction:reverse]"
+            className="text-muted-foreground mx-auto mb-3 size-5 -scale-x-100 animate-spin [animation-direction:reverse] [animation-duration:0.7s] motion-reduce:animate-none"
           />
         ) : (
           <IconCiWarningFill className="text-muted-foreground mx-auto mb-3 size-5" />

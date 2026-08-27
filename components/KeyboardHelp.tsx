@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 
 import { Button } from './Button';
 import { cn } from '@/lib/cn';
+import { DEVTOOLS_ENABLED } from '@/lib/devtools';
 
 interface Shortcut {
   keys: readonly string[];
@@ -33,7 +34,12 @@ const SHORTCUTS: readonly { group: string; shortcuts: readonly Shortcut[] }[] = 
     shortcuts: [
       { keys: ['⌘', 'K'], description: 'Open something else' },
       { keys: ['F2'], description: 'Diff stats' },
-      { keys: ['F3'], description: 'System monitor' },
+      // F3 opens the worker-pool monitor, which only renders under
+      // DEVTOOLS_ENABLED. Listing it unconditionally advertised a key that does
+      // nothing in a release build.
+      ...(DEVTOOLS_ENABLED
+        ? [{ keys: ['F3'], description: 'System monitor' }]
+        : []),
       { keys: ['?'], description: 'This list' },
     ],
   },
@@ -65,7 +71,7 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
       onClick={onClose}
     >
       <div
-        className="bg-card text-card-foreground w-full max-w-md rounded-xl border p-4 shadow-lg"
+        className="bg-card text-card-foreground max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-xl border p-4 shadow-lg"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">
